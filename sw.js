@@ -1,6 +1,6 @@
 /* Úkolníček – Service Worker (offline režim)
    Při každé nové verzi aplikace zvyš VERSION, jinak si telefony nechají starou verzi. */
-const VERSION = 'ukolnicek-v2.1.0';
+const VERSION = 'ukolnicek-v2.1.2';
 const RUNTIME = 'ukolnicek-runtime';
 const ASSETS = [
   './',
@@ -17,7 +17,9 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(ASSETS)));
+  // cache:'reload' = stáhnout ze serveru, ne z mezipaměti prohlížeče
+  // (GitHub Pages posílá soubory s 10min platností, jinak by se sem mohl uložit starý app.js)
+  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(ASSETS.map((u) => new Request(u, { cache: 'reload' })))));
   // nečekáme automaticky: aplikace nabídne „Obnovit“, pak pošle skipWaiting
 });
 

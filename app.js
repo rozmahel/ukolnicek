@@ -53,7 +53,7 @@ const ICONS={
 };
 
 /* ================= state ================= */
-function defaultSettings(){return {name:'Úkolníček',semesterStart:'',showWeekend:false,dayStart:7,dayEnd:20,miniCal:true};}
+function defaultSettings(){return {name:'Úkolníček',semesterStart:'',showWeekend:false,dayStart:7,dayEnd:20,miniCal:true,miniCalWeeks:true};}
 const S={ready:false,pages:{},events:{},settings:defaultSettings(),view:lsGet('uk-view',{kind:'today'}),weekOffset:0,calOffset:0,taskFilter:'open',expanded:lsGet('uk-exp',{}),pop:null,modal:null,deferRemote:false};
 const MONTHS_NOM=['leden','únor','březen','duben','květen','červen','červenec','srpen','září','říjen','listopad','prosinec'];
 const IS_MAC=/Mac|iPhone|iPad/.test(navigator.platform||navigator.userAgent);
@@ -365,21 +365,22 @@ function renderSidebar(){
   updateSaving(); updateSyncUI();
 }
 
-/* mini kalendář v bočním panelu: měsíc, dny v týdnu a číslo týdne
-   (týden výuky, když je nastavený začátek semestru, jinak kalendářní týden) */
+/* mini kalendář v bočním panelu: měsíc, dny v týdnu a (volitelně) číslo týdne v roce;
+   týden výuky je v řádku nad kalendářem a v bublině po najetí na číslo */
 function renderMiniCal(){
   const now=new Date(), base=new Date(now.getFullYear(),now.getMonth()+S.calOffset,1);
   const y=base.getFullYear(), mo=base.getMonth();
   const start=mondayOf(base), weeks=weeksBetween(start,new Date(y,mo+1,0))+1;
-  const sem=!!parseD(S.settings.semesterStart), today=ymd(now);
+  const sem=!!parseD(S.settings.semesterStart), today=ymd(now), wk=S.settings.miniCalWeeks!==false;
   let h=`<div class="mc" aria-label="Kalendář">
     <div class="mc-h"><button class="mc-nav" data-act="mc-prev" aria-label="Předchozí měsíc">‹</button><button class="mc-t ${S.calOffset?'':'cur'}" data-act="mc-now" title="Zpět na tento měsíc">${MONTHS_NOM[mo]} ${y}</button><button class="mc-nav" data-act="mc-next" aria-label="Další měsíc">›</button></div>
-    <div class="mc-g"><span class="mc-wk mc-dh" title="${sem?'Týden výuky':'Kalendářní týden'}">${sem?'T':'KT'}</span>${DAYS.map((d,i)=>`<span class="mc-dh ${i>4?'we':''}">${d}</span>`).join('')}`;
+    <div class="mc-g ${wk?'':'nowk'}">${wk?'<span class="mc-wk mc-dh" title="Kalendářní týden v roce">KT</span>':''}${DAYS.map((d,i)=>`<span class="mc-dh ${i>4?'we':''}">${d}</span>`).join('')}`;
   for(let w=0;w<weeks;w++){
     const mon=new Date(start); mon.setDate(start.getDate()+w*7);
-    let wn=''; if(sem){ const n=weekNo(mon); if(n>=1&&n<=20) wn=n; } else wn=isoWeek(mon);
-    const cur=weeksBetween(now,mon)===0;
-    h+=`<span class="mc-wk ${cur?'cur':''}" ${sem&&wn?`title="${wn}. týden výuky · ${wn%2?'lichý':'sudý'}"`:''}>${wn}</span>`;
+    if(wk){
+      const kt=isoWeek(mon), n=sem?weekNo(mon):null, cur=weeksBetween(now,mon)===0;
+      h+=`<span class="mc-wk ${cur?'cur':''}" title="${kt}. týden v roce${n>=1&&n<=20?` · ${n}. týden výuky (${n%2?'lichý':'sudý'})`:''}">${kt}</span>`;
+    }
     for(let i=0;i<7;i++){
       const d=new Date(mon); d.setDate(mon.getDate()+i);
       h+=`<button class="mc-d ${d.getMonth()===mo?'':'out'} ${ymd(d)===today?'today':''} ${i>4?'we':''}" data-act="mc-day" data-date="${ymd(d)}" title="${DAYS_FULL[i]} ${d.getDate()}. ${d.getMonth()+1}. · otevřít v rozvrhu">${d.getDate()}</button>`;
@@ -1300,7 +1301,7 @@ function openSearch(){
 }
 
 /* ================= settings ================= */
-const APP_VERSION='2.1.0';
+const APP_VERSION='2.1.2';
 function fmtTime(ts){ if(!ts) return ''; const d=new Date(ts); const t=`${d.getHours()}:${pad(d.getMinutes())}`; return sod(d).getTime()===sod(new Date()).getTime()?t:`${shortDate(d)} ${t}`; }
 function downloadFile(name,text){
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'application/json'})); a.download=name;
@@ -1323,6 +1324,7 @@ async function openSettings(focus){
     <div class="grid2"><div class="fld"><label for="st-h0">Rozvrh od</label><select id="st-h0">${Array.from({length:14},(_,i)=>i+5).map(h=>`<option ${+st.dayStart===h?'selected':''}>${h}</option>`).join('')}</select></div><div class="fld"><label for="st-h1">Rozvrh do</label><select id="st-h1">${Array.from({length:12},(_,i)=>i+13).map(h=>`<option ${+st.dayEnd===h?'selected':''}>${h}</option>`).join('')}</select></div></div>
     <label class="chk"><input type="checkbox" id="st-we" ${st.showWeekend?'checked':''}> Zobrazovat v rozvrhu i víkend</label>
     <label class="chk"><input type="checkbox" id="st-mc" ${st.miniCal?'checked':''}> Mini kalendář v levém panelu pod číslem týdne</label>
+    <label class="chk sub"><input type="checkbox" id="st-mcw" ${st.miniCalWeeks!==false?'checked':''} ${st.miniCal?'':'disabled'}> V kalendáři ukazovat čísla týdnů v roce</label>
     <div class="m-actions"><span class="sp"></span><button type="submit" class="btn pri">Uložit nastavení</button></div>
 
     <div class="head-rule" style="margin:4px 0"></div>
@@ -1348,13 +1350,14 @@ async function openSettings(focus){
   </form>`);
   $('#stf',m).addEventListener('submit',e=>{
     e.preventDefault();
-    Object.assign(S.settings,{name:$('#st-name',m).value.trim()||'Úkolníček',semesterStart:$('#st-start',m).value,dayStart:+$('#st-h0',m).value,dayEnd:+$('#st-h1',m).value,showWeekend:$('#st-we',m).checked,miniCal:$('#st-mc',m).checked});
+    Object.assign(S.settings,{name:$('#st-name',m).value.trim()||'Úkolníček',semesterStart:$('#st-start',m).value,dayStart:+$('#st-h0',m).value,dayEnd:+$('#st-h1',m).value,showWeekend:$('#st-we',m).checked,miniCal:$('#st-mc',m).checked,miniCalWeeks:$('#st-mcw',m).checked});
     if(S.settings.semesterStart){ const d=parseD(S.settings.semesterStart); if(d.getDay()!==1) S.settings.semesterStart=ymd(mondayOf(d)); }
     saveCid(); saveSettings(); closeModal(); renderSidebar(); renderMain(); toast('Nastavení uloženo');
   });
   const saveCid=()=>{ const v=$('#st-cid',m).value.trim(); if(v!==DriveSync.clientId()){ DriveSync.setClientId(v); DriveSync.preload(); updateSyncUI(); } };
   $('#st-cid',m).addEventListener('change',saveCid);
   $('#st-guide',m).addEventListener('click',openGuide);
+  $('#st-mc',m).addEventListener('change',e=>{ $('#st-mcw',m).disabled=!e.target.checked; });
   const conn=$('#st-conn',m); if(conn) conn.addEventListener('click',async()=>{
     saveCid();
     if(!DriveSync.clientId()){ toast('Nejdřív vlož Client ID.'); $('#st-cid',m).focus(); return; }
@@ -1408,7 +1411,7 @@ function openGuide(){
     ${sec('↩︎','Zpět a vpřed',`<p>Šipky nahoře na stránce, nebo ${kb(M+'Z')} a ${kb(IS_MAC?'⇧⌘Z':'Ctrl+Y')}.</p>`)}
     ${sec('☁️','Záloha na Google Disk',`<p>↑ nahraje data na Disk, ↓ je stáhne. Synchronizace je ruční, takže po větší úpravě nahraj. Oranžová tečka u mráčku znamená změny, které na Disku ještě nejsou.</p>
       <p>Žlutý mráček: přihlášení vypršelo (platí asi hodinu). Stačí kliknout na ↑ nebo ↓ a přihlásit se jedním klikem. Obrázky zůstávají jen v zařízení, kde je vložíš.</p>`)}
-    ${sec('⚙️','Nastavení',`<p>Začátek semestru (podle něj se počítá číslo týdne a lichý/sudý), rozsah hodin v rozvrhu, víkend, mini kalendář v levém panelu, připojení Disku a zálohy do souboru. Kliknutím na den v mini kalendáři otevřeš jeho týden v rozvrhu.</p>`)}
+    ${sec('⚙️','Nastavení',`<p>Začátek semestru (podle něj se počítá číslo týdne a lichý/sudý), rozsah hodin v rozvrhu, víkend, mini kalendář v levém panelu (volitelně s čísly týdnů v roce), připojení Disku a zálohy do souboru. Kliknutím na den v mini kalendáři otevřeš jeho týden v rozvrhu.</p>`)}
   </div>`,'guide-m');
 }
 
