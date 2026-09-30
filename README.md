@@ -83,4 +83,4 @@ Obrázky se ukládají jen v zařízení, kde byly vloženy. Do zálohy na Disku
 
 ## 6. Vydání nové verze
 
-Když změníš jakýkoli soubor, **zvyš `VERSION` na začátku `sw.js`** (např. `ukolnicek-v2.0.1`) a v `app.js` případně `APP_VERSION`. Jinak si zařízení nechají starou verzi z mezipaměti. Po nahrání na GitHub se v aplikaci objeví lišta **„Je dostupná nová verze – Obnovit“**.
+Když změníš jakýkoli soubor, **zvyš `VERSION` na začátku `sw.js`** (např. `ukolnicek-v2.0.2`) a v `app.js` případně `APP_VERSION`. Jinak si zařízení nechají starou verzi z mezipaměti. Po nahrání na GitHub se nová verze nasadí sama: při spuštění nebo návratu do aplikace (stránka se jednou krátce obnoví), případně když aplikaci schováš. Jen když zrovna píšeš nebo máš otevřený dialog, objeví se lišta **„Je dostupná nová verze – Obnovit“**.

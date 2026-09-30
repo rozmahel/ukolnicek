@@ -1214,7 +1214,7 @@ function openSearch(){
 }
 
 /* ================= settings ================= */
-const APP_VERSION='2.0.0';
+const APP_VERSION='2.0.1';
 function fmtTime(ts){ if(!ts) return ''; const d=new Date(ts); const t=`${d.getHours()}:${pad(d.getMinutes())}`; return sod(d).getTime()===sod(new Date()).getTime()?t:`${shortDate(d)} ${t}`; }
 function downloadFile(name,text){
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'application/json'})); a.download=name;
@@ -1632,17 +1632,46 @@ setInterval(()=>{ if(S.ready&&!S.modal&&(S.view.kind==='schedule'||S.view.kind==
 /* ================= boot ================= */
 renderSidebar();
 Store.init();
+let reloading=false;
 if('serviceWorker' in navigator&&location.protocol!=='file:'){
+  /* Nová verze se nasadí sama: hned po spuštění / návratu do appky (prvních 20 s),
+     nebo když appku schováš či přepneš jinam. Když zrovna píšeš nebo máš otevřený dialog,
+     ukáže se jen lišta „Obnovit“, aby ti reload nesmazal rozepsané. */
+  let fresh=Date.now(), pending=null;
+  const typing=()=>{ const a=document.activeElement; return !!a&&(a.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); };
+  const apply=w=>w.postMessage('skipWaiting');
+  const offer=w=>{
+    pending=w;
+    if(Date.now()-fresh<20000&&!S.modal&&!typing()) return apply(w);
+    const bar=$('#upd'); if(!bar) return; bar.hidden=false; $('#upd-btn').onclick=()=>apply(w);
+  };
   window.addEventListener('load',()=>{
     navigator.serviceWorker.register('sw.js').then(reg=>{
-      const show=w=>{ const bar=$('#upd'); if(!bar) return; bar.hidden=false; $('#upd-btn').onclick=()=>w.postMessage('skipWaiting'); };
-      if(reg.waiting&&navigator.serviceWorker.controller) show(reg.waiting);
-      reg.addEventListener('updatefound',()=>{ const w=reg.installing; if(w) w.addEventListener('statechange',()=>{ if(w.state==='installed'&&navigator.serviceWorker.controller) show(w); }); });
-      document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') reg.update().catch(()=>{}); });
+      if(reg.waiting&&navigator.serviceWorker.controller) offer(reg.waiting);
+      reg.addEventListener('updatefound',()=>{ const w=reg.installing; if(w) w.addEventListener('statechange',()=>{ if(w.state==='installed'&&navigator.serviceWorker.controller) offer(w); }); });
+      document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'){ fresh=Date.now(); reg.update().catch(()=>{}); } });
       setInterval(()=>reg.update().catch(()=>{}),3600000);
     }).catch(e=>console.warn('SW',e));
   });
-  let reloading=false;
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'&&pending) apply(pending); });
   navigator.serviceWorker.addEventListener('controllerchange',async()=>{ if(reloading) return; reloading=true; try{ await Store.flush(); }catch(_){} location.reload(); });
 }
+
+/* Upozornění při zavírání: jen když je Disk nastavený a jsou tu změny, které na něm nejsou.
+   Prohlížeč ukáže vlastní dialog (vlastní tlačítka do něj dát nejde); když zvolíš „Zůstat“,
+   nabídne Úkolníček rovnou nahrání. */
+window.addEventListener('beforeunload',e=>{
+  if(reloading) return;
+  const dirty=META.changedAt>META.syncedAt&&Object.keys(S.pages).length>0;
+  if(!dirty||DriveSync.state()==='off'||Sync.busy) return;
+  try{ Store.flush(); }catch(_){}
+  e.preventDefault(); e.returnValue='';
+  setTimeout(()=>{
+    if(S.modal) return;
+    const m=openModal('Neuložené změny',`<div class="m-body">
+      <p>V tomto zařízení máš změny, které nejsou na Disku${META.changedAt?' (poslední úprava '+esc(fmtTime(META.changedAt))+')':''}.</p>
+      <div class="m-actions"><span class="sp"></span><button type="button" class="btn" data-close>Teď ne</button><button type="button" class="btn pri" id="lv-up">Nahrát na Disk</button></div></div>`);
+    $('#lv-up',m).addEventListener('click',()=>{ closeModal(); Sync.upload(); });
+  },300);
+});
 })();
