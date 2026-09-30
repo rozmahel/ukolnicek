@@ -15,6 +15,14 @@
 | `manifest.webmanifest`, `icons/` | instalace na plochu |
 | `import-z-claude.json` | tvoje data z Claude verze k importu (po importu ho klidně smaž, **do repozitáře ho nenahrávej**) |
 
+## Co umí verze 2.1
+
+- **Zámek** 🔒 vedle šipek zpět/vpřed (zkratka ⌘⇧L): skryje tečky, plusy, přidávání a mazání bloků, řádků a sloupců. Psaní, zaškrtávání a rozvrh fungují dál. Pamatuje si ho každé zařízení zvlášť.
+- **Mini kalendář** v levém panelu pod číslem týdne (dny v týdnu + číslo týdne výuky). Zapíná se v Nastavení, klik na den otevře jeho týden v rozvrhu.
+- **Rozvrh – pevný počet opakování** (např. 4×), počítá se po týdnech od zvoleného data.
+- **Rozvrh – souběžné události**: najeď na pravý kraj hodiny a klikni na ＋, obě se zobrazí vedle sebe.
+- **Návod** v Nastavení.
+
 ## 1. Vyzkoušení na počítači
 
 Service Worker a přihlášení Google nefungují z otevřeného souboru (`file://`), je potřeba malý server:
@@ -83,4 +91,4 @@ Obrázky se ukládají jen v zařízení, kde byly vloženy. Do zálohy na Disku
 
 ## 6. Vydání nové verze
 
-Když změníš jakýkoli soubor, **zvyš `VERSION` na začátku `sw.js`** (např. `ukolnicek-v2.0.2`) a v `app.js` případně `APP_VERSION`. Jinak si zařízení nechají starou verzi z mezipaměti. Po nahrání na GitHub se nová verze nasadí sama: při spuštění nebo návratu do aplikace (stránka se jednou krátce obnoví), případně když aplikaci schováš. Jen když zrovna píšeš nebo máš otevřený dialog, objeví se lišta **„Je dostupná nová verze – Obnovit“**.
+Když změníš jakýkoli soubor, **zvyš `VERSION` na začátku `sw.js`** (např. `ukolnicek-v2.1.1`) a v `app.js` případně `APP_VERSION`. Jinak si zařízení nechají starou verzi z mezipaměti. Po nahrání na GitHub se nová verze nasadí sama: při spuštění nebo návratu do aplikace (stránka se jednou krátce obnoví), případně když aplikaci schováš. Jen když zrovna píšeš nebo máš otevřený dialog, objeví se lišta **„Je dostupná nová verze – Obnovit“**.

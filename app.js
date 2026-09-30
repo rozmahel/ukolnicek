@@ -53,8 +53,25 @@ const ICONS={
 };
 
 /* ================= state ================= */
-function defaultSettings(){return {name:'Úkolníček',semesterStart:'',showWeekend:false,dayStart:7,dayEnd:20};}
-const S={ready:false,pages:{},events:{},settings:defaultSettings(),view:lsGet('uk-view',{kind:'today'}),weekOffset:0,taskFilter:'open',expanded:lsGet('uk-exp',{}),pop:null,modal:null,deferRemote:false};
+function defaultSettings(){return {name:'Úkolníček',semesterStart:'',showWeekend:false,dayStart:7,dayEnd:20,miniCal:true};}
+const S={ready:false,pages:{},events:{},settings:defaultSettings(),view:lsGet('uk-view',{kind:'today'}),weekOffset:0,calOffset:0,taskFilter:'open',expanded:lsGet('uk-exp',{}),pop:null,modal:null,deferRemote:false};
+const MONTHS_NOM=['leden','únor','březen','duben','květen','červen','červenec','srpen','září','říjen','listopad','prosinec'];
+const IS_MAC=/Mac|iPhone|iPad/.test(navigator.platform||navigator.userAgent);
+const LOCK_KEY=IS_MAC?'⌘⇧L':'Ctrl+Shift+L';
+
+/* ================= zámek (globální, pamatuje si ho zařízení) ================= */
+let LOCK=!!lsGet('uk-lock',false);
+function lockSvg(on){ return `<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9.5" rx="2.2"/>${on?'<path d="M8 11V8a4 4 0 0 1 8 0v3"/>':'<path d="M8 11V8a4 4 0 0 1 7.6-1.8"/>'}</svg>`; }
+function applyLock(){
+  document.body.classList.toggle('locked',LOCK);
+  const b=$('#lock-btn'); if(!b) return;
+  b.classList.toggle('on',LOCK); b.innerHTML=lockSvg(LOCK); b.setAttribute('aria-pressed',String(LOCK));
+  const t=(LOCK?'Odemknout rozložení':'Zamknout rozložení')+` (${LOCK_KEY})`; b.title=t; b.setAttribute('aria-label',t);
+}
+function toggleLock(){
+  LOCK=!LOCK; lsSet('uk-lock',LOCK); closePop(); hideImgSel(); closeSlash(); applyLock();
+  toast(LOCK?'Zamčeno: bloky, řádky a sloupce drží na místě, psát a zaškrtávat můžeš dál.':'Odemčeno: můžeš zase přidávat, přesouvat a mazat.');
+}
 
 /* ================= storage (IndexedDB, see storage.js) ================= */
 const IMGURL=new Map();
@@ -181,11 +198,21 @@ function weekInfo(d){ const n=weekNo(d); if(n==null) return null; return {n,odd:
 const toMin=t=>{ const [h,m]=(t||'0:0').split(':').map(Number); return h*60+(m||0); };
 const fromMin=m=>`${pad(Math.floor(m/60))}:${pad(m%60)}`;
 const shortDate=d=>`${d.getDate()}. ${d.getMonth()+1}.`;
+function isoWeek(d){ const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())); const dn=t.getUTCDay()||7; t.setUTCDate(t.getUTCDate()+4-dn); const y0=new Date(Date.UTC(t.getUTCFullYear(),0,1)); return Math.ceil(((t-y0)/864e5+1)/7); }
+const weeksBetween=(a,b)=>Math.round((mondayOf(b)-mondayOf(a))/(7*864e5));
+/* pevný počet opakování: kolikátá hodina to je (1…count), jinak 0 */
+function occIndex(ev,d){
+  if(ev.repeat!=='count'||!ev.date) return 0;
+  const k=weeksBetween(parseD(ev.date),d);
+  return k>=0&&k<(+ev.count||1)?k+1:0;
+}
+function lastOcc(ev){ const d=parseD(ev.date); if(!d) return null; d.setDate(d.getDate()+7*((+ev.count||1)-1)); return d; }
 function eventsOnDate(d){
   const wd=(d.getDay()+6)%7, n=weekNo(d), key=ymd(d);
   return Object.values(S.events).filter(ev=>{
     if(ev.repeat==='once') return ev.date===key;
     if(+ev.day!==wd) return false;
+    if(ev.repeat==='count') return occIndex(ev,d)>0;
     if(ev.repeat==='odd') return n!=null&&n%2!==0;
     if(ev.repeat==='even') return n!=null&&n%2===0;
     return true;
@@ -323,7 +350,8 @@ function renderSidebar(){
   }).join('');
   side.innerHTML=`
     <div class="ws"><div class="ws-name">${esc(S.settings.name||'Úkolníček')}</div>
-      ${wk?`<div class="ws-week"><b>${wk.n}.</b> týden výuky · ${wk.parity}</div>`:`<button class="linkbtn" data-act="settings">Nastav začátek semestru</button>`}</div>
+      ${wk?`<div class="ws-week"><b>${wk.n}.</b> týden výuky · ${wk.parity}</div>`:`<button class="linkbtn" data-act="settings">Nastav začátek semestru</button>`}
+      ${S.settings.miniCal?renderMiniCal():''}</div>
     <nav class="nav">
       ${nav('today','Dnes')}
       ${nav('schedule','Rozvrh')}
@@ -335,6 +363,29 @@ function renderSidebar(){
     <div class="syncbar" id="sync-box"></div>
     <div class="side-foot"><button class="nv" data-act="settings">${ICONS.settings}<span>Nastavení</span></button><span id="save-state"></span></div>`;
   updateSaving(); updateSyncUI();
+}
+
+/* mini kalendář v bočním panelu: měsíc, dny v týdnu a číslo týdne
+   (týden výuky, když je nastavený začátek semestru, jinak kalendářní týden) */
+function renderMiniCal(){
+  const now=new Date(), base=new Date(now.getFullYear(),now.getMonth()+S.calOffset,1);
+  const y=base.getFullYear(), mo=base.getMonth();
+  const start=mondayOf(base), weeks=weeksBetween(start,new Date(y,mo+1,0))+1;
+  const sem=!!parseD(S.settings.semesterStart), today=ymd(now);
+  let h=`<div class="mc" aria-label="Kalendář">
+    <div class="mc-h"><button class="mc-nav" data-act="mc-prev" aria-label="Předchozí měsíc">‹</button><button class="mc-t ${S.calOffset?'':'cur'}" data-act="mc-now" title="Zpět na tento měsíc">${MONTHS_NOM[mo]} ${y}</button><button class="mc-nav" data-act="mc-next" aria-label="Další měsíc">›</button></div>
+    <div class="mc-g"><span class="mc-wk mc-dh" title="${sem?'Týden výuky':'Kalendářní týden'}">${sem?'T':'KT'}</span>${DAYS.map((d,i)=>`<span class="mc-dh ${i>4?'we':''}">${d}</span>`).join('')}`;
+  for(let w=0;w<weeks;w++){
+    const mon=new Date(start); mon.setDate(start.getDate()+w*7);
+    let wn=''; if(sem){ const n=weekNo(mon); if(n>=1&&n<=20) wn=n; } else wn=isoWeek(mon);
+    const cur=weeksBetween(now,mon)===0;
+    h+=`<span class="mc-wk ${cur?'cur':''}" ${sem&&wn?`title="${wn}. týden výuky · ${wn%2?'lichý':'sudý'}"`:''}>${wn}</span>`;
+    for(let i=0;i<7;i++){
+      const d=new Date(mon); d.setDate(mon.getDate()+i);
+      h+=`<button class="mc-d ${d.getMonth()===mo?'':'out'} ${ymd(d)===today?'today':''} ${i>4?'we':''}" data-act="mc-day" data-date="${ymd(d)}" title="${DAYS_FULL[i]} ${d.getDate()}. ${d.getMonth()+1}. · otevřít v rozvrhu">${d.getDate()}</button>`;
+    }
+  }
+  return h+'</div></div>';
 }
 
 /* ================= routing ================= */
@@ -380,6 +431,7 @@ function renderPage(pg){
         <span class="pb-sep"></span>
         <button class="icon-btn" id="undo-btn" data-act="undo" title="Zpět (⌘Z)" aria-label="Zpět"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
         <button class="icon-btn" id="redo-btn" data-act="redo" title="Znovu (⇧⌘Z)" aria-label="Znovu"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+        <button class="icon-btn lock-btn" id="lock-btn" data-act="lock"></button>
       </div>
     </div>
     <div class="doc-head">
@@ -390,7 +442,7 @@ function renderPage(pg){
     <div class="blocks" id="blocks">${renderBlocks(pg)}</div>
     <div class="doc-tail" data-act="tail"></div>
   </article>`;
-  hist(pg); updateUndoBtns();
+  hist(pg); updateUndoBtns(); applyLock();
 }
 function renderProps(pg){
   const props=pg.props||[];
@@ -619,6 +671,7 @@ function blockKeys(e,x,t){
     if(!prevEl||!prevEl.classList||!prevEl.classList.contains('blk')) return;
     const pi=pg.blocks.findIndex(q=>q.id===prevEl.dataset.id); const prev=pg.blocks[pi]; if(!prev) return;
     e.preventDefault();
+    if((prev.type==='divider'||prev.type==='page')&&LOCK) return;
     if(prev.type==='divider'||prev.type==='page'){ pg.blocks.splice(pi,1); savePage(pg); rerenderBlocks(); focusBlock(b.id,0); return; }
     if(prev.type==='table'||prev.type==='image'){ if(isBlankEl(t)){ pg.blocks.splice(bi,1); savePage(pg); rerenderBlocks(); const last=$$(`#blocks .blk[data-id="${prev.id}"] .txt`).pop(); focusEl(last,'end'); } return; }
     const len=plain(prev.html).length; prev.html=(prev.html||'')+(b.html||''); pg.blocks.splice(bi,1);
@@ -763,6 +816,7 @@ viewEl.addEventListener('focusout',()=>{
 let dragId=null;
 viewEl.addEventListener('dragstart',e=>{
   const h=e.target.closest&&e.target.closest('.g-drag'); if(!h){ return; }
+  if(LOCK){ e.preventDefault(); return; }
   const blk=h.closest('.blk'); dragId=blk.dataset.id;
   e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain','');
   try{ e.dataTransfer.setDragImage(blk,16,12); }catch(_){}
@@ -910,6 +964,14 @@ function toast(msg,actLabel,act){
 /* ================= menus ================= */
 function openBlockMenu(anchor,pg,b){
   let h='';
+  if(LOCK){
+    /* zamčeno: u zvýrazněného bloku jde jen změnit ikonu a barvu, nic se nepřesouvá ani nemaže */
+    if(b.type!=='callout') return;
+    h=`<div class="pop-h">Ikona</div><div class="swatches">${CALLOUT_IC.map(ic=>`<button class="pop-item" style="width:auto;padding:4px 6px;font-size:17px" data-v="icon:${ic}">${ic}</button>`).join('')}</div>
+      <div class="pop-h">Barva</div><div class="swatches">${COLORS.map(c=>`<button class="sw hl-${c} ${b.color===c?'on':''}" data-v="color:${c}" aria-label="${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}</div>`;
+    openPop(anchor,h,v=>{ if(v.startsWith('color:')) b.color=v.slice(6); else if(v.startsWith('icon:')) b.icon=v.slice(5); savePage(pg); rerenderBlocks(); });
+    return;
+  }
   if(TEXT_TYPES.includes(b.type)) h+=`<div class="pop-h">Převést na</div>`+TEXT_TYPES.map(k=>`<button class="pop-item ${b.type===k?'act':''}" data-v="type:${k}"><span class="pi-ic">${TYPE_ICON[k]}</span>${TYPE_LABEL[k]}</button>`).join('');
   if(b.type==='callout'){
     h+=`<div class="pop-h">Ikona</div><div class="swatches">${CALLOUT_IC.map(ic=>`<button class="pop-item" style="width:auto;padding:4px 6px;font-size:17px" data-v="icon:${ic}">${ic}</button>`).join('')}</div>`;
@@ -1023,6 +1085,9 @@ function layoutDay(evs){
 }
 function evColor(ev){ const p=S.pages[ev.pageId]; return ev.color||(p&&p.color)||'purple'; }
 function evMeta(ev){ return [ev.place,ev.who].filter(Boolean).map(esc).join(' · '); }
+/* krátký štítek: typ · L/S · 2/4 */
+function evRep(ev,d){ if(ev.repeat==='odd') return 'L'; if(ev.repeat==='even') return 'S'; if(ev.repeat==='count'&&d){ const k=occIndex(ev,d); return k?`${k}/${+ev.count||1}`:''; } return ''; }
+function evKind(ev,d){ return [TYPE_SHORT[ev.type],evRep(ev,d)].filter(Boolean).join(' · '); }
 function renderSchedule(){
   const dates=weekDates(), today=ymd(new Date()), wi=weekInfo(dates[0]);
   const [h0,h1]=hourRange(dates), hours=h1-h0, hh=52;
@@ -1035,16 +1100,18 @@ function renderSchedule(){
       const items=layoutDay(eventsOnDate(d));
       let col=`<div class="sg-col ${ymd(d)===today?'today':''}" data-day="${i}" data-date="${ymd(d)}">`;
       items.forEach(it=>{
-        const top=(it.s-h0*60)/60*hh, height=Math.max(22,(it.e-it.s)/60*hh-2), ev=it.ev;
-        col+=`<button class="ev hl-${evColor(ev)}" data-act="ev" data-id="${ev.id}" style="top:${top}px;height:${height}px;left:calc(${it.col}*100%/${it.n} + 3px);width:calc(100%/${it.n} - 6px)">
-          ${TYPE_SHORT[ev.type]?`<span class="ev-k">${esc(TYPE_SHORT[ev.type])}${ev.repeat==='odd'?' · L':ev.repeat==='even'?' · S':''}</span>`:''}<span class="ev-t">${esc(ev.title||'Bez názvu')}</span><span class="ev-m mono">${esc(ev.start)}–${esc(ev.end)}</span>${evMeta(ev)?`<span class="ev-m">${evMeta(ev)}</span>`:''}</button>`;
+        const top=(it.s-h0*60)/60*hh, height=Math.max(22,(it.e-it.s)/60*hh-2), ev=it.ev, kind=evKind(ev,d);
+        col+=`<div class="ev-w" style="top:${top}px;height:${height}px;left:calc(${it.col}*100%/${it.n} + 3px);width:calc(100%/${it.n} - 6px)">
+          <button class="ev hl-${evColor(ev)}" data-act="ev" data-id="${ev.id}">
+          ${kind?`<span class="ev-k">${esc(kind)}</span>`:''}<span class="ev-t">${esc(ev.title||'Bez názvu')}</span><span class="ev-m mono">${esc(ev.start)}–${esc(ev.end)}</span>${evMeta(ev)?`<span class="ev-m">${evMeta(ev)}</span>`:''}</button>
+          <button class="ev-add" data-act="ev-par" data-id="${ev.id}" data-date="${ymd(d)}" title="Přidat další událost ve stejný čas" aria-label="Přidat další událost ve stejný čas">+</button></div>`;
       });
       if(ymd(d)===today){ const nm=new Date().getHours()*60+new Date().getMinutes(); if(nm>=h0*60&&nm<=h1*60) col+=`<div class="now" style="top:${(nm-h0*60)/60*hh}px"></div>`; }
       return col+'<div class="ghost" hidden></div></div>';
     }).join('')}</div></div>`;
   const agenda=`<div class="agenda">${dates.map((d,i)=>{ const evs=eventsOnDate(d);
     return `<div class="ag-day"><div class="ag-dh ${ymd(d)===today?'today':''}"><span>${DAYS_FULL[i][0].toUpperCase()+DAYS_FULL[i].slice(1)} <span class="mono">${shortDate(d)}</span></span><button class="icon-btn" data-act="day-add" data-day="${i}" data-date="${ymd(d)}" aria-label="Přidat událost">+</button></div>
-      ${evs.length?evs.map(evRow).join(''):'<div class="ag-empty">Nic naplánováno</div>'}</div>`; }).join('')}</div>`;
+      ${evs.length?evs.map(ev=>evRow(ev,d)).join(''):'<div class="ag-empty">Nic naplánováno</div>'}</div>`; }).join('')}</div>`;
   $('#view').innerHTML=`<div class="view">
     <div class="v-head"><div><div class="eyebrow">${wi?`${wi.n}. týden výuky · ${wi.parity}`:'Týdenní rozvrh'}</div><h1 class="v-title">Rozvrh</h1></div>
       <div class="v-tools">
@@ -1066,22 +1133,25 @@ function renderSchedule(){
   });
   sg.addEventListener('mouseleave',()=>$$('.ghost',sg).forEach(g=>g.hidden=true));
 }
-function evRow(ev){
-  const nm=new Date().getHours()*60+new Date().getMinutes();
-  return `<button class="ev-row hl-${evColor(ev)}" data-act="ev" data-id="${ev.id}"><span class="t">${esc(ev.start)}–${esc(ev.end)}</span><span class="dot"></span><span><b>${esc(ev.title||'Bez názvu')}</b><small>${[TYPE_SHORT[ev.type]?ev.type:'',ev.place,ev.who].filter(Boolean).map(esc).join(' · ')}</small></span></button>`;
+function evRow(ev,d){
+  const rep=ev.repeat==='count'&&d&&occIndex(ev,d)?`${occIndex(ev,d)}. z ${+ev.count||1}`:'';
+  return `<button class="ev-row hl-${evColor(ev)}" data-act="ev" data-id="${ev.id}"><span class="t">${esc(ev.start)}–${esc(ev.end)}</span><span class="dot"></span><span><b>${esc(ev.title||'Bez názvu')}</b><small>${[TYPE_SHORT[ev.type]?ev.type:'',rep,ev.place,ev.who].filter(Boolean).map(esc).join(' · ')}</small></span></button>`;
 }
 function openEventModal(ev,preset){
   const isNew=!ev;
-  ev=ev?clone(ev):Object.assign({id:rid(),title:'',type:'Přednáška',day:0,start:'08:00',end:'09:50',repeat:'weekly',date:ymd(new Date()),place:'',who:'',note:'',color:'',pageId:''},preset||{});
+  ev=ev?clone(ev):Object.assign({id:rid(),title:'',type:'Přednáška',day:0,start:'08:00',end:'09:50',repeat:'weekly',date:ymd(new Date()),count:4,place:'',who:'',note:'',color:'',pageId:''},preset||{});
+  if(!ev.date) ev.date=ymd(new Date()); if(!ev.count) ev.count=4;
   const pages=flatPages();
   const m=openModal(isNew?'Nová událost':'Upravit událost',`<form class="m-body" id="evf" novalidate>
     <div class="fld"><label for="ev-title">Co</label><input id="ev-title" list="ev-dl" value="${esc(ev.title)}" placeholder="Předmět nebo akce" autocomplete="off"><datalist id="ev-dl">${pages.map(({p})=>`<option value="${esc(pTitle(p))}"></option>`).join('')}</datalist></div>
     <div class="fld"><span class="lbl">Typ</span><div class="seg" id="ev-type">${TYPES.map(t=>`<button type="button" class="${t===ev.type?'on':''}" data-t="${t}">${t}</button>`).join('')}</div></div>
     <div class="grid2">
-      <div class="fld"><label for="ev-repeat">Opakování</label><select id="ev-repeat">${[['weekly','Každý týden'],['odd','Lichý týden'],['even','Sudý týden'],['once','Jednorázově']].map(([v,l])=>`<option value="${v}" ${ev.repeat===v?'selected':''}>${l}</option>`).join('')}</select></div>
+      <div class="fld"><label for="ev-repeat">Opakování</label><select id="ev-repeat">${[['weekly','Každý týden'],['odd','Lichý týden'],['even','Sudý týden'],['count','Pevný počet týdnů'],['once','Jednorázově']].map(([v,l])=>`<option value="${v}" ${ev.repeat===v?'selected':''}>${l}</option>`).join('')}</select></div>
       <div class="fld" id="f-day"><label for="ev-day">Den</label><select id="ev-day">${DAYS_FULL.map((d,i)=>`<option value="${i}" ${+ev.day===i?'selected':''}>${d}</option>`).join('')}</select></div>
-      <div class="fld" id="f-date"><label for="ev-date">Datum</label><input type="date" id="ev-date" value="${esc(ev.date)}"></div>
+      <div class="fld" id="f-date"><label for="ev-date" id="l-date">Datum</label><input type="date" id="ev-date" value="${esc(ev.date)}"></div>
+      <div class="fld" id="f-count"><label for="ev-count">Kolikrát</label><div class="cnt"><input type="number" id="ev-count" min="1" max="52" step="1" value="${+ev.count||4}" inputmode="numeric"><span>×</span></div></div>
     </div>
+    <p class="note" id="ev-cnt-note" hidden></p>
     <div class="grid2"><div class="fld"><label for="ev-start">Od</label><input type="time" id="ev-start" value="${esc(ev.start)}" step="300"></div><div class="fld"><label for="ev-end">Do</label><input type="time" id="ev-end" value="${esc(ev.end)}" step="300"></div></div>
     <div class="grid2"><div class="fld"><label for="ev-place">Kde</label><input id="ev-place" value="${esc(ev.place)}" placeholder="Místnost nebo budova"></div><div class="fld"><label for="ev-who">S kým</label><input id="ev-who" value="${esc(ev.who)}" placeholder="Vyučující, spolužáci"></div></div>
     <div class="fld"><label for="ev-page">Stránka předmětu</label><select id="ev-page"><option value="">Žádná</option>${pages.map(({p,depth})=>`<option value="${p.id}" ${ev.pageId===p.id?'selected':''}>${'  '.repeat(depth)}${esc((p.icon?p.icon+' ':'')+pTitle(p))}</option>`).join('')}</select></div>
@@ -1091,8 +1161,22 @@ function openEventModal(ev,preset){
     <div class="m-actions">${isNew?'':'<button type="button" class="btn danger" id="ev-del">Smazat</button>'}<span class="sp"></span>${ev.pageId&&S.pages[ev.pageId]?'<button type="button" class="btn" id="ev-open">Otevřít stránku</button>':''}<button type="button" class="btn" data-close>Zrušit</button><button type="submit" class="btn pri">${isNew?'Přidat':'Uložit'}</button></div>
   </form>`);
   let type=ev.type, color=evColor(ev);
-  const syncRepeat=()=>{ const once=$('#ev-repeat',m).value==='once'; $('#f-day',m).hidden=once; $('#f-date',m).hidden=!once; };
+  const cntNote=()=>{
+    const n=$('#ev-cnt-note',m); if($('#ev-repeat',m).value!=='count'){ n.hidden=true; return; }
+    const d=parseD($('#ev-date',m).value), c=clamp(parseInt($('#ev-count',m).value,10)||0,0,52);
+    if(!d||!c){ n.hidden=true; return; }
+    const last=new Date(d); last.setDate(d.getDate()+7*(c-1));
+    n.textContent=c===1?`Jen jednou: ${DAYS_FULL[(d.getDay()+6)%7]} ${shortDate(d)}`:`Každý ${['pondělí','úterý','středu','čtvrtek','pátek','sobotu','neděli'][(d.getDay()+6)%7]} ${c}×: od ${shortDate(d)} do ${shortDate(last)} ${last.getFullYear()} (počítá se po týdnech, bez ohledu na svátky).`;
+    n.hidden=false;
+  };
+  const syncRepeat=()=>{
+    const r=$('#ev-repeat',m).value, byDate=r==='once'||r==='count';
+    $('#f-day',m).hidden=byDate; $('#f-date',m).hidden=!byDate; $('#f-count',m).hidden=r!=='count';
+    $('#l-date',m).textContent=r==='count'?'První hodina':'Datum';
+    cntNote();
+  };
   syncRepeat(); $('#ev-repeat',m).addEventListener('change',syncRepeat);
+  $('#ev-date',m).addEventListener('input',cntNote); $('#ev-count',m).addEventListener('input',cntNote);
   $('#ev-type',m).addEventListener('click',e=>{ const b=e.target.closest('[data-t]'); if(!b) return; type=b.dataset.t; $$('#ev-type button',m).forEach(x=>x.classList.toggle('on',x===b)); });
   const setColor=c=>{ color=c; $$('#ev-color .sw',m).forEach(x=>x.classList.toggle('on',x.dataset.c===c)); };
   $('#ev-color',m).addEventListener('click',e=>{ const b=e.target.closest('[data-c]'); if(b) setColor(b.dataset.c); });
@@ -1103,14 +1187,16 @@ function openEventModal(ev,preset){
   const op=$('#ev-open',m); if(op) op.addEventListener('click',()=>{ closeModal(); go({kind:'page',pageId:ev.pageId}); });
   $('#evf',m).addEventListener('submit',e=>{
     e.preventDefault();
-    const out=Object.assign(ev,{title:$('#ev-title',m).value.trim(),type,repeat:$('#ev-repeat',m).value,day:+$('#ev-day',m).value,date:$('#ev-date',m).value,start:$('#ev-start',m).value,end:$('#ev-end',m).value,place:$('#ev-place',m).value.trim(),who:$('#ev-who',m).value.trim(),pageId:$('#ev-page',m).value,note:$('#ev-note',m).value,color});
+    const out=Object.assign(ev,{title:$('#ev-title',m).value.trim(),type,repeat:$('#ev-repeat',m).value,day:+$('#ev-day',m).value,date:$('#ev-date',m).value,count:parseInt($('#ev-count',m).value,10)||0,start:$('#ev-start',m).value,end:$('#ev-end',m).value,place:$('#ev-place',m).value.trim(),who:$('#ev-who',m).value.trim(),pageId:$('#ev-page',m).value,note:$('#ev-note',m).value,color});
     const err=$('#ev-err',m); let msg='';
     if(!out.title) msg='Napiš, co to je (třeba název předmětu).';
     else if(!out.start||!out.end) msg='Vyplň čas od a do.';
     else if(toMin(out.end)<=toMin(out.start)) msg='Konec musí být po začátku.';
-    else if(out.repeat==='once'&&!out.date) msg='Vyber datum.';
+    else if((out.repeat==='once'||out.repeat==='count')&&!out.date) msg=out.repeat==='count'?'Vyber datum první hodiny.':'Vyber datum.';
+    else if(out.repeat==='count'&&(out.count<1||out.count>52)) msg='Počet opakování musí být 1 až 52.';
     if(msg){ err.textContent=msg; err.hidden=false; return; }
-    if(out.repeat==='once'){ const d=parseD(out.date); out.day=(d.getDay()+6)%7; }
+    if(out.repeat==='once'||out.repeat==='count'){ const d=parseD(out.date); out.day=(d.getDay()+6)%7; }
+    if(out.repeat!=='count') delete out.count;
     S.events[out.id]=out; saveEvent(out); closeModal(); renderMain();
     toast(isNew?'Událost přidána':'Změny uloženy');
   });
@@ -1175,9 +1261,9 @@ function renderToday(){
     <div class="cards">
       <div style="display:grid;gap:18px">
         <section class="card"><div class="card-h"><h2>Dnes v rozvrhu</h2><button class="btn" data-act="nav" data-v="schedule">Rozvrh</button></div>
-          <div class="card-body">${evs.length?evs.map(ev=>evRow(ev).replace('class="ev-row',`class="ev-row ${toMin(ev.start)<=nm&&nm<toMin(ev.end)?'now-ev':''}`)).join(''):`<div class="empty">Dnes nemáš v rozvrhu nic. <button class="linkbtn" data-act="day-add" data-day="${wd}" data-date="${ymd(now)}">Přidat událost</button></div>`}</div></section>
+          <div class="card-body">${evs.length?evs.map(ev=>evRow(ev,now).replace('class="ev-row',`class="ev-row ${toMin(ev.start)<=nm&&nm<toMin(ev.end)?'now-ev':''}`)).join(''):`<div class="empty">Dnes nemáš v rozvrhu nic. <button class="linkbtn" data-act="day-add" data-day="${wd}" data-date="${ymd(now)}">Přidat událost</button></div>`}</div></section>
         <section class="card"><div class="card-h"><h2>Zítra</h2></div>
-          <div class="card-body">${evT.length?evT.map(evRow).join(''):'<div class="empty">Zítra volno.</div>'}</div></section>
+          <div class="card-body">${evT.length?evT.map(ev=>evRow(ev,tm)).join(''):'<div class="empty">Zítra volno.</div>'}</div></section>
       </div>
       <div style="display:grid;gap:18px">
         <section class="card"><div class="card-h"><h2>Blížící se termíny</h2><button class="btn" data-act="nav" data-v="tasks">Všechny úkoly</button></div>
@@ -1214,7 +1300,7 @@ function openSearch(){
 }
 
 /* ================= settings ================= */
-const APP_VERSION='2.0.1';
+const APP_VERSION='2.1.0';
 function fmtTime(ts){ if(!ts) return ''; const d=new Date(ts); const t=`${d.getHours()}:${pad(d.getMinutes())}`; return sod(d).getTime()===sod(new Date()).getTime()?t:`${shortDate(d)} ${t}`; }
 function downloadFile(name,text){
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'application/json'})); a.download=name;
@@ -1231,10 +1317,12 @@ async function openSettings(focus){
   const st=S.settings, cid=DriveSync.clientId(), ds=DriveSync.state();
   let backups=[]; try{ backups=await Local.listBackups(); }catch(_){}
   const m=openModal('Nastavení',`<form class="m-body" id="stf" novalidate>
+    <button type="button" class="guide-link" id="st-guide"><span class="gl-ic" aria-hidden="true">📖</span><span><b>Návod</b><small>Základní funkce Úkolníčku v kostce</small></span><span class="gl-arr" aria-hidden="true">›</span></button>
     <div class="fld"><label for="st-name">Název</label><input id="st-name" value="${esc(st.name)}" placeholder="Úkolníček"></div>
     <div class="fld"><label for="st-start">Začátek výuky (pondělí 1. týdne)</label><input type="date" id="st-start" value="${esc(st.semesterStart)}"><p class="note">Podle něj se počítá číslo týdne a lichý/sudý týden.</p></div>
     <div class="grid2"><div class="fld"><label for="st-h0">Rozvrh od</label><select id="st-h0">${Array.from({length:14},(_,i)=>i+5).map(h=>`<option ${+st.dayStart===h?'selected':''}>${h}</option>`).join('')}</select></div><div class="fld"><label for="st-h1">Rozvrh do</label><select id="st-h1">${Array.from({length:12},(_,i)=>i+13).map(h=>`<option ${+st.dayEnd===h?'selected':''}>${h}</option>`).join('')}</select></div></div>
     <label class="chk"><input type="checkbox" id="st-we" ${st.showWeekend?'checked':''}> Zobrazovat v rozvrhu i víkend</label>
+    <label class="chk"><input type="checkbox" id="st-mc" ${st.miniCal?'checked':''}> Mini kalendář v levém panelu pod číslem týdne</label>
     <div class="m-actions"><span class="sp"></span><button type="submit" class="btn pri">Uložit nastavení</button></div>
 
     <div class="head-rule" style="margin:4px 0"></div>
@@ -1260,12 +1348,13 @@ async function openSettings(focus){
   </form>`);
   $('#stf',m).addEventListener('submit',e=>{
     e.preventDefault();
-    Object.assign(S.settings,{name:$('#st-name',m).value.trim()||'Úkolníček',semesterStart:$('#st-start',m).value,dayStart:+$('#st-h0',m).value,dayEnd:+$('#st-h1',m).value,showWeekend:$('#st-we',m).checked});
+    Object.assign(S.settings,{name:$('#st-name',m).value.trim()||'Úkolníček',semesterStart:$('#st-start',m).value,dayStart:+$('#st-h0',m).value,dayEnd:+$('#st-h1',m).value,showWeekend:$('#st-we',m).checked,miniCal:$('#st-mc',m).checked});
     if(S.settings.semesterStart){ const d=parseD(S.settings.semesterStart); if(d.getDay()!==1) S.settings.semesterStart=ymd(mondayOf(d)); }
     saveCid(); saveSettings(); closeModal(); renderSidebar(); renderMain(); toast('Nastavení uloženo');
   });
   const saveCid=()=>{ const v=$('#st-cid',m).value.trim(); if(v!==DriveSync.clientId()){ DriveSync.setClientId(v); DriveSync.preload(); updateSyncUI(); } };
   $('#st-cid',m).addEventListener('change',saveCid);
+  $('#st-guide',m).addEventListener('click',openGuide);
   const conn=$('#st-conn',m); if(conn) conn.addEventListener('click',async()=>{
     saveCid();
     if(!DriveSync.clientId()){ toast('Nejdřív vlož Client ID.'); $('#st-cid',m).focus(); return; }
@@ -1299,6 +1388,28 @@ async function openSettings(focus){
     applyData(bk.state); Store.queue(); closeModal(); toast('Záloha z '+fmtTime(bk.id)+' obnovena');
   }));
   if(focus==='drive'){ setTimeout(()=>{ $('#st-drive',m).scrollIntoView({block:'center'}); if(!DriveSync.clientId()) $('#st-cid',m).focus(); },30); }
+}
+
+/* ================= návod ================= */
+function openGuide(){
+  const kb=s=>`<kbd>${s}</kbd>`, M=IS_MAC?'⌘':'Ctrl+';
+  const sec=(ic,t,body)=>`<section class="g-sec"><h3><span class="g-ic" aria-hidden="true">${ic}</span>${t}</h3>${body}</section>`;
+  openModal('Návod k Úkolníčku',`<div class="m-body guide">
+    ${sec('📄','Stránky a bloky',`<p>Projekty a jejich podstránky jsou v levém panelu. ＋ přidá nový, ⋯ u názvu otevře možnosti.</p>
+      <p>Na stránce piš jako v sešitu. Enter udělá nový řádek, ${kb('/')} otevře nabídku bloků (nadpis, úkol, tabulka, obrázek…). Rychlé zkratky na začátku řádku: ${kb('[]')} + mezera je úkol, ${kb('-')} + mezera odrážka, ${kb('#')} + mezera nadpis.</p>
+      <p>Blok přesuneš chycením za tečky ⋮⋮ vlevo, plusem vedle nich přidáš nový pod něj. Šipka u nadpisu sbalí sekci. ${kb(M+'K')} hledá ve všech stránkách.</p>`)}
+    ${sec('▦','Tabulky',`<p>V buňce můžou být text, odrážky, úkoly i obrázky, přepínáš je v liště nad buňkou. ${kb('Tab')} skočí do další buňky.</p>
+      <p>Řádek a sloupec přidáš tlačítky pod tabulkou, ⋮ a ⋯ na okraji je vloží jinam nebo smažou.</p>`)}
+    ${sec('✅','Úkoly a termíny',`<p>Úkoly ze všech stránek najdeš v přehledu Úkoly. Když do textu napíšeš datum jako <span class="mono">5.10.</span>, ukáže se s termínem i na stránce Dnes.</p>`)}
+    ${sec('🗓️','Rozvrh',`<p>Klikni do volného místa v týdnu a vyplň co, kdy, kde, s kým a poznámku. Kliknutím na hodinu ji upravíš nebo smažeš.</p>
+      <p>Opakování: každý týden, lichý nebo sudý týden, jednorázově, nebo pevný počet (třeba 4×). Pevný počet se počítá po týdnech od zvoleného data.</p>
+      <p>Dvě věci ve stejný čas: najeď na pravý kraj hodiny a klikni na ＋. Obě se pak zobrazí vedle sebe.</p>`)}
+    ${sec('🔒','Zámek',`<p>Ikona vedle šipek zpět a vpřed nahoře na stránce, zkratka ${kb(LOCK_KEY)}. Skryje tečky, plusy a tlačítka pro přidávání a mazání bloků, řádků a sloupců, takže se nic nepřesune omylem. Psaní, zaškrtávání a rozvrh fungují dál.</p>`)}
+    ${sec('↩︎','Zpět a vpřed',`<p>Šipky nahoře na stránce, nebo ${kb(M+'Z')} a ${kb(IS_MAC?'⇧⌘Z':'Ctrl+Y')}.</p>`)}
+    ${sec('☁️','Záloha na Google Disk',`<p>↑ nahraje data na Disk, ↓ je stáhne. Synchronizace je ruční, takže po větší úpravě nahraj. Oranžová tečka u mráčku znamená změny, které na Disku ještě nejsou.</p>
+      <p>Žlutý mráček: přihlášení vypršelo (platí asi hodinu). Stačí kliknout na ↑ nebo ↓ a přihlásit se jedním klikem. Obrázky zůstávají jen v zařízení, kde je vložíš.</p>`)}
+    ${sec('⚙️','Nastavení',`<p>Začátek semestru (podle něj se počítá číslo týdne a lichý/sudý), rozsah hodin v rozvrhu, víkend, mini kalendář v levém panelu, připojení Disku a zálohy do souboru. Kliknutím na den v mini kalendáři otevřeš jeho týden v rozvrhu.</p>`)}
+  </div>`,'guide-m');
 }
 
 /* ================= Google Drive sync (UI; transport in driveSync.js) ================= */
@@ -1537,14 +1648,14 @@ function openImgTools(){
     <p class="note" style="padding:0 8px 4px">${kind==='block'?'Vlevo a vpravo: text dalších bloků obteče obrázek.':'Vlevo a vpravo: text obteče obrázek.'}</p>
     <div class="pop-h">Velikost</div><div class="it-row">${sizes.map(([k,l,f])=>`<button class="${Math.abs(cur-cw*f)<8?'on':''}" data-v="sz:${f}">${l}</button>`).join('')}</div>
     <p class="note" style="padding:0 8px 4px">Nebo táhni za roh obrázku.</p>
-    <div class="pop-sep"></div><div class="it-row">${kind==='block'?`<button data-v="cap">${imgSel.x.b.caption||imgSel.x.b.capOn?'Upravit popisek':'Přidat popisek'}</button>`:''}<button data-v="open">Zvětšit</button><button class="danger" data-v="del">Smazat</button></div>`;
+    <div class="pop-sep"></div><div class="it-row">${kind==='block'?`<button data-v="cap">${imgSel.x.b.caption||imgSel.x.b.capOn?'Upravit popisek':'Přidat popisek'}</button>`:''}<button data-v="open">Zvětšit</button>${LOCK?'':'<button class="danger" data-v="del">Smazat</button>'}</div>`;
   openPop(imgSel.img,h,(v,btn,p)=>{
     if(!imgSel) return;
     if(v.startsWith('al:')){ applyImgAlign(v.slice(3)); $$('[data-v^="al:"]',p).forEach(b=>b.classList.toggle('on',b===btn)); requestAnimationFrame(()=>{ placeFrame(); placePop(p,imgSel.img.getBoundingClientRect()); }); return true; }
     if(v.startsWith('sz:')){ applyImgWidth(imgContainerW()*parseFloat(v.slice(3)),true); $$('[data-v^="sz:"]',p).forEach(b=>b.classList.toggle('on',b===btn)); requestAnimationFrame(()=>{ placeFrame(); placePop(p,imgSel.img.getBoundingClientRect()); }); return true; }
     if(v==='open'){ const src=imgSel.img.src; const cap=kind==='block'?imgSel.x.b.caption:''; hideImgSel(); const mm=openModal('',`<div class="m-head"><span></span><button class="icon-btn" data-close aria-label="Zavřít">×</button></div><div class="lb"><img id="lb-img" alt="">${cap?`<p>${esc(cap)}</p>`:''}</div>`,'lbm'); $('#lb-img',mm).src=src; return; }
     if(v==='cap'){ const {x}=imgSel; x.b.capOn=true; savePage(x.pg); hideImgSel(); rerenderBlocks(); const c=$(`#blocks .blk[data-id="${x.b.id}"] .cap`); focusEl(c,'end'); return; }
-    if(v==='del'){
+    if(v==='del'&&!LOCK){
       if(kind==='block'){ const {x}=imgSel; const bi=x.pg.blocks.indexOf(x.b); if(bi<0) return; x.pg.blocks.splice(bi,1); savePage(x.pg); hideImgSel(); rerenderBlocks(); toast('Obrázek smazán','Vrátit',()=>{ x.pg.blocks.splice(Math.min(bi,x.pg.blocks.length),0,x.b); savePage(x.pg); rerenderBlocks(); }); }
       else { const host=imgSel.host; imgSel.img.remove(); hideImgSel(); host.dispatchEvent(new Event('input',{bubbles:true})); }
     }
@@ -1575,7 +1686,16 @@ document.addEventListener('click',e=>{
   }
   const a=e.target.closest('[data-act]'); if(!a) return;
   const act=a.dataset.act, pg=curPage();
+  /* zamčeno: nic, co mění strukturu stránky */
+  if(LOCK&&['add-after','row-menu','col-menu','add-row','add-col','prop-add','prop-del','tpl'].includes(act)) return;
   switch(act){
+    case 'lock': toggleLock(); break;
+    case 'mc-prev': S.calOffset--; renderSidebar(); break;
+    case 'mc-next': S.calOffset++; renderSidebar(); break;
+    case 'mc-now': S.calOffset=0; renderSidebar(); break;
+    case 'mc-day': { const d=parseD(a.dataset.date); S.weekOffset=weeksBetween(new Date(),d); if(!S.settings.showWeekend&&(d.getDay()===0||d.getDay()===6)) toast('Víkend se v rozvrhu nezobrazuje. Zapneš ho v Nastavení.'); go({kind:'schedule'}); break; }
+    case 'ev-par': { const ev=S.events[a.dataset.id]; if(!ev) break; const d=parseD(a.dataset.date);
+      openEventModal(null,{day:(d.getDay()+6)%7,date:ev.repeat==='count'?ev.date:a.dataset.date,start:ev.start,end:ev.end,repeat:ev.repeat,count:ev.count||4}); break; }
     case 'nav': go({kind:a.dataset.v}); break;
     case 'menu': $('#side').classList.contains('open')?closeSide():openSide(); break;
     case 'search': closeSide(); openSearch(); break;
@@ -1617,6 +1737,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('keydown',e=>{
   if(!(e.metaKey||e.ctrlKey)||e.altKey) return;
+  if(e.shiftKey&&e.code==='KeyL'){ e.preventDefault(); e.stopPropagation(); if(!S.modal) toggleLock(); return; }
   const k=e.key.toLowerCase(); if(k!=='z'&&k!=='y') return;
   if(S.view.kind!=='page'||S.modal) return;
   if(e.target.closest&&e.target.closest('input,textarea,select,.pop')) return;
@@ -1630,6 +1751,7 @@ document.addEventListener('keydown',e=>{
 setInterval(()=>{ if(S.ready&&!S.modal&&(S.view.kind==='schedule'||S.view.kind==='today')&&!document.activeElement.closest?.('#view input')) { const st=$('#main').scrollTop; renderMain(); $('#main').scrollTop=st; } },60000);
 
 /* ================= boot ================= */
+applyLock();
 renderSidebar();
 Store.init();
 let reloading=false;
