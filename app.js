@@ -1366,7 +1366,7 @@ function openSearch(){
 }
 
 /* ================= settings ================= */
-const APP_VERSION='2.2.1';
+const APP_VERSION='2.2.2';
 function fmtTime(ts){ if(!ts) return ''; const d=new Date(ts); const t=`${d.getHours()}:${pad(d.getMinutes())}`; return sod(d).getTime()===sod(new Date()).getTime()?t:`${shortDate(d)} ${t}`; }
 function downloadFile(name,text){
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'application/json'})); a.download=name;
@@ -1428,6 +1428,8 @@ async function openSettings(focus){
         <div class="drive-state ${ds==='ok'?'cl-ok':ds==='expired'?'cl-exp':'cl-off'}">${cloudSvg(ds==='off')}<span>${ds==='ok'?`Připojeno. ${META.lastUpload?'Naposledy nahráno '+fmtTime(META.lastUpload)+'.':'Zatím nic nenahráno.'}`:ds==='expired'?'Přihlášení vypršelo. Připoj se znovu.':'Nepřipojeno.'}</span></div>
         <label for="st-cid" class="note">OAuth Client ID (typ „Webová aplikace“) z Google Cloud. Ukládá se jen v tomto prohlížeči.</label>
         <input id="st-cid" value="${esc(cid)}" placeholder="123456789-abc….apps.googleusercontent.com" autocomplete="off" spellcheck="false">
+        <label for="st-acc" class="note">Účet Google (nepovinné). Když ho vyplníš, Google při přihlášení nenabízí výběr účtu. Platí jen pro toto zařízení.</label>
+        <input id="st-acc" type="email" value="${esc(DriveSync.account())}" placeholder="tvuj.ucet@gmail.com" autocomplete="email" spellcheck="false">
         <div class="m-actions">
           ${ds==='ok'?`<button type="button" class="btn" id="st-up">↑ Nahrát na Disk</button><button type="button" class="btn" id="st-down">↓ Stáhnout z Disku…</button><span class="sp"></span><button type="button" class="btn danger" id="st-disc">Odpojit</button>`
             :`<button type="button" class="btn pri" id="st-conn">${ds==='expired'?'Připojit znovu':'Přihlásit k Disku'}</button>`}
@@ -1446,8 +1448,8 @@ async function openSettings(focus){
     <section class="set-pane" data-pane="help">
       <button type="button" class="guide-link" data-guide="navod"><span class="gl-ic" aria-hidden="true">📖</span><span><b>Návod</b><small>Základní funkce Úkolníčku v kostce</small></span><span class="gl-arr" aria-hidden="true">›</span></button>
       <button type="button" class="guide-link" data-guide="novinky"><span class="gl-ic" aria-hidden="true">✨</span><span><b>Novinky</b><small>Co přibylo v posledních verzích</small></span><span class="gl-arr" aria-hidden="true">›</span></button>
-      <p class="note">Úkolníček ${APP_VERSION} · data jsou uložená v tomto zařízení (IndexedDB).</p>
     </section>
+    <p class="set-foot">Úkolníček ${APP_VERSION} · <a href="#" class="set-news" id="st-news">co je nového</a></p>
     </form></div>`,'set-m');
 
   /* přepínání kategorií */
@@ -1470,8 +1472,10 @@ async function openSettings(focus){
 
   const saveCid=()=>{ const v=$('#st-cid',m).value.trim(); if(v!==DriveSync.clientId()){ DriveSync.setClientId(v); DriveSync.preload(); updateSyncUI(); } };
   $('#st-cid',m).addEventListener('change',saveCid);
+  $('#st-acc',m).addEventListener('change',e=>{ DriveSync.setAccount(e.target.value); });
+  $('#st-news',m).addEventListener('click',e=>{ e.preventDefault(); openGuide('novinky'); });
   const conn=$('#st-conn',m); if(conn) conn.addEventListener('click',async()=>{
-    saveCid();
+    saveCid(); DriveSync.setAccount($('#st-acc',m).value);
     if(!DriveSync.clientId()){ toast('Nejdřív vlož Client ID.'); $('#st-cid',m).focus(); return; }
     if(await Sync.ensure()){ toast('Připojeno k Google Disku'); closeModal(); openSettings('drive'); }
   });

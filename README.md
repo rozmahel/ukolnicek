@@ -64,7 +64,7 @@ Názvy položek v Google Cloud Console se občas mění, ale postup je takový:
    - **Authorized JavaScript origins**: `https://rozmahel.github.io` a pro testování `http://localhost:8000`,
    - Redirect URI nejsou potřeba.
 5. Zkopíruj **Client ID** (končí `.apps.googleusercontent.com`).
-6. V Úkolníčku: **Nastavení → Google Disk** → vlož Client ID → **Přihlásit k Disku**.
+6. V Úkolníčku: **Nastavení → Synchronizace** → vlož Client ID (a volitelně e-mail účtu Google, aby se nenabízel výběr účtu) → **Přihlásit k Disku**.
 
 Při prvním přihlášení Google ukáže varování, že aplikace není ověřená. To je u vlastních aplikací v režimu Testing normální: **Pokračovat** (případně *Advanced → Go to Úkolníček*). Pak povol přístup k datům aplikace na Disku.
 

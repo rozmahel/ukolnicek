@@ -8,7 +8,7 @@
   const PREFIX = 'ukolnicek_';
   const API = 'https://www.googleapis.com/drive/v3/files';
   const UPLOAD = 'https://www.googleapis.com/upload/drive/v3/files';
-  const K = { cid: 'uk-drive-client-id', tok: 'uk-drive-token', consent: 'uk-drive-consented' };
+  const K = { cid: 'uk-drive-client-id', tok: 'uk-drive-token', consent: 'uk-drive-consented', hint: 'uk-drive-account' };
 
   const ls = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
@@ -51,6 +51,10 @@
       ls.set(K.cid, v || null);
     },
 
+    /* e-mail účtu Google, který se má použít: Google pak nenabízí výběr účtu (jen v tomto zařízení) */
+    account() { return (ls.get(K.hint) || '').trim(); },
+    setAccount(v) { ls.set(K.hint, (v || '').trim() || null); },
+
     /* 'off' = nepřipojeno, 'expired' = bylo připojeno, token vypršel, 'ok' = platný token */
     state() {
       if (!this.clientId()) return 'off';
@@ -68,10 +72,12 @@
       await loadGis();
       return new Promise((resolve, reject) => {
         let client;
+        const hint = this.account();
         try {
           client = google.accounts.oauth2.initTokenClient({
             client_id: cid,
             scope: SCOPE,
+            ...(hint ? { login_hint: hint } : {}),
             callback: (r) => {
               if (r && r.access_token && google.accounts.oauth2.hasGrantedAllScopes(r, SCOPE)) {
                 ls.set(K.tok, JSON.stringify({ t: r.access_token, exp: Date.now() + (Number(r.expires_in) || 3600) * 1000 }));
@@ -84,7 +90,7 @@
             error_callback: (e) => reject({ code: (e && e.type) || 'popup_failed_to_open' })
           });
         } catch (e) { reject({ code: 'bad_client', message: String(e && e.message || e) }); return; }
-        client.requestAccessToken({ prompt: ls.get(K.consent) ? '' : 'consent' });
+        client.requestAccessToken(Object.assign({ prompt: ls.get(K.consent) ? '' : 'consent' }, hint ? { login_hint: hint } : {}));
       });
     },
 
