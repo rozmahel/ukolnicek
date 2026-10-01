@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Úkolníček – návod a novinky</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="navod-page">
+<!--
+  Návod a novinky Úkolníčku.
+  Aplikace si z tohoto souboru bere každou <section data-tab="…" data-title="…"> uvnitř <main id="navod">
+  a ukáže ji jako záložku v okně Nastavení → Návod a novinky.
+
+  Jak přidat novinku: zkopíruj celý blok <article class="g-rel new"> … </article> nahoru do sekce „novinky“,
+  přepiš číslo verze, datum a body. U starší verze pak smaž třídu „new“ (plná tečka = nejnovější).
+  Po úpravě zvyš VERSION v sw.js, jinak si telefon nechá starý návod.
+-->
+<main class="navod" id="navod">
+
+<section data-tab="navod" data-title="Návod">
+  <p class="g-lead">Úkolníček je školní sešit: stránky s poznámkami a úkoly, týdenní rozvrh a přehled termínů. Všechno se ukládá v zařízení a ručně se zálohuje na Google Disk.</p>
+  <div class="g-grid">
+
+    <div class="g-card hl-purple">
+      <h3><span class="g-ic">📄</span>Stránky a bloky</h3>
+      <p>Projekty a jejich podstránky jsou v levém panelu. ＋ přidá nový, ⋯ u názvu otevře možnosti.</p>
+      <p>Na stránce piš jako v sešitu. <kbd>Enter</kbd> udělá nový řádek, <kbd>/</kbd> otevře nabídku bloků. Blok přesuneš chycením za tečky ⋮⋮, plusem vedle nich přidáš nový. Šipka u nadpisu sbalí sekci.</p>
+    </div>
+
+    <div class="g-card hl-blue">
+      <h3><span class="g-ic">⌨️</span>Rychlé zkratky</h3>
+      <ul>
+        <li><kbd>[]</kbd> + mezera úkol, <kbd>-</kbd> + mezera odrážka, <kbd>#</kbd> + mezera nadpis</li>
+        <li><kbd>⌘B</kbd> <kbd>⌘I</kbd> <kbd>⌘U</kbd> formát, <kbd>⌘E</kbd> zvýraznění</li>
+        <li><kbd>⌘Z</kbd> zpět, <kbd>⇧⌘Z</kbd> znovu, <kbd>⌘K</kbd> hledat</li>
+        <li><kbd>⌘⇧L</kbd> zámek</li>
+      </ul>
+    </div>
+
+    <div class="g-card hl-green">
+      <h3><span class="g-ic">▦</span>Tabulky</h3>
+      <p>V buňce můžou být text, odrážky, úkoly, obrázky i odkazy, přepínáš je v liště nad buňkou. <kbd>Tab</kbd> skočí do další buňky.</p>
+      <p>Řádek a sloupec přidáš tlačítky, která se ukážou pod tabulkou po najetí myší. ⋮ a ⋯ na okraji je vloží jinam nebo smažou.</p>
+    </div>
+
+    <div class="g-card hl-orange">
+      <h3><span class="g-ic">🔗</span>Odkazy</h3>
+      <p>Napiš <kbd>/odkaz</kbd>, vlož adresu a pojmenuj ho. Nebo označ text a v liště nad ním klikni na 🔗.</p>
+      <p>Kliknutím na odkaz ho otevřeš, upravíš nebo odebereš. <kbd>⌘</kbd> + klik ho otevře rovnou.</p>
+    </div>
+
+    <div class="g-card hl-pink">
+      <h3><span class="g-ic">✅</span>Úkoly a termíny</h3>
+      <p>Úkoly ze všech stránek najdeš v přehledu Úkoly, seřazené podle nadpisů H1. Když do textu napíšeš datum jako <b>5.10.</b>, ukáže se s termínem i na stránce Dnes.</p>
+    </div>
+
+    <div class="g-card hl-blue">
+      <h3><span class="g-ic">🗓️</span>Rozvrh</h3>
+      <p>Klikni do volného místa v týdnu a vyplň co, kdy, kde, s kým a poznámku. Hodinu můžeš propojit s předmětem (nadpisem H1) a tlačítkem <b>Otevřít předmět</b> na něj skočit.</p>
+      <p>Opakování: každý týden, lichý nebo sudý, jednorázově, nebo pevný počet (třeba 4× od zvoleného data). Dvě věci ve stejný čas: najeď na pravý kraj hodiny a klikni na ＋.</p>
+    </div>
+
+    <div class="g-card hl-gray">
+      <h3><span class="g-ic">🔒</span>Zámek</h3>
+      <p>Ikona vedle šipek zpět a vpřed (<kbd>⌘⇧L</kbd>). Skryje tečky, plusy a tlačítka pro přidávání a mazání, takže se nic nepřesune omylem. Psaní, zaškrtávání a rozvrh fungují dál.</p>
+    </div>
+
+    <div class="g-card hl-yellow">
+      <h3><span class="g-ic">☁️</span>Záloha na Google Disk</h3>
+      <p>↑ nahraje data, ↓ je stáhne, synchronizace je ruční. Oranžová tečka u mráčku znamená změny, které na Disku nejsou. Rozbalení nadpisu se nepočítá a když změnu vrátíš (třeba <kbd>⌘Z</kbd>), tečka zmizí.</p>
+      <p>Žlutý mráček: přihlášení vypršelo (platí asi hodinu), stačí kliknout na ↑ nebo ↓. Obrázky zůstávají jen v zařízení, kde je vložíš.</p>
+    </div>
+
+    <div class="g-card hl-purple wide">
+      <h3><span class="g-ic">⚙️</span>Nastavení</h3>
+      <p><b>Obecné:</b> název, začátek semestru (číslo týdne a lichý/sudý), rozsah hodin v rozvrhu, víkend. <b>Vzhled:</b> světlý nebo tmavý motiv, velikost textu 100–160 %, mini kalendář s čísly týdnů v roce, počet skrytých bloků u sbaleného nadpisu. Motiv a velikost textu platí jen pro dané zařízení. <b>Synchronizace:</b> Google Disk, export a import souboru, místní zálohy.</p>
+    </div>
+
+  </div>
+</section>
+
+<section data-tab="novinky" data-title="Novinky">
+
+  <article class="g-rel new">
+    <h3>Nastavení, odkazy a chytřejší záloha <span class="v">2.2</span> <time datetime="2026-10-01">1. 10. 2026</time></h3>
+    <ul>
+      <li><b>Nastavení po kategoriích</b> – Obecné, Vzhled, Synchronizace, Návod a novinky. Změny se ukládají hned.</li>
+      <li><b>Světlý / tmavý motiv</b> a <b>velikost textu</b> 100–160 % (jen pro toto zařízení).</li>
+      <li><b>Odkazy</b> přes <kbd>/odkaz</kbd>, tlačítko 🔗 nad označeným textem nebo v liště buňky tabulky.</li>
+      <li><b>Neuloženo na Disk</b> se už neukáže kvůli rozbalení nadpisu a zmizí, když změnu vrátíš.</li>
+      <li>Seznam verzí při stahování z Disku má vlastní posuvník, tlačítka jsou vždy vidět.</li>
+      <li>Tlačítka pro nový řádek a sloupec se ukazují jako vrstva, mezera pod tabulkou je se zámkem i bez něj stejná.</li>
+      <li>Počet skrytých bloků u sbaleného nadpisu jde vypnout.</li>
+      <li>V rozvrhu se hodina propojuje s předmětem (nadpisem H1) místo stránky.</li>
+      <li>Návod a novinky jsou v samostatném souboru <b>navod.html</b>.</li>
+    </ul>
+  </article>
+
+  <article class="g-rel">
+    <h3>Zámek, mini kalendář a rozvrh <span class="v">2.1</span> <time datetime="2026-09-30">30. 9. 2026</time></h3>
+    <ul>
+      <li><b>Zámek</b> vedle šipek zpět a vpřed (<kbd>⌘⇧L</kbd>).</li>
+      <li><b>Mini kalendář</b> v levém panelu s čísly týdnů v roce, klik na den otevře jeho týden v rozvrhu.</li>
+      <li>Rozvrh: <b>pevný počet opakování</b> (např. 4×) a <b>souběžné hodiny</b> vedle sebe.</li>
+      <li>Návod v nastavení.</li>
+    </ul>
+  </article>
+
+  <article class="g-rel">
+    <h3>Vlastní web a Google Disk <span class="v">2.0</span> <time datetime="2026-09-30">30. 9. 2026</time></h3>
+    <ul>
+      <li>Úkolníček běží na GitHub Pages, jde nainstalovat na plochu a funguje offline.</li>
+      <li>Ruční záloha na Google Disk, drží se posledních 10 verzí.</li>
+      <li>Data v zařízení (IndexedDB), místní zálohy před každým stažením.</li>
+    </ul>
+  </article>
+
+</section>
+
+</main>
+</body>
+</html>

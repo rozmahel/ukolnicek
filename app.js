@@ -25,8 +25,8 @@ const EMOJI=['📘','📗','📙','📕','📓','📒','🎓','⚛️','⚙️',
 const CALLOUT_IC=['💡','📌','⚠️','🗓️','✅','❗','📎','🔴'];
 const TEXT_TYPES=['p','h1','h2','h3','bullet','num','todo','quote','callout'];
 const LIST_TYPES=['bullet','num','todo'];
-const TYPE_ICON={p:'T',h1:'H1',h2:'H2',h3:'H3',bullet:'•',num:'1.',todo:'☐',quote:'❝',callout:'!',table:'▦',divider:'—',page:'↗',image:'▣'};
-const TYPE_LABEL={p:'Text',h1:'Nadpis 1',h2:'Nadpis 2',h3:'Nadpis 3',bullet:'Odrážky',num:'Číslovaný seznam',todo:'Úkol',quote:'Citace',callout:'Zvýrazněný blok',table:'Tabulka',divider:'Oddělovač',page:'Podstránka',image:'Obrázek'};
+const TYPE_ICON={link:'🔗',p:'T',h1:'H1',h2:'H2',h3:'H3',bullet:'•',num:'1.',todo:'☐',quote:'❝',callout:'!',table:'▦',divider:'—',page:'↗',image:'▣'};
+const TYPE_LABEL={link:'Odkaz',p:'Text',h1:'Nadpis 1',h2:'Nadpis 2',h3:'Nadpis 3',bullet:'Odrážky',num:'Číslovaný seznam',todo:'Úkol',quote:'Citace',callout:'Zvýrazněný blok',table:'Tabulka',divider:'Oddělovač',page:'Podstránka',image:'Obrázek'};
 const SLASH=[
   {k:'p',hint:'Obyčejný odstavec',kw:'text odstavec paragraph'},
   {k:'h1',hint:'Velký nadpis sekce',kw:'nadpis heading h1'},
@@ -40,6 +40,7 @@ const SLASH=[
   {k:'quote',hint:'Odsazený citát',kw:'citace quote'},
   {k:'divider',hint:'Vodorovná čára',kw:'oddelovac cara divider'},
   {k:'image',hint:'Ze souboru; v úkolu či odrážce se vloží do textu',kw:'obrazek image foto fotka picture screenshot'},
+  {k:'link',hint:'Webová adresa s vlastním názvem',kw:'odkaz link url web adresa hypertext'},
   {k:'page',hint:'Nová stránka uvnitř této',kw:'podstranka stranka page'}
 ];
 const PH={p:'Piš, nebo stiskni / pro příkazy',h1:'Nadpis 1',h2:'Nadpis 2',h3:'Nadpis 3',bullet:'Odrážka',num:'Položka',todo:'Úkol',quote:'Citace',callout:'Poznámka'};
@@ -53,7 +54,7 @@ const ICONS={
 };
 
 /* ================= state ================= */
-function defaultSettings(){return {name:'Úkolníček',semesterStart:'',showWeekend:false,dayStart:7,dayEnd:20,miniCal:true,miniCalWeeks:true};}
+function defaultSettings(){return {name:'Úkolníček',semesterStart:'',showWeekend:false,dayStart:7,dayEnd:20,miniCal:true,miniCalWeeks:true,showHidden:true};}
 const S={ready:false,pages:{},events:{},settings:defaultSettings(),view:lsGet('uk-view',{kind:'today'}),weekOffset:0,calOffset:0,taskFilter:'open',expanded:lsGet('uk-exp',{}),pop:null,modal:null,deferRemote:false};
 const MONTHS_NOM=['leden','únor','březen','duben','květen','červen','červenec','srpen','září','říjen','listopad','prosinec'];
 const IS_MAC=/Mac|iPhone|iPad/.test(navigator.platform||navigator.userAgent);
@@ -75,7 +76,25 @@ function toggleLock(){
 
 /* ================= storage (IndexedDB, see storage.js) ================= */
 const IMGURL=new Map();
-const META={changedAt:0,syncedAt:0,remoteAt:'',remoteName:'',lastUpload:0,lastDownload:0};
+const META={changedAt:0,syncedAt:0,remoteAt:'',remoteName:'',lastUpload:0,lastDownload:0,syncedHash:'',curHash:''};
+/* Otisk dat pro „neuloženo na Disk“. Nepočítá sbalení nadpisů ani časy úprav a nerozlišuje
+   „nezaškrtnuto“ od „nikdy nezaškrtnuto“, takže změna tam a zpět (i přes ⌘Z) vrátí stav na uloženo. */
+function canon(v){
+  if(Array.isArray(v)) return '['+v.map(canon).join(',')+']';
+  if(v&&typeof v==='object') return '{'+Object.keys(v).sort().filter(k=>v[k]!=null&&v[k]!==false&&!(k==='level'&&!v[k])).map(k=>JSON.stringify(k)+':'+canon(v[k])).join(',')+'}';
+  return JSON.stringify(v);
+}
+function fnv(str){ let h=0x811c9dc5; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,0x01000193); } return (h>>>0).toString(36)+'.'+str.length; }
+function dataHash(){
+  const d=dataForSave();
+  Object.values(d.pages).forEach(p=>{ delete p.updated; (p.blocks||[]).forEach(b=>{ delete b.collapsed; }); });
+  return fnv(canon(d));
+}
+function isDirty(){
+  if(!Object.keys(S.pages).length) return false;
+  if(META.syncedHash&&META.curHash) return META.curHash!==META.syncedHash;
+  return META.changedAt>META.syncedAt;
+}
 const Store={
   mode:'local',t:null,broken:false,
   async init(){
@@ -85,16 +104,18 @@ const Store={
       if(st){ const d=normalizeImport(st); S.pages=d.pages||{}; S.events=d.events||{}; S.settings=Object.assign(defaultSettings(),d.settings||{}); Object.assign(META,st.meta||{}); }
       const imgs=await Local.allImages(); imgs.forEach(r=>{ try{ IMGURL.set(r.id,URL.createObjectURL(r.blob)); }catch(_){} });
       Local.persist();
+      META.curHash=dataHash();
     }catch(e){ console.error(e); this.broken=true; setTimeout(()=>toast('Místní úložiště není dostupné (soukromé okno?). Změny se neuloží.'),300); }
     onDataReady(); Sync.init();
   },
   queue(){ META.changedAt=Date.now(); clearTimeout(this.t); this.t=setTimeout(()=>this.flush(),350); updateSaving(true); updateSyncUI(); },
   async flush(){
     clearTimeout(this.t); this.t=null;
-    if(this.broken){ updateSaving(); return; }
+    META.curHash=dataHash();
+    if(this.broken){ updateSaving(); updateSyncUI(); return; }
     try{ await Local.saveState(stateForStorage()); }
     catch(e){ toast(e&&e.name==='QuotaExceededError'?'Úložiště v zařízení je plné. Smaž nějaké obrázky nebo stránky.':'Uložení do zařízení selhalo. Zkus obnovit stránku.'); }
-    updateSaving();
+    updateSaving(); updateSyncUI();
   },
   flushAll(){ if(this.t) this.flush(); }
 };
@@ -261,7 +282,16 @@ function createPage(parent,opts){
 }
 
 /* ================= sanitize ================= */
-const ALLOWED=new Set(['B','STRONG','I','EM','U','S','STRIKE','MARK','BR','CODE','IMG']);
+const ALLOWED=new Set(['B','STRONG','I','EM','U','S','STRIKE','MARK','BR','CODE','IMG','A']);
+/* odkazy: jen http(s) a mailto; bez schématu doplní https:// */
+function normUrl(u){
+  u=String(u||'').trim(); if(!u) return '';
+  if(/^(https?:\/\/|mailto:)/i.test(u)) return u;
+  if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(u)) return 'mailto:'+u;
+  if(/^[\w-]+(\.[\w-]+)+(:\d+)?([\/?#].*)?$/.test(u)) return 'https://'+u;
+  return '';
+}
+function urlLabel(u){ try{ if(/^mailto:/i.test(u)) return u.slice(7); const x=new URL(u); return x.hostname.replace(/^www\./,'')+(x.pathname.length>1?x.pathname:''); }catch(_){ return u; } }
 function placeholderSrc(name){
   const n=String(name||'obrázek').replace(/[<>&"]/g,'').slice(0,40);
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="360" height="120" viewBox="0 0 360 120"><rect x="1" y="1" width="358" height="118" rx="10" fill="#EEEDF2" stroke="#A8A2B6" stroke-dasharray="6 5"/><text x="180" y="52" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="600" fill="#4A4556">${n}</text><text x="180" y="78" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12.5" fill="#77718A">Obrázek není zálohovaný – je jen na zařízení, kde byl vložen</text></svg>`;
@@ -277,6 +307,13 @@ function sanitize(html){
       if(ch.nodeType!==1){ ch.remove(); return; }
       walk(ch);
       if(!ALLOWED.has(ch.tagName)){ const f=document.createDocumentFragment(); if(ch.tagName==='DIV'||ch.tagName==='P') f.appendChild(document.createElement('br')); while(ch.firstChild) f.appendChild(ch.firstChild); ch.replaceWith(f); return; }
+      if(ch.tagName==='A'){
+        const href=normUrl(ch.getAttribute('href'));
+        [...ch.attributes].forEach(a=>ch.removeAttribute(a.name));
+        if(!href||!ch.textContent){ const f=document.createDocumentFragment(); while(ch.firstChild) f.appendChild(ch.firstChild); ch.replaceWith(f); return; }
+        ch.setAttribute('href',href); ch.setAttribute('class','lnk'); ch.setAttribute('target','_blank'); ch.setAttribute('rel','noopener noreferrer');
+        return;
+      }
       if(ch.tagName==='IMG'){
         const id=ch.getAttribute('data-img')||''; if(!/^[A-Za-z0-9_-]{4,64}$/.test(id)){ ch.remove(); return; }
         const name=(ch.getAttribute('data-name')||'').slice(0,120), w=ch.getAttribute('width')||'', cls=(ch.getAttribute('class')||'').replace(/\s*missing/,'').trim();
@@ -466,7 +503,7 @@ function renderBlocks(pg){
   bl.forEach((b,i)=>{
     if(hidden[i]) return;
     out+=renderBlock(b,i,bl);
-    const n=counts[b.id]; if(n) out+=`<div class="hidden-count">${n} ${n===1?'skrytý blok':n<5?'skryté bloky':'skrytých bloků'}</div>`;
+    const n=counts[b.id]; if(n&&S.settings.showHidden!==false) out+=`<div class="hidden-count">${n} ${n===1?'skrytý blok':n<5?'skryté bloky':'skrytých bloků'}</div>`;
   });
   return out;
 }
@@ -609,6 +646,7 @@ function chooseSlash(it){
   closeSlash();
   const pg=curPage(); const bi=pg.blocks.findIndex(b=>b.id===slash.bid); if(bi<0) return;
   const b=pg.blocks[bi]; b.html=isBlankEl(el)?'':sanitize(el.innerHTML);
+  if(it.k==='link'){ const s=getSelection(); openLinkDialog(el,s.rangeCount?s.getRangeAt(0).cloneRange():null); return; }
   if(it.k==='image'){
     if(b.type==='p'&&isBlank(b.html)){ savePage(pg); pickImageBlock(pg.id,b.id,true); }
     else { const s=getSelection(); pickImageInline(el,s.rangeCount?s.getRangeAt(0).cloneRange():null); }
@@ -857,10 +895,11 @@ function endDrag(){ dragId=null; $$('.drop-before,.drop-after,.dragging').forEac
 
 /* ---- format toolbar ---- */
 const fmt=$('#fmt');
-fmt.innerHTML=`<button data-f="bold" aria-label="Tučně"><b>B</b></button><button data-f="italic" aria-label="Kurzíva"><i>I</i></button><button data-f="underline" aria-label="Podtržení"><u>U</u></button><button data-f="strikeThrough" aria-label="Přeškrtnutí"><s>S</s></button><span class="sep"></span>${COLORS.map(c=>`<button class="sw hl-${c}" data-f="hl-${c}" aria-label="Zvýraznit: ${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}<span class="sep"></span><button data-f="clear" aria-label="Zrušit formátování" title="Zrušit formátování">⌫</button>`;
+fmt.innerHTML=`<button data-f="bold" aria-label="Tučně"><b>B</b></button><button data-f="italic" aria-label="Kurzíva"><i>I</i></button><button data-f="underline" aria-label="Podtržení"><u>U</u></button><button data-f="strikeThrough" aria-label="Přeškrtnutí"><s>S</s></button><button data-f="link" aria-label="Odkaz" title="Udělat z textu odkaz">🔗</button><span class="sep"></span>${COLORS.map(c=>`<button class="sw hl-${c}" data-f="hl-${c}" aria-label="Zvýraznit: ${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}<span class="sep"></span><button data-f="clear" aria-label="Zrušit formátování" title="Zrušit formátování">⌫</button>`;
 fmt.addEventListener('mousedown',e=>e.preventDefault());
 fmt.addEventListener('click',e=>{
   const b=e.target.closest('[data-f]'); if(!b) return; const f=b.dataset.f;
+  if(f==='link'){ const s=getSelection(); if(!s.rangeCount) return; const r=s.getRangeAt(0); const n=r.commonAncestorContainer; const host=(n.nodeType===1?n:n.parentElement).closest('.txt'); if(host){ hideFmt(); openLinkDialog(host,r.cloneRange(),true); } return; }
   if(f.startsWith('hl-')) applyMark(f);
   else if(f==='clear'){ document.execCommand('removeFormat'); applyMark(null); }
   else document.execCommand(f);
@@ -899,6 +938,7 @@ const cellbar=$('#cellbar'); let cellTarget=null;
 cellbar.addEventListener('mousedown',e=>e.preventDefault());
 cellbar.addEventListener('click',e=>{
   const b=e.target.closest('[data-lt]'); if(!b||!cellTarget) return;
+  if(b.dataset.lt==='link'){ const s=getSelection(); openLinkDialog(cellTarget,s.rangeCount&&cellTarget.contains(s.getRangeAt(0).startContainer)?s.getRangeAt(0).cloneRange():null,!s.isCollapsed); return; }
   if(b.dataset.lt==='img'){ const s=getSelection(); pickImageInline(cellTarget,s.rangeCount&&cellTarget.contains(s.getRangeAt(0).startContainer)?s.getRangeAt(0).cloneRange():null); return; }
   const x=ctxOf(cellTarget); if(!x||!x.line) return;
   const off=caretOffset(cellTarget);
@@ -1069,6 +1109,26 @@ function deletePage(id){
   });
 }
 
+/* nadpisy H1 = předměty (stejně jako u úkolů) */
+function allH1(){
+  const out=[];
+  flatPages().forEach(({p})=>(p.blocks||[]).forEach(b=>{ if(b.type!=='h1') return; const text=plain(b.html).replace(/\s+/g,' ').trim(); if(!text) return;
+    out.push({key:p.id+'|'+b.id,pageId:p.id,blockId:b.id,text,short:text.split(/\s+[—–-]\s+/)[0].replace(/^[^\p{L}\p{N}]+/u,'').trim()||text}); }));
+  return out;
+}
+/* otevře stránku, rozbalí sekce nad blokem (a u nadpisu i jeho sekci) a doskroluje k němu */
+function revealBlock(pageId,blockId,openSelf){
+  const pg=S.pages[pageId]; if(!pg) return toast('Stránka už neexistuje.');
+  const bl=pg.blocks, idx=bl.findIndex(b=>b.id===blockId); if(idx<0) return toast('Nadpis už na stránce není.');
+  go({kind:'page',pageId});
+  let opened=false;
+  for(let i=idx-1;i>=0;i--){ if(isHeading(bl[i].type)&&bl[i].collapsed&&sectionEnd(bl,i)>idx){ bl[i].collapsed=false; opened=true; } }
+  if(openSelf&&bl[idx].collapsed){ bl[idx].collapsed=false; opened=true; }
+  if(opened) savePage(pg);
+  rerenderBlocks();
+  setTimeout(()=>{ const el=$(`#blocks .blk[data-id="${blockId}"]`); if(el){ el.scrollIntoView({block:openSelf?'start':'center'}); el.classList.add('flash'); } },30);
+}
+
 /* ================= schedule ================= */
 function weekDates(){ const base=mondayOf(new Date()); base.setDate(base.getDate()+S.weekOffset*7); const n=S.settings.showWeekend?7:5; return Array.from({length:n},(_,i)=>{ const d=new Date(base); d.setDate(base.getDate()+i); return d; }); }
 function hourRange(dates){
@@ -1140,11 +1200,12 @@ function evRow(ev,d){
 }
 function openEventModal(ev,preset){
   const isNew=!ev;
-  ev=ev?clone(ev):Object.assign({id:rid(),title:'',type:'Přednáška',day:0,start:'08:00',end:'09:50',repeat:'weekly',date:ymd(new Date()),count:4,place:'',who:'',note:'',color:'',pageId:''},preset||{});
+  ev=ev?clone(ev):Object.assign({id:rid(),title:'',type:'Přednáška',day:0,start:'08:00',end:'09:50',repeat:'weekly',date:ymd(new Date()),count:4,place:'',who:'',note:'',color:'',sec:''},preset||{});
   if(!ev.date) ev.date=ymd(new Date()); if(!ev.count) ev.count=4;
-  const pages=flatPages();
+  const heads=allH1(), secOf=v=>heads.find(h=>h.key===v);
+  if(ev.sec&&!secOf(ev.sec)) ev.sec='';
   const m=openModal(isNew?'Nová událost':'Upravit událost',`<form class="m-body" id="evf" novalidate>
-    <div class="fld"><label for="ev-title">Co</label><input id="ev-title" list="ev-dl" value="${esc(ev.title)}" placeholder="Předmět nebo akce" autocomplete="off"><datalist id="ev-dl">${pages.map(({p})=>`<option value="${esc(pTitle(p))}"></option>`).join('')}</datalist></div>
+    <div class="fld"><label for="ev-title">Co</label><input id="ev-title" list="ev-dl" value="${esc(ev.title)}" placeholder="Předmět nebo akce" autocomplete="off"><datalist id="ev-dl">${[...new Set(heads.map(h=>h.short))].map(t=>`<option value="${esc(t)}"></option>`).join('')}</datalist></div>
     <div class="fld"><span class="lbl">Typ</span><div class="seg" id="ev-type">${TYPES.map(t=>`<button type="button" class="${t===ev.type?'on':''}" data-t="${t}">${t}</button>`).join('')}</div></div>
     <div class="grid2">
       <div class="fld"><label for="ev-repeat">Opakování</label><select id="ev-repeat">${[['weekly','Každý týden'],['odd','Lichý týden'],['even','Sudý týden'],['count','Pevný počet týdnů'],['once','Jednorázově']].map(([v,l])=>`<option value="${v}" ${ev.repeat===v?'selected':''}>${l}</option>`).join('')}</select></div>
@@ -1155,11 +1216,11 @@ function openEventModal(ev,preset){
     <p class="note" id="ev-cnt-note" hidden></p>
     <div class="grid2"><div class="fld"><label for="ev-start">Od</label><input type="time" id="ev-start" value="${esc(ev.start)}" step="300"></div><div class="fld"><label for="ev-end">Do</label><input type="time" id="ev-end" value="${esc(ev.end)}" step="300"></div></div>
     <div class="grid2"><div class="fld"><label for="ev-place">Kde</label><input id="ev-place" value="${esc(ev.place)}" placeholder="Místnost nebo budova"></div><div class="fld"><label for="ev-who">S kým</label><input id="ev-who" value="${esc(ev.who)}" placeholder="Vyučující, spolužáci"></div></div>
-    <div class="fld"><label for="ev-page">Stránka předmětu</label><select id="ev-page"><option value="">Žádná</option>${pages.map(({p,depth})=>`<option value="${p.id}" ${ev.pageId===p.id?'selected':''}>${'  '.repeat(depth)}${esc((p.icon?p.icon+' ':'')+pTitle(p))}</option>`).join('')}</select></div>
+    <div class="fld"><label for="ev-sec">Předmět (nadpis H1)</label><select id="ev-sec"><option value="">Žádný</option>${flatPages().filter(({p})=>heads.some(h=>h.pageId===p.id)).map(({p})=>`<optgroup label="${esc((p.icon?p.icon+' ':'')+pTitle(p))}">${heads.filter(h=>h.pageId===p.id).map(h=>`<option value="${esc(h.key)}" ${ev.sec===h.key?'selected':''}>${esc(h.text)}</option>`).join('')}</optgroup>`).join('')}</select>${heads.length?'':'<p class="note">Na stránkách zatím nemáš žádný nadpis H1.</p>'}</div>
     <div class="fld"><span class="lbl">Barva</span><div class="swatches" id="ev-color" style="padding-left:0">${COLORS.map(c=>`<button type="button" class="sw hl-${c} ${evColor(ev)===c?'on':''}" data-c="${c}" aria-label="${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}</div></div>
     <div class="fld"><label for="ev-note">Poznámky</label><textarea id="ev-note" rows="3" placeholder="Co si vzít, co se probírá…">${esc(ev.note)}</textarea></div>
     <p class="err" id="ev-err" hidden></p>
-    <div class="m-actions">${isNew?'':'<button type="button" class="btn danger" id="ev-del">Smazat</button>'}<span class="sp"></span>${ev.pageId&&S.pages[ev.pageId]?'<button type="button" class="btn" id="ev-open">Otevřít stránku</button>':''}<button type="button" class="btn" data-close>Zrušit</button><button type="submit" class="btn pri">${isNew?'Přidat':'Uložit'}</button></div>
+    <div class="m-actions">${isNew?'':'<button type="button" class="btn danger" id="ev-del">Smazat</button>'}<span class="sp"></span><button type="button" class="btn" id="ev-open" ${ev.sec?'':'hidden'}>Otevřít předmět</button><button type="button" class="btn" data-close>Zrušit</button><button type="submit" class="btn pri">${isNew?'Přidat':'Uložit'}</button></div>
   </form>`);
   let type=ev.type, color=evColor(ev);
   const cntNote=()=>{
@@ -1181,14 +1242,16 @@ function openEventModal(ev,preset){
   $('#ev-type',m).addEventListener('click',e=>{ const b=e.target.closest('[data-t]'); if(!b) return; type=b.dataset.t; $$('#ev-type button',m).forEach(x=>x.classList.toggle('on',x===b)); });
   const setColor=c=>{ color=c; $$('#ev-color .sw',m).forEach(x=>x.classList.toggle('on',x.dataset.c===c)); };
   $('#ev-color',m).addEventListener('click',e=>{ const b=e.target.closest('[data-c]'); if(b) setColor(b.dataset.c); });
-  $('#ev-title',m).addEventListener('change',e=>{ const v=norm(e.target.value.trim()); const p=pages.find(({p})=>norm(pTitle(p))===v); if(p){ $('#ev-page',m).value=p.p.id; setColor(p.p.color||color); } });
-  $('#ev-page',m).addEventListener('change',e=>{ const p=S.pages[e.target.value]; if(p){ setColor(p.color||color); if(!$('#ev-title',m).value.trim()) $('#ev-title',m).value=pTitle(p); } });
+  const syncOpen=()=>{ $('#ev-open',m).hidden=!$('#ev-sec',m).value; };
+  $('#ev-title',m).addEventListener('change',e=>{ const v=norm(e.target.value.trim()); const h=v&&heads.find(h=>norm(h.short)===v||norm(h.text)===v); if(h&&!$('#ev-sec',m).value){ $('#ev-sec',m).value=h.key; syncOpen(); } });
+  $('#ev-sec',m).addEventListener('change',e=>{ const h=secOf(e.target.value); if(h&&!$('#ev-title',m).value.trim()) $('#ev-title',m).value=h.short; syncOpen(); });
   $('#ev-start',m).addEventListener('change',e=>{ const s=toMin(e.target.value), en=toMin($('#ev-end',m).value); if(e.target.value&&en<=s) $('#ev-end',m).value=fromMin(Math.min(s+110,23*60+59)); });
   const del=$('#ev-del',m); if(del) del.addEventListener('click',()=>{ const old=S.events[ev.id]; delete S.events[ev.id]; saveEvent({id:ev.id}); closeModal(); renderMain(); toast('Událost smazána','Vrátit',()=>{ S.events[old.id]=old; saveEvent(old); renderMain(); }); });
-  const op=$('#ev-open',m); if(op) op.addEventListener('click',()=>{ closeModal(); go({kind:'page',pageId:ev.pageId}); });
+  $('#ev-open',m).addEventListener('click',()=>{ const h=secOf($('#ev-sec',m).value); if(!h) return; closeModal(); revealBlock(h.pageId,h.blockId,true); });
   $('#evf',m).addEventListener('submit',e=>{
     e.preventDefault();
-    const out=Object.assign(ev,{title:$('#ev-title',m).value.trim(),type,repeat:$('#ev-repeat',m).value,day:+$('#ev-day',m).value,date:$('#ev-date',m).value,count:parseInt($('#ev-count',m).value,10)||0,start:$('#ev-start',m).value,end:$('#ev-end',m).value,place:$('#ev-place',m).value.trim(),who:$('#ev-who',m).value.trim(),pageId:$('#ev-page',m).value,note:$('#ev-note',m).value,color});
+    const out=Object.assign(ev,{title:$('#ev-title',m).value.trim(),type,repeat:$('#ev-repeat',m).value,day:+$('#ev-day',m).value,date:$('#ev-date',m).value,count:parseInt($('#ev-count',m).value,10)||0,start:$('#ev-start',m).value,end:$('#ev-end',m).value,place:$('#ev-place',m).value.trim(),who:$('#ev-who',m).value.trim(),sec:$('#ev-sec',m).value,note:$('#ev-note',m).value,color});
+    delete out.pageId;
     const err=$('#ev-err',m); let msg='';
     if(!out.title) msg='Napiš, co to je (třeba název předmětu).';
     else if(!out.start||!out.end) msg='Vyplň čas od a do.';
@@ -1301,7 +1364,7 @@ function openSearch(){
 }
 
 /* ================= settings ================= */
-const APP_VERSION='2.1.2';
+const APP_VERSION='2.2.0';
 function fmtTime(ts){ if(!ts) return ''; const d=new Date(ts); const t=`${d.getHours()}:${pad(d.getMinutes())}`; return sod(d).getTime()===sod(new Date()).getTime()?t:`${shortDate(d)} ${t}`; }
 function downloadFile(name,text){
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'application/json'})); a.download=name;
@@ -1314,54 +1377,101 @@ function applyData(d){
   if(S.view.kind==='page'&&!S.pages[S.view.pageId]) S.view={kind:'today'};
   renderSidebar(); renderMain();
 }
+/* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
+const FS_STEPS=[1,1.15,1.3,1.45,1.6];
+function applyTheme(){
+  const t=lsGet('uk-theme','auto'), root=document.documentElement;
+  if(t==='light'||t==='dark') root.setAttribute('data-theme',t); else root.removeAttribute('data-theme');
+  const dark=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);
+  $$('meta[name="theme-color"]').forEach(mt=>mt.setAttribute('content',dark?'#18161D':'#FCFBFE'));
+}
+function applyFontScale(){
+  const f=+lsGet('uk-fs',1); const v=FS_STEPS.includes(f)?f:1;
+  if(v===1) document.documentElement.style.removeProperty('--fs'); else document.documentElement.style.setProperty('--fs',v);
+  requestAnimationFrame(()=>placeFrame());
+}
+try{ matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme); }catch(_){}
+
+/* ---- nastavení po kategoriích ---- */
+const SET_TABS=[['general','Obecné','⚙️'],['look','Vzhled','🎨'],['sync','Synchronizace','☁️'],['help','Návod a novinky','📖']];
 async function openSettings(focus){
   const st=S.settings, cid=DriveSync.clientId(), ds=DriveSync.state();
   let backups=[]; try{ backups=await Local.listBackups(); }catch(_){}
-  const m=openModal('Nastavení',`<form class="m-body" id="stf" novalidate>
-    <button type="button" class="guide-link" id="st-guide"><span class="gl-ic" aria-hidden="true">📖</span><span><b>Návod</b><small>Základní funkce Úkolníčku v kostce</small></span><span class="gl-arr" aria-hidden="true">›</span></button>
-    <div class="fld"><label for="st-name">Název</label><input id="st-name" value="${esc(st.name)}" placeholder="Úkolníček"></div>
-    <div class="fld"><label for="st-start">Začátek výuky (pondělí 1. týdne)</label><input type="date" id="st-start" value="${esc(st.semesterStart)}"><p class="note">Podle něj se počítá číslo týdne a lichý/sudý týden.</p></div>
-    <div class="grid2"><div class="fld"><label for="st-h0">Rozvrh od</label><select id="st-h0">${Array.from({length:14},(_,i)=>i+5).map(h=>`<option ${+st.dayStart===h?'selected':''}>${h}</option>`).join('')}</select></div><div class="fld"><label for="st-h1">Rozvrh do</label><select id="st-h1">${Array.from({length:12},(_,i)=>i+13).map(h=>`<option ${+st.dayEnd===h?'selected':''}>${h}</option>`).join('')}</select></div></div>
-    <label class="chk"><input type="checkbox" id="st-we" ${st.showWeekend?'checked':''}> Zobrazovat v rozvrhu i víkend</label>
-    <label class="chk"><input type="checkbox" id="st-mc" ${st.miniCal?'checked':''}> Mini kalendář v levém panelu pod číslem týdne</label>
-    <label class="chk sub"><input type="checkbox" id="st-mcw" ${st.miniCalWeeks!==false?'checked':''} ${st.miniCal?'':'disabled'}> V kalendáři ukazovat čísla týdnů v roce</label>
-    <div class="m-actions"><span class="sp"></span><button type="submit" class="btn pri">Uložit nastavení</button></div>
+  const tab=focus==='drive'?'sync':(S.setTab||'general');
+  const theme=lsGet('uk-theme','auto'), fs=+lsGet('uk-fs',1);
+  const seg=(id,opts,cur)=>`<div class="seg" id="${id}">${opts.map(([v,l])=>`<button type="button" class="${String(v)===String(cur)?'on':''}" data-v="${v}">${l}</button>`).join('')}</div>`;
+  const m=openModal('Nastavení',`<div class="set">
+    <nav class="set-nav" role="tablist">${SET_TABS.map(([k,l,ic])=>`<button type="button" role="tab" data-tab="${k}" class="${k===tab?'on':''}"><span aria-hidden="true">${ic}</span>${l}</button>`).join('')}</nav>
+    <form class="set-body" id="stf" novalidate>
 
-    <div class="head-rule" style="margin:4px 0"></div>
-    <div class="fld" id="st-drive"><span class="lbl">Google Disk</span>
-      <div class="drive-state ${ds==='ok'?'cl-ok':ds==='expired'?'cl-exp':'cl-off'}">${cloudSvg(ds==='off')}<span>${ds==='ok'?`Připojeno. ${META.lastUpload?'Naposledy nahráno '+fmtTime(META.lastUpload)+'.':'Zatím nic nenahráno.'}`:ds==='expired'?'Přihlášení vypršelo. Připoj se znovu.':'Nepřipojeno.'}</span></div>
-      <label for="st-cid" class="note">OAuth Client ID (typ „Webová aplikace“) z Google Cloud. Ukládá se jen v tomto prohlížeči.</label>
-      <input id="st-cid" value="${esc(cid)}" placeholder="123456789-abc….apps.googleusercontent.com" autocomplete="off" spellcheck="false">
-      <div class="m-actions">
-        ${ds==='ok'?`<button type="button" class="btn" id="st-up">↑ Nahrát na Disk</button><button type="button" class="btn" id="st-down">↓ Stáhnout z Disku…</button><span class="sp"></span><button type="button" class="btn danger" id="st-disc">Odpojit</button>`
-          :`<button type="button" class="btn pri" id="st-conn">${ds==='expired'?'Připojit znovu':'Přihlásit k Disku'}</button>`}
+    <section class="set-pane" data-pane="general">
+      <div class="fld"><label for="st-name">Název</label><input id="st-name" value="${esc(st.name)}" placeholder="Úkolníček"></div>
+      <div class="fld"><label for="st-start">Začátek výuky (pondělí 1. týdne)</label><input type="date" id="st-start" value="${esc(st.semesterStart)}"><p class="note">Podle něj se počítá číslo týdne a lichý/sudý týden.</p></div>
+      <div class="grid2"><div class="fld"><label for="st-h0">Rozvrh od</label><select id="st-h0">${Array.from({length:14},(_,i)=>i+5).map(h=>`<option ${+st.dayStart===h?'selected':''}>${h}</option>`).join('')}</select></div><div class="fld"><label for="st-h1">Rozvrh do</label><select id="st-h1">${Array.from({length:12},(_,i)=>i+13).map(h=>`<option ${+st.dayEnd===h?'selected':''}>${h}</option>`).join('')}</select></div></div>
+      <label class="chk"><input type="checkbox" id="st-we" ${st.showWeekend?'checked':''}> Zobrazovat v rozvrhu i víkend</label>
+    </section>
+
+    <section class="set-pane" data-pane="look">
+      <div class="fld"><span class="lbl">Motiv</span>${seg('st-theme',[['auto','Podle zařízení'],['light','☀︎ Světlý'],['dark','☾ Tmavý']],theme)}</div>
+      <div class="fld"><span class="lbl">Velikost textu</span>${seg('st-fs',FS_STEPS.map(v=>[v,Math.round(v*100)+' %']),FS_STEPS.includes(fs)?fs:1)}
+        <p class="note">Motiv a velikost textu platí jen pro toto zařízení a nenahrávají se na Disk.</p></div>
+      <div class="set-sep"></div>
+      <label class="chk"><input type="checkbox" id="st-mc" ${st.miniCal?'checked':''}> Mini kalendář v levém panelu pod číslem týdne</label>
+      <label class="chk sub"><input type="checkbox" id="st-mcw" ${st.miniCalWeeks!==false?'checked':''} ${st.miniCal?'':'disabled'}> V kalendáři ukazovat čísla týdnů v roce</label>
+      <label class="chk"><input type="checkbox" id="st-hid" ${st.showHidden!==false?'checked':''}> U sbaleného nadpisu ukazovat, kolik bloků je skrytých</label>
+    </section>
+
+    <section class="set-pane" data-pane="sync">
+      <div class="fld" id="st-drive"><span class="lbl">Google Disk</span>
+        <div class="drive-state ${ds==='ok'?'cl-ok':ds==='expired'?'cl-exp':'cl-off'}">${cloudSvg(ds==='off')}<span>${ds==='ok'?`Připojeno. ${META.lastUpload?'Naposledy nahráno '+fmtTime(META.lastUpload)+'.':'Zatím nic nenahráno.'}`:ds==='expired'?'Přihlášení vypršelo. Připoj se znovu.':'Nepřipojeno.'}</span></div>
+        <label for="st-cid" class="note">OAuth Client ID (typ „Webová aplikace“) z Google Cloud. Ukládá se jen v tomto prohlížeči.</label>
+        <input id="st-cid" value="${esc(cid)}" placeholder="123456789-abc….apps.googleusercontent.com" autocomplete="off" spellcheck="false">
+        <div class="m-actions">
+          ${ds==='ok'?`<button type="button" class="btn" id="st-up">↑ Nahrát na Disk</button><button type="button" class="btn" id="st-down">↓ Stáhnout z Disku…</button><span class="sp"></span><button type="button" class="btn danger" id="st-disc">Odpojit</button>`
+            :`<button type="button" class="btn pri" id="st-conn">${ds==='expired'?'Připojit znovu':'Přihlásit k Disku'}</button>`}
+        </div>
+        <p class="note">Synchronizace je ruční: ↑ uloží aktuální stav jako novou zálohu (drží se posledních 10), ↓ nahradí data v tomto zařízení vybranou verzí. Obrázky se nezálohují, na jiném zařízení se ukážou jako rámeček s názvem.</p>
       </div>
-      <p class="note">Synchronizace je ruční: ↑ uloží aktuální stav jako novou zálohu (drží se posledních 10), ↓ nahradí data v tomto zařízení vybranou verzí. Obrázky se nezálohují, na jiném zařízení se ukážou jako rámeček s názvem.</p>
-    </div>
+      <div class="set-sep"></div>
+      <div class="fld"><span class="lbl">Soubor se zálohou</span>
+        <div class="m-actions"><button type="button" class="btn" id="st-exp">Exportovat do souboru</button><label class="btn" for="st-imp" style="cursor:pointer">Importovat ze souboru…</label><input type="file" id="st-imp" accept=".json,application/json" hidden></div>
+        <p class="note">Import přidá stránky a události ze souboru (i ze zálohy z Claude verze). Stejné stránky přepíše.</p></div>
+      <div class="fld"><span class="lbl">Místní zálohy</span>
+        ${backups.length?`<div class="bk-list scroll">${backups.map(b=>`<div class="bk"><span><b>${esc(fmtTime(b.id))}</b> · ${esc(b.label||'Záloha')}</span><button type="button" class="btn" data-bk="${b.id}">Obnovit</button></div>`).join('')}</div>`:'<p class="note">Zatím žádné. Vytvoří se samy před každým stažením z Disku nebo obnovením.</p>'}
+      </div>
+    </section>
 
-    <div class="head-rule" style="margin:4px 0"></div>
-    <div class="fld"><span class="lbl">Soubor se zálohou</span>
-      <div class="m-actions"><button type="button" class="btn" id="st-exp">Exportovat do souboru</button><label class="btn" for="st-imp" style="cursor:pointer">Importovat ze souboru…</label><input type="file" id="st-imp" accept=".json,application/json" hidden></div>
-      <p class="note">Import přidá stránky a události ze souboru (i ze zálohy z Claude verze). Stejné stránky přepíše.</p></div>
-    <div class="fld"><span class="lbl">Místní zálohy</span>
-      ${backups.length?`<div class="bk-list">${backups.map(b=>`<div class="bk"><span><b>${esc(fmtTime(b.id))}</b> · ${esc(b.label||'Záloha')}</span><button type="button" class="btn" data-bk="${b.id}">Obnovit</button></div>`).join('')}</div>`:'<p class="note">Zatím žádné. Vytvoří se samy před každým stažením z Disku nebo obnovením.</p>'}
-    </div>
-    <p class="note">Úkolníček ${APP_VERSION} · data jsou uložená v tomto zařízení (IndexedDB).</p>
-  </form>`);
-  $('#stf',m).addEventListener('submit',e=>{
-    e.preventDefault();
-    Object.assign(S.settings,{name:$('#st-name',m).value.trim()||'Úkolníček',semesterStart:$('#st-start',m).value,dayStart:+$('#st-h0',m).value,dayEnd:+$('#st-h1',m).value,showWeekend:$('#st-we',m).checked,miniCal:$('#st-mc',m).checked,miniCalWeeks:$('#st-mcw',m).checked});
-    if(S.settings.semesterStart){ const d=parseD(S.settings.semesterStart); if(d.getDay()!==1) S.settings.semesterStart=ymd(mondayOf(d)); }
-    saveCid(); saveSettings(); closeModal(); renderSidebar(); renderMain(); toast('Nastavení uloženo');
-  });
+    <section class="set-pane" data-pane="help">
+      <button type="button" class="guide-link" data-guide="navod"><span class="gl-ic" aria-hidden="true">📖</span><span><b>Návod</b><small>Základní funkce Úkolníčku v kostce</small></span><span class="gl-arr" aria-hidden="true">›</span></button>
+      <button type="button" class="guide-link" data-guide="novinky"><span class="gl-ic" aria-hidden="true">✨</span><span><b>Novinky</b><small>Co přibylo v posledních verzích</small></span><span class="gl-arr" aria-hidden="true">›</span></button>
+      <p class="note">Úkolníček ${APP_VERSION} · data jsou uložená v tomto zařízení (IndexedDB).</p>
+    </section>
+    </form></div>`,'set-m');
+
+  /* přepínání kategorií */
+  const showTab=k=>{ S.setTab=k; $$('.set-nav [data-tab]',m).forEach(b=>{ b.classList.toggle('on',b.dataset.tab===k); b.setAttribute('aria-selected',String(b.dataset.tab===k)); }); $$('.set-pane',m).forEach(p=>p.hidden=p.dataset.pane!==k); };
+  showTab(tab);
+  $('.set-nav',m).addEventListener('click',e=>{ const b=e.target.closest('[data-tab]'); if(b) showTab(b.dataset.tab); });
+  $('#stf',m).addEventListener('submit',e=>e.preventDefault());
+
+  /* obecné a vzhled se ukládají hned při změně */
+  const commit=()=>{
+    Object.assign(S.settings,{name:$('#st-name',m).value.trim()||'Úkolníček',semesterStart:$('#st-start',m).value,dayStart:+$('#st-h0',m).value,dayEnd:+$('#st-h1',m).value,showWeekend:$('#st-we',m).checked,miniCal:$('#st-mc',m).checked,miniCalWeeks:$('#st-mcw',m).checked,showHidden:$('#st-hid',m).checked});
+    if(S.settings.semesterStart){ const d=parseD(S.settings.semesterStart); if(d.getDay()!==1){ S.settings.semesterStart=ymd(mondayOf(d)); $('#st-start',m).value=S.settings.semesterStart; } }
+    $('#st-mcw',m).disabled=!S.settings.miniCal;
+    saveSettings(); renderSidebar(); renderMain();
+  };
+  ['#st-name','#st-start','#st-h0','#st-h1','#st-we','#st-mc','#st-mcw','#st-hid'].forEach(sel=>$(sel,m).addEventListener('change',commit));
+  $('#st-theme',m).addEventListener('click',e=>{ const b=e.target.closest('[data-v]'); if(!b) return; lsSet('uk-theme',b.dataset.v); applyTheme(); $$('#st-theme button',m).forEach(x=>x.classList.toggle('on',x===b)); });
+  $('#st-fs',m).addEventListener('click',e=>{ const b=e.target.closest('[data-v]'); if(!b) return; lsSet('uk-fs',+b.dataset.v); applyFontScale(); $$('#st-fs button',m).forEach(x=>x.classList.toggle('on',x===b)); });
+  $$('[data-guide]',m).forEach(b=>b.addEventListener('click',()=>openGuide(b.dataset.guide)));
+
   const saveCid=()=>{ const v=$('#st-cid',m).value.trim(); if(v!==DriveSync.clientId()){ DriveSync.setClientId(v); DriveSync.preload(); updateSyncUI(); } };
   $('#st-cid',m).addEventListener('change',saveCid);
-  $('#st-guide',m).addEventListener('click',openGuide);
-  $('#st-mc',m).addEventListener('change',e=>{ $('#st-mcw',m).disabled=!e.target.checked; });
   const conn=$('#st-conn',m); if(conn) conn.addEventListener('click',async()=>{
     saveCid();
     if(!DriveSync.clientId()){ toast('Nejdřív vlož Client ID.'); $('#st-cid',m).focus(); return; }
-    if(await Sync.ensure()){ toast('Připojeno k Google Disku'); closeModal(); openSettings(); }
+    if(await Sync.ensure()){ toast('Připojeno k Google Disku'); closeModal(); openSettings('drive'); }
   });
   const up=$('#st-up',m); if(up) up.addEventListener('click',()=>{ closeModal(); Sync.upload(); });
   const down=$('#st-down',m); if(down) down.addEventListener('click',()=>{ closeModal(); Sync.openDownload(); });
@@ -1390,29 +1500,29 @@ async function openSettings(focus){
     await Local.addBackup(stateForStorage(),'Před obnovením místní zálohy');
     applyData(bk.state); Store.queue(); closeModal(); toast('Záloha z '+fmtTime(bk.id)+' obnovena');
   }));
-  if(focus==='drive'){ setTimeout(()=>{ $('#st-drive',m).scrollIntoView({block:'center'}); if(!DriveSync.clientId()) $('#st-cid',m).focus(); },30); }
+  if(focus==='drive'&&!DriveSync.clientId()) setTimeout(()=>$('#st-cid',m).focus(),30);
 }
 
-/* ================= návod ================= */
-function openGuide(){
-  const kb=s=>`<kbd>${s}</kbd>`, M=IS_MAC?'⌘':'Ctrl+';
-  const sec=(ic,t,body)=>`<section class="g-sec"><h3><span class="g-ic" aria-hidden="true">${ic}</span>${t}</h3>${body}</section>`;
-  openModal('Návod k Úkolníčku',`<div class="m-body guide">
-    ${sec('📄','Stránky a bloky',`<p>Projekty a jejich podstránky jsou v levém panelu. ＋ přidá nový, ⋯ u názvu otevře možnosti.</p>
-      <p>Na stránce piš jako v sešitu. Enter udělá nový řádek, ${kb('/')} otevře nabídku bloků (nadpis, úkol, tabulka, obrázek…). Rychlé zkratky na začátku řádku: ${kb('[]')} + mezera je úkol, ${kb('-')} + mezera odrážka, ${kb('#')} + mezera nadpis.</p>
-      <p>Blok přesuneš chycením za tečky ⋮⋮ vlevo, plusem vedle nich přidáš nový pod něj. Šipka u nadpisu sbalí sekci. ${kb(M+'K')} hledá ve všech stránkách.</p>`)}
-    ${sec('▦','Tabulky',`<p>V buňce můžou být text, odrážky, úkoly i obrázky, přepínáš je v liště nad buňkou. ${kb('Tab')} skočí do další buňky.</p>
-      <p>Řádek a sloupec přidáš tlačítky pod tabulkou, ⋮ a ⋯ na okraji je vloží jinam nebo smažou.</p>`)}
-    ${sec('✅','Úkoly a termíny',`<p>Úkoly ze všech stránek najdeš v přehledu Úkoly. Když do textu napíšeš datum jako <span class="mono">5.10.</span>, ukáže se s termínem i na stránce Dnes.</p>`)}
-    ${sec('🗓️','Rozvrh',`<p>Klikni do volného místa v týdnu a vyplň co, kdy, kde, s kým a poznámku. Kliknutím na hodinu ji upravíš nebo smažeš.</p>
-      <p>Opakování: každý týden, lichý nebo sudý týden, jednorázově, nebo pevný počet (třeba 4×). Pevný počet se počítá po týdnech od zvoleného data.</p>
-      <p>Dvě věci ve stejný čas: najeď na pravý kraj hodiny a klikni na ＋. Obě se pak zobrazí vedle sebe.</p>`)}
-    ${sec('🔒','Zámek',`<p>Ikona vedle šipek zpět a vpřed nahoře na stránce, zkratka ${kb(LOCK_KEY)}. Skryje tečky, plusy a tlačítka pro přidávání a mazání bloků, řádků a sloupců, takže se nic nepřesune omylem. Psaní, zaškrtávání a rozvrh fungují dál.</p>`)}
-    ${sec('↩︎','Zpět a vpřed',`<p>Šipky nahoře na stránce, nebo ${kb(M+'Z')} a ${kb(IS_MAC?'⇧⌘Z':'Ctrl+Y')}.</p>`)}
-    ${sec('☁️','Záloha na Google Disk',`<p>↑ nahraje data na Disk, ↓ je stáhne. Synchronizace je ruční, takže po větší úpravě nahraj. Oranžová tečka u mráčku znamená změny, které na Disku ještě nejsou.</p>
-      <p>Žlutý mráček: přihlášení vypršelo (platí asi hodinu). Stačí kliknout na ↑ nebo ↓ a přihlásit se jedním klikem. Obrázky zůstávají jen v zařízení, kde je vložíš.</p>`)}
-    ${sec('⚙️','Nastavení',`<p>Začátek semestru (podle něj se počítá číslo týdne a lichý/sudý), rozsah hodin v rozvrhu, víkend, mini kalendář v levém panelu (volitelně s čísly týdnů v roce), připojení Disku a zálohy do souboru. Kliknutím na den v mini kalendáři otevřeš jeho týden v rozvrhu.</p>`)}
-  </div>`,'guide-m');
+/* ================= návod a novinky (obsah je v souboru navod.html) ================= */
+let GUIDE=null;
+async function loadGuide(){
+  if(GUIDE) return GUIDE;
+  const res=await fetch('navod.html',{cache:'no-cache'}).catch(()=>null) || await caches.match('navod.html').catch(()=>null);
+  if(!res||!res.ok) throw new Error('navod');
+  const doc=new DOMParser().parseFromString(await res.text(),'text/html');
+  const secs=$$('#navod > section[data-tab]',doc).map(sc=>({k:sc.dataset.tab,title:sc.dataset.title||sc.dataset.tab,html:sc.innerHTML}));
+  if(!secs.length) throw new Error('navod');
+  GUIDE=secs; return secs;
+}
+async function openGuide(tab){
+  const m=openModal('Návod a novinky','<div class="m-body guide"><div class="loading">Načítám…</div></div>','guide-m');
+  let secs; try{ secs=await loadGuide(); }catch(_){ $('.guide',m).innerHTML='<p class="note">Návod se nepodařilo načíst. Zkus to znovu, až budeš online.</p>'; return; }
+  if(S.modal!==m.parentElement) return;
+  const k0=secs.some(s=>s.k===tab)?tab:secs[0].k;
+  $('.guide',m).innerHTML=`<div class="g-tabs" role="tablist">${secs.map(s=>`<button type="button" role="tab" data-k="${esc(s.k)}">${esc(s.title)}</button>`).join('')}</div>${secs.map(s=>`<div class="g-pane" data-k="${esc(s.k)}">${s.html}</div>`).join('')}`;
+  const show=k=>{ $$('.g-tabs button',m).forEach(b=>{ b.classList.toggle('on',b.dataset.k===k); b.setAttribute('aria-selected',String(b.dataset.k===k)); }); $$('.g-pane',m).forEach(p=>p.hidden=p.dataset.k!==k); $('.guide',m).scrollTop=0; };
+  show(k0);
+  $('.g-tabs',m).addEventListener('click',e=>{ const b=e.target.closest('[data-k]'); if(b) show(b.dataset.k); });
 }
 
 /* ================= Google Drive sync (UI; transport in driveSync.js) ================= */
@@ -1448,8 +1558,9 @@ const Sync={
       const files=await DriveSync.list(); const top=files[0];
       if(!force&&top&&top.name!==META.remoteName&&(!META.remoteAt||top.createdTime>META.remoteAt)){ this.setBusy(false); return confirmNewerRemote(top); }
       await Store.flush();
+      const sentHash=dataHash();
       const f=await DriveSync.upload(Object.assign({app:'ukolnicek',version:2,savedAt:new Date().toISOString(),device:deviceName()},dataForSave()));
-      META.remoteAt=f.createdTime||new Date().toISOString(); META.remoteName=f.name; META.syncedAt=META.changedAt; META.lastUpload=Date.now(); this.remoteNewer=false;
+      META.remoteAt=f.createdTime||new Date().toISOString(); META.remoteName=f.name; META.syncedAt=META.changedAt; META.syncedHash=sentHash; META.lastUpload=Date.now(); this.remoteNewer=false;
       await Store.flush();
       await DriveSync.rotate(10).catch(()=>0);
       toast('Nahráno na Disk');
@@ -1463,10 +1574,10 @@ const Sync={
     try{ files=await DriveSync.list(); }catch(e){ this.setBusy(false); return toast(DriveSync.errText(e)); }
     this.setBusy(false);
     if(!files.length) return toast('Na Disku zatím nic není. Nejdřív nahraj data tlačítkem ↑.');
-    const dirty=META.changedAt>META.syncedAt;
+    const dirty=isDirty();
     const m=openModal('Stáhnout z Disku',`<form class="m-body" id="dlf">
       ${dirty?`<p class="warn">V tomto zařízení máš změny, které nejsou na Disku (poslední úprava ${esc(fmtTime(META.changedAt))}). Stažení je nahradí. Současný stav se předtím uloží do Nastavení → Místní zálohy.</p>`:'<p class="note">Data v tomto zařízení se nahradí vybranou verzí. Současný stav se předtím uloží do místních záloh.</p>'}
-      <div class="bk-list">${files.map((f,i)=>`<label class="bk ${i===0?'on':''}"><span><input type="radio" name="dlv" value="${esc(f.id)}" ${i===0?'checked':''}> <b>${esc(fmtTime(Date.parse(f.createdTime)))}</b>${i===0?' · nejnovější':''}${f.name===META.remoteName?' · tvoje poslední synchronizace':''}</span><span class="note">${f.size?Math.max(1,Math.round(f.size/1024))+' kB':''}</span></label>`).join('')}</div>
+      <div class="bk-list scroll">${files.map((f,i)=>`<label class="bk ${i===0?'on':''}"><span><input type="radio" name="dlv" value="${esc(f.id)}" ${i===0?'checked':''}> <b>${esc(fmtTime(Date.parse(f.createdTime)))}</b>${i===0?' · nejnovější':''}${f.name===META.remoteName?' · tvoje poslední synchronizace':''}</span><span class="note">${f.size?Math.max(1,Math.round(f.size/1024))+' kB':''}</span></label>`).join('')}</div>
       <div class="m-actions">${dirty?'<button type="button" class="btn" id="dl-up">Nejdřív nahrát moje změny</button>':''}<span class="sp"></span><button type="button" class="btn" data-close>Zrušit</button><button type="submit" class="btn pri">Stáhnout a nahradit</button></div>
     </form>`);
     $$('input[name=dlv]',m).forEach(r=>r.addEventListener('change',()=>$$('.bk',m).forEach(b=>b.classList.toggle('on',b.contains(r)&&r.checked))));
@@ -1481,7 +1592,7 @@ const Sync={
         await Store.flush();
         await Local.addBackup(stateForStorage(),'Před stažením z Disku');
         applyData(d);
-        META.remoteAt=f.createdTime; META.remoteName=f.name; META.changedAt=META.syncedAt=Date.now(); META.lastDownload=Date.now(); this.remoteNewer=false;
+        META.remoteAt=f.createdTime; META.remoteName=f.name; META.changedAt=META.syncedAt=Date.now(); META.syncedHash=META.curHash=dataHash(); META.lastDownload=Date.now(); this.remoteNewer=false;
         await Store.flush();
         toast('Staženo z Disku · verze '+fmtTime(Date.parse(f.createdTime)));
       }catch(err){ toast(err&&err.code==='bad_file'?'Soubor na Disku není platná záloha Úkolníčku.':DriveSync.errText(err)); }
@@ -1499,7 +1610,7 @@ function confirmNewerRemote(top){
 }
 function updateSyncUI(){
   const st=DriveSync.state(), off=!navigator.onLine;
-  const dirty=META.changedAt>META.syncedAt&&Object.keys(S.pages).length>0;
+  const dirty=isDirty();
   const cls=Sync.busy?'cl-busy':st==='ok'?'cl-ok':st==='expired'?'cl-exp':'cl-off';
   const label=Sync.busy?'Synchronizuji…':off&&st!=='off'?'Offline':st==='ok'?(META.lastUpload||META.lastDownload?'Disk · '+fmtTime(Math.max(META.lastUpload,META.lastDownload)):'Disk připojen'):st==='expired'?'Připojit znovu':'Disk nepřipojen';
   const title=(st==='ok'?'Google Disk připojen':st==='expired'?'Přihlášení vypršelo – klepni pro připojení':'Google Disk není připojený')+(dirty?' · máš změny, které nejsou na Disku':'')+(Sync.remoteNewer?' · na Disku je novější verze':'');
@@ -1514,13 +1625,53 @@ function openSyncMenu(anchor){
   const st=DriveSync.state();
   if(st==='expired'&&!Sync.busy){ Sync.ensure().then(ok=>{ if(ok){ toast('Připojeno k Google Disku'); Sync.peek(); } }); return; }
   if(st==='off'){ openSettings('drive'); return; }
-  const dirty=META.changedAt>META.syncedAt;
+  const dirty=isDirty();
   const h=`<div class="pop-h">Google Disk</div>
     <p class="note" style="padding:0 8px 6px">${META.lastUpload?'Naposledy nahráno '+esc(fmtTime(META.lastUpload))+'.':'Zatím nic nenahráno.'}${dirty?' Máš změny, které nejsou na Disku.':''}${Sync.remoteNewer?' Na Disku je novější verze.':''}</p>
     <button class="pop-item" data-v="up"><span class="pi-ic">↑</span>Nahrát na Disk</button>
     <button class="pop-item" data-v="down"><span class="pi-ic">↓</span>Stáhnout z Disku…</button>
     <div class="pop-sep"></div><button class="pop-item" data-v="set"><span class="pi-ic">⚙</span>Nastavení Disku</button>`;
   openPop(anchor,h,v=>{ if(v==='up') Sync.upload(); else if(v==='down') Sync.openDownload(); else openSettings('drive'); });
+}
+
+/* ================= odkazy ================= */
+function openLinkDialog(host,range,fromSel,existing){
+  if(!host) return;
+  const selText=existing?existing.textContent:(fromSel&&range&&!range.collapsed?range.toString():'');
+  const m=openModal(existing?'Upravit odkaz':'Vložit odkaz',`<form class="m-body" id="lkf" novalidate>
+    <div class="fld"><label for="lk-url">Adresa</label><input id="lk-url" value="${esc(existing?existing.getAttribute('href'):'')}" placeholder="https://… nebo vutbr.cz" autocomplete="off" spellcheck="false" inputmode="url"></div>
+    <div class="fld"><label for="lk-name">Text odkazu</label><input id="lk-name" value="${esc(selText)}" placeholder="Jak se má odkaz jmenovat (nepovinné)" autocomplete="off"></div>
+    <p class="err" id="lk-err" hidden></p>
+    <div class="m-actions">${existing?'<button type="button" class="btn danger" id="lk-del">Odebrat odkaz</button>':''}<span class="sp"></span><button type="button" class="btn" data-close>Zrušit</button><button type="submit" class="btn pri">${existing?'Uložit':'Vložit'}</button></div>
+  </form>`);
+  setTimeout(()=>$(existing||!selText?'#lk-url':'#lk-url',m).focus(),20);
+  const done=()=>{ host.dispatchEvent(new Event('input',{bubbles:true})); };
+  const del=$('#lk-del',m); if(del) del.addEventListener('click',()=>{ closeModal(); unwrap(existing); done(); });
+  $('#lkf',m).addEventListener('submit',e=>{
+    e.preventDefault();
+    const href=normUrl($('#lk-url',m).value), name=$('#lk-name',m).value.trim();
+    if(!href){ const er=$('#lk-err',m); er.textContent='Tohle nevypadá jako webová adresa. Zkus třeba https://www.vutbr.cz'; er.hidden=false; return; }
+    closeModal();
+    if(!document.contains(host)){ toast('Místo pro odkaz mezitím zmizelo, zkus to znovu.'); return; }
+    if(existing){ existing.setAttribute('href',href); existing.textContent=name||urlLabel(href); done(); return; }
+    const a=document.createElement('a'); a.href=href; a.className='lnk'; a.target='_blank'; a.rel='noopener noreferrer'; a.textContent=name||urlLabel(href);
+    let r=range; if(!r||!host.contains(r.startContainer)){ r=document.createRange(); r.selectNodeContents(host); r.collapse(false); }
+    if(!r.collapsed) r.deleteContents();
+    const sp=document.createTextNode(' ');
+    r.insertNode(sp); r.insertNode(a);
+    host.focus({preventScroll:true});
+    const nr=document.createRange(); nr.setStartAfter(sp); nr.collapse(true); const s=getSelection(); s.removeAllRanges(); s.addRange(nr);
+    done();
+  });
+}
+function openLinkPop(a){
+  const href=a.getAttribute('href')||'', host=a.closest('.txt');
+  const h=`<div class="lk-pop"><span class="lk-url" title="${esc(href)}">${esc(urlLabel(href))}</span></div><div class="it-row"><button data-v="open">Otevřít ↗</button><button data-v="edit">Upravit</button>${LOCK?'':'<button class="danger" data-v="del">Odebrat</button>'}</div><p class="note" style="padding:2px 8px 4px">Tip: ⌘ + klik odkaz rovnou otevře.</p>`;
+  openPop(a,h,v=>{
+    if(v==='open') window.open(href,'_blank','noopener');
+    else if(v==='edit') openLinkDialog(host,null,false,a);
+    else if(v==='del'){ unwrap(a); host.dispatchEvent(new Event('input',{bubbles:true})); }
+  });
 }
 
 /* ================= images ================= */
@@ -1679,6 +1830,13 @@ function openSide(){ $('#side').classList.add('open'); $('#scrim').classList.add
 function closeSide(){ $('#side').classList.remove('open'); $('#scrim').classList.remove('open'); }
 document.addEventListener('click',e=>{
   if(e.target.closest('.pop,.modal,#fmt,#cellbar,#slash,#imgframe')) return;
+  const lk=e.target.closest&&e.target.closest('a.lnk');
+  if(lk){
+    if(!lk.closest('[contenteditable="true"]')) return; /* mimo editor (Úkoly) se otevře normálně v nové kartě */
+    e.preventDefault();
+    if(e.metaKey||e.ctrlKey){ window.open(lk.href,'_blank','noopener'); return; }
+    openLinkPop(lk); return;
+  }
   const im=e.target.closest&&e.target.closest('#doc .txt img.im, #doc .bimg'); if(im){ selectImage(im); return; }
   const col=e.target.classList&&e.target.classList.contains('sg-col')?e.target:null;
   if(col){
@@ -1735,7 +1893,7 @@ document.addEventListener('click',e=>{
     case 'ev': { const ev=S.events[a.dataset.id]; if(ev) openEventModal(ev); break; }
     case 'tfilter': S.taskFilter=a.dataset.v; renderMain(); break;
     case 'task-check': toggleTask(a.dataset.k); break;
-    case 'goto-task': { const t=taskByKey(a.dataset.k); if(!t) break; go({kind:'page',pageId:t.pg.id}); const bl=t.pg.blocks; const hidx=bl.indexOf(t.b); let opened=false; for(let i=hidx-1;i>=0;i--){ if(isHeading(bl[i].type)&&bl[i].collapsed&&sectionEnd(bl,i)>hidx){ bl[i].collapsed=false; opened=true; } } if(opened) savePage(t.pg); rerenderBlocks(); setTimeout(()=>{ const el=$(`#blocks .blk[data-id="${t.b.id}"]`); if(el){ el.scrollIntoView({block:'center'}); el.classList.add('flash'); } },30); break; }
+    case 'goto-task': { const t=taskByKey(a.dataset.k); if(t) revealBlock(t.pg.id,t.b.id,false); break; }
   }
 });
 document.addEventListener('keydown',e=>{
@@ -1754,6 +1912,7 @@ document.addEventListener('keydown',e=>{
 setInterval(()=>{ if(S.ready&&!S.modal&&(S.view.kind==='schedule'||S.view.kind==='today')&&!document.activeElement.closest?.('#view input')) { const st=$('#main').scrollTop; renderMain(); $('#main').scrollTop=st; } },60000);
 
 /* ================= boot ================= */
+applyTheme(); applyFontScale();
 applyLock();
 renderSidebar();
 Store.init();
@@ -1787,7 +1946,7 @@ if('serviceWorker' in navigator&&location.protocol!=='file:'){
    nabídne Úkolníček rovnou nahrání. */
 window.addEventListener('beforeunload',e=>{
   if(reloading) return;
-  const dirty=META.changedAt>META.syncedAt&&Object.keys(S.pages).length>0;
+  const dirty=isDirty();
   if(!dirty||DriveSync.state()==='off'||Sync.busy) return;
   try{ Store.flush(); }catch(_){}
   e.preventDefault(); e.returnValue='';

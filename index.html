@@ -18,6 +18,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="style.css">
+<script>
+/* motiv a velikost textu jsou uložené jen v tomto zařízení; nastaví se hned, aby stránka nepoblikla */
+try{var t=JSON.parse(localStorage.getItem('uk-theme')||'"auto"');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);
+var f=+JSON.parse(localStorage.getItem('uk-fs')||'1');if(f>1&&f<=1.6)document.documentElement.style.setProperty('--fs',f);}catch(e){}
+</script>
 </head>
 <body>
 <div id="app">
@@ -30,7 +35,7 @@
 </div>
 <div class="fmt" id="fmt" hidden></div>
 <div class="cellbar" id="cellbar" hidden>
-  <button data-lt="p">Text</button><button data-lt="bullet">• Odrážka</button><button data-lt="todo">☐ Úkol</button><button data-lt="img">▣ Obrázek</button>
+  <button data-lt="p">Text</button><button data-lt="bullet">• Odrážka</button><button data-lt="todo">☐ Úkol</button><button data-lt="img">▣ Obrázek</button><button data-lt="link">🔗 Odkaz</button>
 </div>
 <div class="upd" id="upd" hidden role="status"><span>Je dostupná nová verze Úkolníčku.</span><button id="upd-btn">Obnovit</button></div>
 <noscript><p style="padding:24px">Úkolníček potřebuje zapnutý JavaScript.</p></noscript>

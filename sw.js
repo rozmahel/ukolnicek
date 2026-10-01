@@ -1,6 +1,6 @@
 /* Úkolníček – Service Worker (offline režim)
    Při každé nové verzi aplikace zvyš VERSION, jinak si telefony nechají starou verzi. */
-const VERSION = 'ukolnicek-v2.1.2';
+const VERSION = 'ukolnicek-v2.2.1';
 const RUNTIME = 'ukolnicek-runtime';
 const ASSETS = [
   './',
@@ -9,6 +9,7 @@ const ASSETS = [
   './app.js',
   './storage.js',
   './driveSync.js',
+  './navod.html',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -57,7 +58,7 @@ self.addEventListener('fetch', (e) => {
   if (url.origin !== self.location.origin) return;
 
   // stránka: vždy z mezipaměti (funguje offline), nová verze se pozná přes aktualizaci SW
-  if (req.mode === 'navigate') {
+  if (req.mode === 'navigate' && /\/(index\.html)?$/.test(url.pathname)) {
     e.respondWith(caches.match('./index.html').then((hit) => hit || fetch(req)));
     return;
   }

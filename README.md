@@ -11,14 +11,19 @@
 | `app.js` | celá aplikace (stránky, editor, rozvrh, úkoly, nastavení) |
 | `storage.js` | ukládání v prohlížeči (IndexedDB): data, obrázky, místní zálohy |
 | `driveSync.js` | přihlášení Google a práce se soubory na Disku |
+| `navod.html` | návod a novinky (zobrazuje se v Nastavení) |
 | `sw.js` | Service Worker: offline režim a nabídka nové verze |
 | `manifest.webmanifest`, `icons/` | instalace na plochu |
 | `import-z-claude.json` | tvoje data z Claude verze k importu (po importu ho klidně smaž, **do repozitáře ho nenahrávej**) |
 
+## Novinky
+
+Přehled změn a návod jsou v souboru **`navod.html`** (v aplikaci: Nastavení → Návod a novinky). Novou novinku přidáš zkopírováním bloku `<article class="g-rel new">` – postup je popsaný v komentáři na začátku souboru.
+
 ## Co umí verze 2.1
 
 - **Zámek** 🔒 vedle šipek zpět/vpřed (zkratka ⌘⇧L): skryje tečky, plusy, přidávání a mazání bloků, řádků a sloupců. Psaní, zaškrtávání a rozvrh fungují dál. Pamatuje si ho každé zařízení zvlášť.
-- **Mini kalendář** v levém panelu pod číslem týdne (dny v týdnu + číslo týdne výuky). Zapíná se v Nastavení, klik na den otevře jeho týden v rozvrhu.
+- **Mini kalendář** v levém panelu pod číslem týdne (dny v týdnu, volitelně čísla týdnů v roce). Zapíná se v Nastavení, klik na den otevře jeho týden v rozvrhu.
 - **Rozvrh – pevný počet opakování** (např. 4×), počítá se po týdnech od zvoleného data.
 - **Rozvrh – souběžné události**: najeď na pravý kraj hodiny a klikni na ＋, obě se zobrazí vedle sebe.
 - **Návod** v Nastavení.
