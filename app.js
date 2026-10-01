@@ -54,7 +54,7 @@ const ICONS={
 };
 
 /* ================= state ================= */
-function defaultSettings(){return {name:'Úkolníček',semesterStart:'',showWeekend:false,dayStart:7,dayEnd:20,miniCal:true,miniCalWeeks:true,showHidden:true};}
+function defaultSettings(){return {name:'Úkolníček',semesterStart:'',showWeekend:false,dayStart:7,dayEnd:20,miniCal:true,miniCalWeeks:true,showHidden:true,hourScale:1};}
 const S={ready:false,pages:{},events:{},settings:defaultSettings(),view:lsGet('uk-view',{kind:'today'}),weekOffset:0,calOffset:0,taskFilter:'open',expanded:lsGet('uk-exp',{}),pop:null,modal:null,deferRemote:false};
 const MONTHS_NOM=['leden','únor','březen','duben','květen','červen','červenec','srpen','září','říjen','listopad','prosinec'];
 const IS_MAC=/Mac|iPhone|iPad/.test(navigator.platform||navigator.userAgent);
@@ -389,8 +389,8 @@ function renderSidebar(){
   }).join('');
   side.innerHTML=`
     <div class="ws"><div class="ws-name">${esc(S.settings.name||'Úkolníček')}</div>
-      ${wk?`<div class="ws-week"><b>${wk.n}.</b> týden výuky · ${wk.parity}</div>`:`<button class="linkbtn" data-act="settings">Nastav začátek semestru</button>`}
-      ${S.settings.miniCal?renderMiniCal():''}</div>
+      ${!S.ready?'':wk?`<div class="ws-week"><b>${wk.n}.</b> týden výuky · ${wk.parity}</div>`:`<button class="linkbtn" data-act="settings">Nastav začátek semestru</button>`}
+      ${S.ready&&S.settings.miniCal?renderMiniCal():''}</div>
     <nav class="nav">
       ${nav('today','Dnes')}
       ${nav('schedule','Rozvrh')}
@@ -1151,12 +1151,44 @@ function evMeta(ev){ return [ev.place,ev.who].filter(Boolean).map(esc).join(' ·
 /* krátký štítek: typ · L/S · 2/4 */
 function evRep(ev,d){ if(ev.repeat==='odd') return 'L'; if(ev.repeat==='even') return 'S'; if(ev.repeat==='count'&&d){ const k=occIndex(ev,d); return k?`${k}/${+ev.count||1}`:''; } return ''; }
 function evKind(ev,d){ return [TYPE_SHORT[ev.type],evRep(ev,d)].filter(Boolean).join(' · '); }
+const HOUR_SCALES=[1,1.25,1.5,1.75,2];
+/* bublina s celými informacemi po najetí myší na hodinu (u krátkých se nevejdou) */
+const evtip=document.createElement('div'); evtip.className='evtip'; evtip.hidden=true; document.body.appendChild(evtip);
+let evtipT=null, evtipFor=null;
+function hideEvTip(){ clearTimeout(evtipT); evtipT=null; evtipFor=null; evtip.hidden=true; }
+function showEvTip(btn){
+  const ev=S.events[btn.dataset.id]; if(!ev) return;
+  const d=parseD(btn.dataset.date), h=allH1().find(x=>x.key===ev.sec);
+  const rep=ev.repeat==='odd'?'lichý týden':ev.repeat==='even'?'sudý týden':ev.repeat==='once'?'jednorázově':ev.repeat==='count'?`${occIndex(ev,d)}. z ${+ev.count||1}`:'každý týden';
+  evtip.className='evtip hl-'+evColor(ev);
+  evtip.innerHTML=`<div class="et-k">${esc([ev.type,rep].filter(Boolean).join(' · '))}</div><div class="et-t">${esc(ev.title||'Bez názvu')}</div>
+    <div class="et-r">🕘 ${esc(ev.start)}–${esc(ev.end)}${d?` · ${DAYS_FULL[(d.getDay()+6)%7]} ${shortDate(d)}`:''}</div>
+    ${ev.place?`<div class="et-r">📍 ${esc(ev.place)}</div>`:''}${ev.who?`<div class="et-r">👤 ${esc(ev.who)}</div>`:''}
+    ${h?`<div class="et-r">📘 ${esc(h.short)}</div>`:''}${ev.note?`<div class="et-n">${esc(ev.note.length>180?ev.note.slice(0,180)+'…':ev.note)}</div>`:''}`;
+  evtip.hidden=false;
+  const r=btn.getBoundingClientRect(), w=evtip.offsetWidth, hgt=evtip.offsetHeight;
+  let x=r.right+8; if(x+w>innerWidth-8) x=r.left-w-8; if(x<8) x=clamp(r.left,8,innerWidth-w-8);
+  const y=clamp(r.top,8,innerHeight-hgt-8);
+  evtip.style.left=x+'px'; evtip.style.top=y+'px';
+}
+if(matchMedia('(hover: hover)').matches){
+  document.addEventListener('mouseover',e=>{
+    const b=e.target.closest&&e.target.closest('#sg .ev');
+    if(!b){ if(evtipFor) hideEvTip(); return; }
+    if(b===evtipFor) return;
+    hideEvTip(); evtipFor=b; evtipT=setTimeout(()=>{ if(evtipFor===b&&document.contains(b)) showEvTip(b); },320);
+  });
+  document.addEventListener('mousedown',hideEvTip,true);
+  document.addEventListener('scroll',hideEvTip,true);
+}
 function renderSchedule(){
+  hideEvTip();
   const dates=weekDates(), today=ymd(new Date()), wi=weekInfo(dates[0]);
-  const [h0,h1]=hourRange(dates), hours=h1-h0, hh=52;
+  const [h0,h1]=hourRange(dates), hours=h1-h0, hh=Math.round(52*(HOUR_SCALES.includes(+S.settings.hourScale)?+S.settings.hourScale:1));
+  const L=16.5*(+lsGet('uk-fs',1)||1); /* výška jednoho řádku textu v hodině */
   const last=dates[dates.length-1];
   const hasAny=Object.keys(S.events).length>0;
-  let grid=`<div class="sg" style="--days:${dates.length};--hours:${hours}" id="sg" data-h0="${h0}">
+  let grid=`<div class="sg" style="--days:${dates.length};--hours:${hours};--hh:${hh}px" id="sg" data-h0="${h0}" data-hh="${hh}">
     <div class="sg-head"><div></div>${dates.map((d,i)=>`<div class="dh ${ymd(d)===today?'today':''}"><span>${DAYS[i]}</span><b>${d.getDate()}.</b></div>`).join('')}</div>
     <div class="sg-body"><div class="sg-times">${Array.from({length:hours},(_,i)=>`<span style="top:${i*hh}px">${h0+i}:00</span>`).join('')}</div>
     ${dates.map((d,i)=>{
@@ -1164,8 +1196,9 @@ function renderSchedule(){
       let col=`<div class="sg-col ${ymd(d)===today?'today':''}" data-day="${i}" data-date="${ymd(d)}">`;
       items.forEach(it=>{
         const top=(it.s-h0*60)/60*hh, height=Math.max(22,(it.e-it.s)/60*hh-2), ev=it.ev, kind=evKind(ev,d);
+        const size=height<2*L+12?'ev-xs':height<3*L+14?'ev-s':'';
         col+=`<div class="ev-w" style="top:${top}px;height:${height}px;left:calc(${it.col}*100%/${it.n} + 3px);width:calc(100%/${it.n} - 6px)">
-          <button class="ev hl-${evColor(ev)}" data-act="ev" data-id="${ev.id}">
+          <button class="ev hl-${evColor(ev)} ${size}" data-act="ev" data-id="${ev.id}" data-date="${ymd(d)}">
           ${kind?`<span class="ev-k">${esc(kind)}</span>`:''}<span class="ev-t">${esc(ev.title||'Bez názvu')}</span><span class="ev-m mono">${esc(ev.start)}–${esc(ev.end)}</span>${evMeta(ev)?`<span class="ev-m">${evMeta(ev)}</span>`:''}</button>
           <button class="ev-add" data-act="ev-par" data-id="${ev.id}" data-date="${ymd(d)}" title="Přidat další událost ve stejný čas" aria-label="Přidat další událost ve stejný čas">+</button></div>`;
       });
@@ -1366,7 +1399,7 @@ function openSearch(){
 }
 
 /* ================= settings ================= */
-const APP_VERSION='2.2.2';
+const APP_VERSION='2.3.0';
 function fmtTime(ts){ if(!ts) return ''; const d=new Date(ts); const t=`${d.getHours()}:${pad(d.getMinutes())}`; return sod(d).getTime()===sod(new Date()).getTime()?t:`${shortDate(d)} ${t}`; }
 function downloadFile(name,text){
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'application/json'})); a.download=name;
@@ -1410,6 +1443,7 @@ async function openSettings(focus){
       <div class="fld"><label for="st-name">Název</label><input id="st-name" value="${esc(st.name)}" placeholder="Úkolníček"></div>
       <div class="fld"><label for="st-start">Začátek výuky (pondělí 1. týdne)</label><input type="date" id="st-start" value="${esc(st.semesterStart)}"><p class="note">Podle něj se počítá číslo týdne a lichý/sudý týden.</p></div>
       <div class="grid2"><div class="fld"><label for="st-h0">Rozvrh od</label><select id="st-h0">${Array.from({length:14},(_,i)=>i+5).map(h=>`<option ${+st.dayStart===h?'selected':''}>${h}</option>`).join('')}</select></div><div class="fld"><label for="st-h1">Rozvrh do</label><select id="st-h1">${Array.from({length:12},(_,i)=>i+13).map(h=>`<option ${+st.dayEnd===h?'selected':''}>${h}</option>`).join('')}</select></div></div>
+      <div class="fld"><label for="st-hs">Výška hodiny v rozvrhu</label><select id="st-hs">${HOUR_SCALES.map(v=>`<option value="${v}" ${(+st.hourScale||1)===v?'selected':''}>${String(v).replace('.',',')}×</option>`).join('')}</select><p class="note">Vyšší políčka = u krátkých hodin se vejde víc textu. Celé informace ukáže najetí myší na hodinu.</p></div>
       <label class="chk"><input type="checkbox" id="st-we" ${st.showWeekend?'checked':''}> Zobrazovat v rozvrhu i víkend</label>
     </section>
 
@@ -1435,6 +1469,8 @@ async function openSettings(focus){
             :`<button type="button" class="btn pri" id="st-conn">${ds==='expired'?'Připojit znovu':'Přihlásit k Disku'}</button>`}
         </div>
         <p class="note">Synchronizace je ruční: ↑ uloží aktuální stav jako novou zálohu (drží se posledních 10), ↓ nahradí data v tomto zařízení vybranou verzí. Obrázky se nezálohují, na jiném zařízení se ukážou jako rámeček s názvem.</p>
+        <label class="chk"><input type="checkbox" id="st-dll" ${lsGet('uk-dl-latest',false)?'checked':''}> Šipka ↓ stáhne rovnou nejnovější verzi (bez výběru z 10)</label>
+        <p class="note" style="margin-top:-8px;padding-left:26px">Starší verzi pak vybereš po kliknutí na mráček → „Vybrat starší verzi…“. Platí jen pro toto zařízení.</p>
       </div>
       <div class="set-sep"></div>
       <div class="fld"><span class="lbl">Soubor se zálohou</span>
@@ -1460,12 +1496,12 @@ async function openSettings(focus){
 
   /* obecné a vzhled se ukládají hned při změně */
   const commit=()=>{
-    Object.assign(S.settings,{name:$('#st-name',m).value.trim()||'Úkolníček',semesterStart:$('#st-start',m).value,dayStart:+$('#st-h0',m).value,dayEnd:+$('#st-h1',m).value,showWeekend:$('#st-we',m).checked,miniCal:$('#st-mc',m).checked,miniCalWeeks:$('#st-mcw',m).checked,showHidden:$('#st-hid',m).checked});
+    Object.assign(S.settings,{name:$('#st-name',m).value.trim()||'Úkolníček',semesterStart:$('#st-start',m).value,dayStart:+$('#st-h0',m).value,dayEnd:+$('#st-h1',m).value,showWeekend:$('#st-we',m).checked,miniCal:$('#st-mc',m).checked,miniCalWeeks:$('#st-mcw',m).checked,showHidden:$('#st-hid',m).checked,hourScale:+$('#st-hs',m).value});
     if(S.settings.semesterStart){ const d=parseD(S.settings.semesterStart); if(d.getDay()!==1){ S.settings.semesterStart=ymd(mondayOf(d)); $('#st-start',m).value=S.settings.semesterStart; } }
     $('#st-mcw',m).disabled=!S.settings.miniCal;
     saveSettings(); renderSidebar(); renderMain();
   };
-  ['#st-name','#st-start','#st-h0','#st-h1','#st-we','#st-mc','#st-mcw','#st-hid'].forEach(sel=>$(sel,m).addEventListener('change',commit));
+  ['#st-name','#st-start','#st-h0','#st-h1','#st-hs','#st-we','#st-mc','#st-mcw','#st-hid'].forEach(sel=>$(sel,m).addEventListener('change',commit));
   $('#st-theme',m).addEventListener('click',e=>{ const b=e.target.closest('[data-v]'); if(!b) return; lsSet('uk-theme',b.dataset.v); applyTheme(); $$('#st-theme button',m).forEach(x=>x.classList.toggle('on',x===b)); });
   $('#st-fs',m).addEventListener('click',e=>{ const b=e.target.closest('[data-v]'); if(!b) return; lsSet('uk-fs',+b.dataset.v); applyFontScale(); $$('#st-fs button',m).forEach(x=>x.classList.toggle('on',x===b)); });
   $$('[data-guide]',m).forEach(b=>b.addEventListener('click',()=>openGuide(b.dataset.guide)));
@@ -1473,6 +1509,7 @@ async function openSettings(focus){
   const saveCid=()=>{ const v=$('#st-cid',m).value.trim(); if(v!==DriveSync.clientId()){ DriveSync.setClientId(v); DriveSync.preload(); updateSyncUI(); } };
   $('#st-cid',m).addEventListener('change',saveCid);
   $('#st-acc',m).addEventListener('change',e=>{ DriveSync.setAccount(e.target.value); });
+  $('#st-dll',m).addEventListener('change',e=>{ lsSet('uk-dl-latest',e.target.checked); updateSyncUI(); });
   $('#st-news',m).addEventListener('click',e=>{ e.preventDefault(); openGuide('novinky'); });
   const conn=$('#st-conn',m); if(conn) conn.addEventListener('click',async()=>{
     saveCid(); DriveSync.setAccount($('#st-acc',m).value);
@@ -1573,6 +1610,38 @@ const Sync={
     }catch(e){ toast(DriveSync.errText(e)); }
     finally{ this.setBusy(false); }
   },
+  /* ↓ v levém panelu: podle volby v nastavení rovnou nejnovější verze, jinak výběr z posledních 10 */
+  download(){ return lsGet('uk-dl-latest',false)?this.downloadLatest():this.openDownload(); },
+  async downloadLatest(){
+    if(this.busy) return;
+    if(!await this.ensure()) return;
+    this.setBusy(true); let files;
+    try{ files=await DriveSync.list(); }catch(e){ this.setBusy(false); return toast(DriveSync.errText(e)); }
+    this.setBusy(false);
+    if(!files.length) return toast('Na Disku zatím nic není. Nejdřív nahraj data tlačítkem ↑.');
+    const top=files[0], dirty=isDirty(), when=fmtTime(Date.parse(top.createdTime));
+    if(top.name===META.remoteName&&!dirty){ this.remoteNewer=false; updateSyncUI(); return toast('Už máš nejnovější verzi z Disku ('+when+').'); }
+    if(!dirty) return this.fetchVersion(top);
+    const m=openModal('Stáhnout nejnovější verzi?',`<div class="m-body">
+      <p class="warn">V tomto zařízení máš změny, které nejsou na Disku (poslední úprava ${esc(fmtTime(META.changedAt))}). Stažení verze z <b>${esc(when)}</b> je nahradí. Současný stav se předtím uloží do Nastavení → Místní zálohy.</p>
+      <div class="m-actions"><button type="button" class="btn" id="dq-up">Nejdřív nahrát moje změny</button><span class="sp"></span><button type="button" class="btn" data-close>Zrušit</button><button type="button" class="btn pri" id="dq-go">Stáhnout a nahradit</button></div></div>`);
+    $('#dq-up',m).addEventListener('click',()=>{ closeModal(); this.upload(); });
+    $('#dq-go',m).addEventListener('click',()=>{ closeModal(); this.fetchVersion(top); });
+  },
+  async fetchVersion(f){
+    this.setBusy(true);
+    try{
+      const d=await DriveSync.download(f.id);
+      if(!d||typeof d.pages!=='object') throw {code:'bad_file'};
+      await Store.flush();
+      await Local.addBackup(stateForStorage(),'Před stažením z Disku');
+      applyData(d);
+      META.remoteAt=f.createdTime; META.remoteName=f.name; META.changedAt=META.syncedAt=Date.now(); META.syncedHash=META.curHash=dataHash(); META.lastDownload=Date.now(); this.remoteNewer=false;
+      await Store.flush();
+      toast('Staženo z Disku · verze '+fmtTime(Date.parse(f.createdTime)));
+    }catch(err){ toast(err&&err.code==='bad_file'?'Soubor na Disku není platná záloha Úkolníčku.':DriveSync.errText(err)); }
+    finally{ this.setBusy(false); }
+  },
   async openDownload(){
     if(this.busy) return;
     if(!await this.ensure()) return;
@@ -1591,18 +1660,7 @@ const Sync={
     $('#dlf',m).addEventListener('submit',async e=>{
       e.preventDefault();
       const id=($('input[name=dlv]:checked',m)||{}).value; const f=files.find(x=>x.id===id); if(!f) return;
-      closeModal(); this.setBusy(true);
-      try{
-        const d=await DriveSync.download(f.id);
-        if(!d||typeof d.pages!=='object') throw {code:'bad_file'};
-        await Store.flush();
-        await Local.addBackup(stateForStorage(),'Před stažením z Disku');
-        applyData(d);
-        META.remoteAt=f.createdTime; META.remoteName=f.name; META.changedAt=META.syncedAt=Date.now(); META.syncedHash=META.curHash=dataHash(); META.lastDownload=Date.now(); this.remoteNewer=false;
-        await Store.flush();
-        toast('Staženo z Disku · verze '+fmtTime(Date.parse(f.createdTime)));
-      }catch(err){ toast(err&&err.code==='bad_file'?'Soubor na Disku není platná záloha Úkolníčku.':DriveSync.errText(err)); }
-      finally{ this.setBusy(false); }
+      closeModal(); this.fetchVersion(f);
     });
   }
 };
@@ -1624,7 +1682,7 @@ function updateSyncUI(){
   const box=$('#sync-box');
   if(box) box.innerHTML=`${btn}<button class="sync-lbl ${cls}" data-act="sync-menu" title="${esc(title)}">${esc(label)}${dirty?'<small>neuloženo na Disk</small>':''}</button>
     <button class="icon-btn sync-io" data-act="sync-up" title="Nahrát na Disk" aria-label="Nahrát na Disk" ${st==='off'||Sync.busy?'disabled':''}>↑</button>
-    <button class="icon-btn sync-io ${Sync.remoteNewer?'dirty':''}" data-act="sync-down" title="Stáhnout z Disku${Sync.remoteNewer?' (je tam novější verze)':''}" aria-label="Stáhnout z Disku" ${st==='off'||Sync.busy?'disabled':''}>↓</button>`;
+    <button class="icon-btn sync-io ${Sync.remoteNewer?'dirty':''}" data-act="sync-down" title="${lsGet('uk-dl-latest',false)?'Stáhnout nejnovější verzi z Disku':'Stáhnout z Disku'}${Sync.remoteNewer?' (je tam novější verze)':''}" aria-label="Stáhnout z Disku" ${st==='off'||Sync.busy?'disabled':''}>↓</button>`;
   const tb=$('#tb-sync'); if(tb) tb.innerHTML=btn;
 }
 function openSyncMenu(anchor){
@@ -1635,9 +1693,10 @@ function openSyncMenu(anchor){
   const h=`<div class="pop-h">Google Disk</div>
     <p class="note" style="padding:0 8px 6px">${META.lastUpload?'Naposledy nahráno '+esc(fmtTime(META.lastUpload))+'.':'Zatím nic nenahráno.'}${dirty?' Máš změny, které nejsou na Disku.':''}${Sync.remoteNewer?' Na Disku je novější verze.':''}</p>
     <button class="pop-item" data-v="up"><span class="pi-ic">↑</span>Nahrát na Disk</button>
-    <button class="pop-item" data-v="down"><span class="pi-ic">↓</span>Stáhnout z Disku…</button>
+    <button class="pop-item" data-v="down"><span class="pi-ic">↓</span>${lsGet('uk-dl-latest',false)?'Stáhnout nejnovější verzi':'Stáhnout z Disku…'}</button>
+    ${lsGet('uk-dl-latest',false)?'<button class="pop-item" data-v="pick"><span class="pi-ic">☰</span>Vybrat starší verzi…</button>':''}
     <div class="pop-sep"></div><button class="pop-item" data-v="set"><span class="pi-ic">⚙</span>Nastavení Disku</button>`;
-  openPop(anchor,h,v=>{ if(v==='up') Sync.upload(); else if(v==='down') Sync.openDownload(); else openSettings('drive'); });
+  openPop(anchor,h,v=>{ if(v==='up') Sync.upload(); else if(v==='down') Sync.download(); else if(v==='pick') Sync.openDownload(); else openSettings('drive'); });
 }
 
 /* ================= odkazy ================= */
@@ -1847,7 +1906,8 @@ document.addEventListener('click',e=>{
   const col=e.target.classList&&e.target.classList.contains('sg-col')?e.target:null;
   if(col){
     const sg=$('#sg'); const h0=+sg.dataset.h0; const y=e.clientY-col.getBoundingClientRect().top;
-    const s=clamp(Math.round((h0*60+Math.floor(y/52*2)/2*60)),0,23*60);
+    const hh=+sg.dataset.hh||52;
+    const s=clamp(Math.round((h0*60+Math.floor(y/hh*2)/2*60)),0,23*60);
     openEventModal(null,{day:+col.dataset.day,date:col.dataset.date,start:fromMin(s),end:fromMin(Math.min(s+110,23*60+59))});
     return;
   }
@@ -1876,7 +1936,7 @@ document.addEventListener('click',e=>{
     case 'tpl': if(pg) applyTemplate(pg,a.dataset.v); break;
     case 'sync-menu': openSyncMenu(a); break;
     case 'sync-up': Sync.upload(); break;
-    case 'sync-down': Sync.openDownload(); break;
+    case 'sync-down': Sync.download(); break;
     case 'undo': undo(); break;
     case 'redo': redo(); break;
     case 'wide': if(pg){ pg.wide=!pg.wide; savePage(pg,0); renderPage(pg); } break;
