@@ -283,13 +283,15 @@ function createPage(parent,opts){
 
 /* ================= sanitize ================= */
 const ALLOWED=new Set(['B','STRONG','I','EM','U','S','STRIKE','MARK','BR','CODE','IMG','A']);
-/* odkazy: jen http(s) a mailto; bez schématu doplní https:// */
+/* odkazy: přijme jakoukoli adresu. Odstraní neviditelné znaky, které se přidávají při kopírování,
+   bez schématu doplní https:// (e-mail dostane mailto:). Blokuje jen javascript:/data:/vbscript:, které by šly zneužít. */
 function normUrl(u){
-  u=String(u||'').trim(); if(!u) return '';
-  if(/^(https?:\/\/|mailto:)/i.test(u)) return u;
-  if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(u)) return 'mailto:'+u;
-  if(/^[\w-]+(\.[\w-]+)+(:\d+)?([\/?#].*)?$/.test(u)) return 'https://'+u;
-  return '';
+  u=String(u||'').replace(/[\u200B-\u200D\u2060\uFEFF]/g,'').replace(/\u00A0/g,' ').trim().replace(/\s+/g,'%20');
+  if(!u) return '';
+  if(/^(javascript|data|vbscript):/i.test(u)) return '';
+  if(/^[a-z][a-z0-9+.-]*:\/\//i.test(u)||/^(mailto|tel|sms):/i.test(u)) return u;
+  if(/^[^\s@\/]+@[^\s@\/]+\.[^\s@\/]+$/.test(u)) return 'mailto:'+u;
+  return 'https://'+u.replace(/^\/+/,'');
 }
 function urlLabel(u){ try{ if(/^mailto:/i.test(u)) return u.slice(7); const x=new URL(u); return x.hostname.replace(/^www\./,'')+(x.pathname.length>1?x.pathname:''); }catch(_){ return u; } }
 function placeholderSrc(name){
@@ -1364,7 +1366,7 @@ function openSearch(){
 }
 
 /* ================= settings ================= */
-const APP_VERSION='2.2.0';
+const APP_VERSION='2.2.1';
 function fmtTime(ts){ if(!ts) return ''; const d=new Date(ts); const t=`${d.getHours()}:${pad(d.getMinutes())}`; return sod(d).getTime()===sod(new Date()).getTime()?t:`${shortDate(d)} ${t}`; }
 function downloadFile(name,text){
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'application/json'})); a.download=name;
@@ -1639,7 +1641,7 @@ function openLinkDialog(host,range,fromSel,existing){
   if(!host) return;
   const selText=existing?existing.textContent:(fromSel&&range&&!range.collapsed?range.toString():'');
   const m=openModal(existing?'Upravit odkaz':'Vložit odkaz',`<form class="m-body" id="lkf" novalidate>
-    <div class="fld"><label for="lk-url">Adresa</label><input id="lk-url" value="${esc(existing?existing.getAttribute('href'):'')}" placeholder="https://… nebo vutbr.cz" autocomplete="off" spellcheck="false" inputmode="url"></div>
+    <div class="fld"><label for="lk-url">Adresa</label><input id="lk-url" value="${esc(existing?existing.getAttribute('href'):'')}" placeholder="https://… nebo google.com" autocomplete="off" spellcheck="false" inputmode="url"></div>
     <div class="fld"><label for="lk-name">Text odkazu</label><input id="lk-name" value="${esc(selText)}" placeholder="Jak se má odkaz jmenovat (nepovinné)" autocomplete="off"></div>
     <p class="err" id="lk-err" hidden></p>
     <div class="m-actions">${existing?'<button type="button" class="btn danger" id="lk-del">Odebrat odkaz</button>':''}<span class="sp"></span><button type="button" class="btn" data-close>Zrušit</button><button type="submit" class="btn pri">${existing?'Uložit':'Vložit'}</button></div>
@@ -1650,7 +1652,7 @@ function openLinkDialog(host,range,fromSel,existing){
   $('#lkf',m).addEventListener('submit',e=>{
     e.preventDefault();
     const href=normUrl($('#lk-url',m).value), name=$('#lk-name',m).value.trim();
-    if(!href){ const er=$('#lk-err',m); er.textContent='Tohle nevypadá jako webová adresa. Zkus třeba https://www.vutbr.cz'; er.hidden=false; return; }
+    if(!href){ const er=$('#lk-err',m); er.textContent='Vlož adresu, třeba https://www.google.com'; er.hidden=false; return; }
     closeModal();
     if(!document.contains(host)){ toast('Místo pro odkaz mezitím zmizelo, zkus to znovu.'); return; }
     if(existing){ existing.setAttribute('href',href); existing.textContent=name||urlLabel(href); done(); return; }
