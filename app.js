@@ -50,6 +50,7 @@ const ICONS={
   schedule:'<svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M8 13.5h3M8 17h6"/></svg>',
   tasks:'<svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="m8 12 3 3 5-6"/></svg>',
   search:'<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>',
+  eyeOff:'<svg viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6 0 9.5 7 9.5 7a16.5 16.5 0 0 1-2.7 3.5M6.6 6.6C3.9 8.4 2.5 12 2.5 12s3.5 7 9.5 7c1.9 0 3.5-.5 4.9-1.4"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>',
   settings:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>'
 };
 
@@ -381,7 +382,7 @@ function focusLine(bid,r,c,l,pos){ focusEl($(`#blocks .blk[data-id="${bid}"] td[
 /* ================= sidebar ================= */
 function renderSidebar(){
   const side=$('#side'); const wk=weekInfo(new Date());
-  const open=allTasks().filter(t=>!t.done).length;
+  const open=shownTasks().filter(t=>!t.done).length;
   const v=S.view;
   const nav=(k,label,extra='')=>`<button class="nv ${v.kind===k?'on':''}" data-act="nav" data-v="${k}">${ICONS[k]}<span>${label}</span>${extra}</button>`;
   const tree=(pid,d)=>kids(pid).map(p=>{
@@ -1308,38 +1309,101 @@ function openEventModal(ev,preset){
 }
 
 /* ================= tasks ================= */
+/* pořadí stránek jako v levém panelu (stránky bez platného rodiče na konec) */
+function pageOrder(){
+  const order=new Map(); flatPages().forEach(({p},i)=>order.set(p.id,i));
+  Object.values(S.pages).forEach(p=>{ if(!order.has(p.id)) order.set(p.id,order.size); });
+  return order;
+}
+/* projekt = stránka na nejvyšší úrovni, pod kterou stránka patří */
+function rootOf(pg){ let p=pg; const seen=new Set([p.id]); while(p.parent&&S.pages[p.parent]&&!seen.has(p.parent)){ p=S.pages[p.parent]; seen.add(p.id); } return p; }
+/* úkoly ve stejném pořadí jako v levém panelu a na stránkách */
 function allTasks(){
-  const out=[];
-  Object.values(S.pages).forEach(pg=>{ let h1='',h2='';
+  const out=[], order=pageOrder();
+  Object.values(S.pages).sort((a,b)=>order.get(a.id)-order.get(b.id)).forEach(pg=>{ let h1='',h2='',secId=''; const root=rootOf(pg);
     (pg.blocks||[]).forEach(b=>{
-    if(b.type==='h1'){ h1=plain(b.html).trim(); h2=''; return; }
-    if(b.type==='h2'&&!h1){ h2=plain(b.html).trim(); return; }
+    if(b.type==='h1'){ h1=plain(b.html).replace(/\s+/g,' ').trim(); h2=''; secId=h1?b.id:''; return; }
+    if(b.type==='h2'&&!h1){ h2=plain(b.html).replace(/\s+/g,' ').trim(); secId=h2?b.id:''; return; }
     const sec=h1||h2;
-    if(b.type==='todo') out.push({key:`${pg.id}|${b.id}`,pg,b,html:b.html,done:!!b.done,sec});
-    else if(b.type==='table') (b.rows||[]).forEach((row,r)=>(row.cells||[]).forEach((cell,c)=>(cell.lines||[]).forEach((ln,l)=>{ if(ln.t==='todo') out.push({key:`${pg.id}|${b.id}|${r}|${c}|${l}`,pg,b,ln,html:ln.html,done:!!ln.done,inTable:true,sec}); })));
+    if(b.type==='todo') out.push({key:`${pg.id}|${b.id}`,pg,root,b,html:b.html,done:!!b.done,sec,secId});
+    else if(b.type==='table') (b.rows||[]).forEach((row,r)=>(row.cells||[]).forEach((cell,c)=>(cell.lines||[]).forEach((ln,l)=>{ if(ln.t==='todo') out.push({key:`${pg.id}|${b.id}|${r}|${c}|${l}`,pg,root,b,ln,html:ln.html,done:!!ln.done,inTable:true,sec,secId}); })));
   }); });
-  out.forEach(t=>t.due=parseDue(plain(t.html)));
+  out.forEach((t,i)=>{ t.due=parseDue(plain(t.html)); t.i=i; });
   return out;
 }
+/* projekty skryté v přehledu Úkoly (ukládá se do nastavení, synchronizuje se s Diskem) */
+const taskHidden=()=>new Set(Array.isArray(S.settings.taskHidden)?S.settings.taskHidden:[]);
+function setTaskHidden(id,hide){
+  const h=taskHidden(); if(hide) h.add(id); else h.delete(id);
+  S.settings.taskHidden=[...h].filter(x=>S.pages[x]); if(!S.settings.taskHidden.length) delete S.settings.taskHidden;
+  saveSettings(); renderSidebar(); if(S.view.kind==='tasks') renderMain();
+}
+const shownTasks=()=>{ const h=taskHidden(), all=allTasks(); return h.size?all.filter(t=>!h.has(t.root.id)):all; };
 function taskByKey(k){ return allTasks().find(t=>t.key===k); }
+function taskPath(t){ return (t.pg!==t.root?pTitle(t.root)+' › ':'')+pTitle(t.pg)+(t.sec?' › '+t.sec:''); }
 function taskRow(t,showPage){
   return `<div class="task ${t.done?'done':''}"><button class="mk check ${t.done?'on':''}" data-act="task-check" data-k="${esc(t.key)}" role="checkbox" aria-checked="${t.done}" aria-label="Hotovo"></button>
-    <div><div class="task-t">${sanitize(t.html)||'<span class="muted">Bez textu</span>'}</div>${showPage?`<button class="task-pg" data-act="goto-task" data-k="${esc(t.key)}">${esc(t.pg.icon||'')} ${esc(pTitle(t.pg))}${t.sec?' › '+esc(t.sec):''}${t.inTable?' · v tabulce':''}</button>`:''}</div>
+    <div><div class="task-t">${sanitize(t.html)||'<span class="muted">Bez textu</span>'}</div>${showPage?`<button class="task-pg" data-act="goto-task" data-k="${esc(t.key)}"><span class="tp-ic">${esc(t.root.icon||'')}</span><span class="tp-t">${esc(taskPath(t))}${t.inTable?' · v tabulce':''}</span></button>`:''}</div>
     ${t.due?dueChip(t.due,t.done):'<span></span>'}</div>`;
 }
+/* Přehled Úkoly:
+   1) úkoly s termínem ze všech projektů dohromady, nejbližší termín nahoře
+   2) ostatní po projektech v pořadí z levého panelu, uvnitř podle stránek a nadpisů H1 */
 function renderTasks(){
-  const all=allTasks(); const list=S.taskFilter==='open'?all.filter(t=>!t.done):all;
-  const dated=list.filter(t=>t.due).sort((a,b)=>a.due-b.due);
-  const undated=list.filter(t=>!t.due);
-  const groups={}; undated.forEach(t=>{ const g=t.pg.id+'|'+(t.sec||''); (groups[g]=groups[g]||[]).push(t); });
+  const every=allTasks(), hid=taskHidden();
+  const all=every.filter(t=>!hid.has(t.root.id));
+  const list=S.taskFilter==='open'?all.filter(t=>!t.done):all;
+  const dated=list.filter(t=>t.due).sort((a,b)=>(a.done-b.done)||(a.due-b.due)||(a.i-b.i));
+  const projs=[], pm=new Map();
+  list.filter(t=>!t.due).forEach(t=>{
+    let P=pm.get(t.root.id); if(!P){ P={root:t.root,groups:[],gm:new Map(),n:0}; pm.set(t.root.id,P); projs.push(P); }
+    const gk=t.pg.id+'|'+t.secId; let g=P.gm.get(gk); if(!g){ g={pg:t.pg,sec:t.sec,secId:t.secId,tasks:[]}; P.gm.set(gk,g); P.groups.push(g); }
+    g.tasks.push(t); P.n++;
+  });
+  const hiddenRoots=[...new Set(every.filter(t=>hid.has(t.root.id)).map(t=>t.root))];
   const openN=all.filter(t=>!t.done).length;
+  const grpHead=(g,root)=>{
+    if(!g.sec&&g.pg===root) return '';
+    const sub=g.pg!==root;
+    const main=g.sec?`<button class="t-grp-t" data-act="goto-sec" data-p="${g.pg.id}" data-b="${g.secId}">${esc(g.sec)}</button>`:`<button class="t-grp-t" data-act="open" data-id="${g.pg.id}">${esc(pTitle(g.pg))}</button>`;
+    return `<div class="t-grp">${main}${sub&&g.sec?`<button class="t-grp-pg" data-act="open" data-id="${g.pg.id}">${esc(pTitle(g.pg))}</button>`:''}</div>`;
+  };
+  const projHtml=P=>{ const r=P.root;
+    return `<section class="t-proj hl-${esc(r.color||'gray')}">
+      <div class="t-proj-h"><button class="t-proj-t" data-act="open" data-id="${r.id}">${pIcon(r)}<span>${esc(pTitle(r))}</span></button><span class="t-proj-n">${P.n}</span>
+        <button class="t-hide" data-act="t-hide" data-id="${r.id}" title="Skrýt projekt v Úkolech" aria-label="Skrýt projekt ${esc(pTitle(r))} v Úkolech">${ICONS.eyeOff}<span>Skrýt</span></button></div>
+      <div class="card">${P.groups.map(g=>grpHead(g,r)+g.tasks.map(t=>taskRow(t,false)).join('')).join('')}</div></section>`;
+  };
+  let empty='';
+  if(!list.length){
+    if(!every.length||(!all.length&&!hiddenRoots.length)) empty=`Úkol přidáš na libovolné stránce: napiš <b>[]</b> a mezeru, nebo <b>/úkol</b>. Když do textu dáš datum jako <span class="mono">5.10.</span>, objeví se tu s termínem.`;
+    else if(!all.length) empty=`Všechny projekty s úkoly jsou tady skryté. <button class="linkbtn" data-act="t-showall">Zobrazit všechny</button>`;
+    else empty=`Všechno hotovo. 🎉`;
+  }
   $('#view').innerHTML=`<div class="view" style="max-width:860px">
     <div class="v-head"><div><div class="eyebrow">Ze všech stránek</div><h1 class="v-title">Úkoly</h1></div>
-      <div class="filters"><button class="${S.taskFilter==='open'?'on':''}" data-act="tfilter" data-v="open">Nesplněné · ${openN}</button><button class="${S.taskFilter==='all'?'on':''}" data-act="tfilter" data-v="all">Vše · ${all.length}</button></div></div>
-    ${!list.length?`<div class="card"><div class="empty" style="padding:18px">${all.length?'Všechno hotovo. ':''}Úkol přidáš na libovolné stránce: napiš <b>[]</b> a mezeru, nebo <b>/úkol</b>. Když do textu dáš datum jako <span class="mono">5.10.</span>, objeví se tu s termínem.</div></div>`:''}
+      <div class="filters"><button class="${S.taskFilter==='open'?'on':''}" data-act="tfilter" data-v="open">Nesplněné · ${openN}</button><button class="${S.taskFilter==='all'?'on':''}" data-act="tfilter" data-v="all">Vše · ${all.length}</button>
+        <button class="t-projbtn ${hiddenRoots.length?'has':''}" data-act="t-projs" aria-haspopup="true">${ICONS.eyeOff}Projekty${hiddenRoots.length?` · ${hiddenRoots.length} ${plural(hiddenRoots.length,'skrytý','skryté','skrytých')}`:''}</button></div></div>
+    ${empty?`<div class="card"><div class="empty" style="padding:18px">${empty}</div></div>`:''}
     ${dated.length?`<section class="t-sec"><h2>S termínem</h2><div class="card">${dated.map(t=>taskRow(t,true)).join('')}</div></section>`:''}
-    ${Object.keys(groups).map(g=>{ const t0=groups[g][0], pg=t0.pg; return `<section class="t-sec"><h2><button class="task-pg" style="font:inherit;color:var(--fg);text-align:left" data-act="goto-task" data-k="${esc(t0.key)}">${t0.sec?esc(t0.sec):esc((pg.icon||'')+' '+pTitle(pg))}</button></h2>${t0.sec?`<p class="note" style="margin:-4px 0 8px">${esc(pTitle(pg))}</p>`:''}<div class="card">${groups[g].map(t=>taskRow(t,false)).join('')}</div></section>`; }).join('')}
+    ${projs.map(projHtml).join('')}
+    ${hiddenRoots.length&&list.length?`<p class="note t-hidnote">Skryté projekty: ${hiddenRoots.map(r=>esc(pTitle(r))).join(', ')} · <button class="linkbtn" data-act="t-showall">Zobrazit všechny</button></p>`:''}
   </div>`;
+}
+/* výběr projektů zobrazených v Úkolech */
+function openTaskProjects(anchor){
+  const hid=taskHidden(), every=allTasks();
+  const roots=[...new Set(every.map(t=>t.root))];
+  const cnt=id=>every.filter(t=>t.root.id===id&&!t.done).length;
+  const item=r=>`<button class="pop-item t-pi ${hid.has(r.id)?'':'on'}" data-v="${r.id}" role="menuitemcheckbox" aria-checked="${!hid.has(r.id)}"><span class="t-ck" aria-hidden="true"></span>${pIcon(r)}<span class="nm">${esc(pTitle(r))}</span><span class="n">${cnt(r.id)}</span></button>`;
+  const h=`<div class="pop-h">Zobrazit v Úkolech</div>${roots.length?roots.map(item).join(''):'<p class="note" style="padding:4px 8px 8px">Zatím žádný projekt nemá úkoly.</p>'}
+    ${roots.length>1?'<div class="pop-sep"></div><button class="pop-item" data-v="*all"><span class="pi-ic">◉</span>Zobrazit všechny</button>':''}`;
+  openPop(anchor,h,(v,b,p)=>{
+    if(v==='*all'){ S.settings.taskHidden=[]; setTaskHidden('',false); return; }
+    const hide=!taskHidden().has(v);
+    setTaskHidden(v,hide); b.classList.toggle('on',!hide); b.setAttribute('aria-checked',String(!hide));
+    return true;
+  });
 }
 function toggleTask(k){
   const t=taskByKey(k); if(!t) return;
@@ -1404,7 +1468,7 @@ function openSearch(){
 }
 
 /* ================= settings ================= */
-const APP_VERSION='2.4.0';
+const APP_VERSION='2.5.0';
 function fmtTime(ts){ if(!ts) return ''; const d=new Date(ts); const t=`${d.getHours()}:${pad(d.getMinutes())}`; return sod(d).getTime()===sod(new Date()).getTime()?t:`${shortDate(d)} ${t}`; }
 function downloadFile(name,text){
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'application/json'})); a.download=name;
@@ -2234,6 +2298,11 @@ document.addEventListener('click',e=>{
     case 'tfilter': S.taskFilter=a.dataset.v; renderMain(); break;
     case 'task-check': toggleTask(a.dataset.k); break;
     case 'goto-task': { const t=taskByKey(a.dataset.k); if(t) revealBlock(t.pg.id,t.b.id,false); break; }
+    case 'goto-sec': revealBlock(a.dataset.p,a.dataset.b,true); break;
+    case 't-projs': openTaskProjects(a); break;
+    case 't-showall': if(S.settings.taskHidden){ delete S.settings.taskHidden; saveSettings(); renderSidebar(); renderMain(); } break;
+    case 't-hide': { const r=S.pages[a.dataset.id]; if(!r) break; setTaskHidden(r.id,true);
+      toast(`„${pTitle(r)}“ je v Úkolech skrytý.`,'Vrátit',()=>setTaskHidden(r.id,false)); break; }
   }
 });
 document.addEventListener('keydown',e=>{

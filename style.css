@@ -636,3 +636,34 @@ body.navod-page section[data-tab]::before{content:attr(data-title);display:block
 .cf-list .gl-ic{width:26px;text-align:center}
 /* zaškrtávátka uvnitř pole (Nastavení → Synchronizace) nemají styl nadpisu pole */
 .fld>label.chk{text-transform:none;letter-spacing:0;font-weight:400;font-size:calc(14px*var(--fs));color:var(--fg)}
+
+/* ---------- 2.5: Úkoly po projektech ---------- */
+.task-pg{max-width:100%}
+.tp-ic:empty{display:none}
+.tp-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t-proj{margin-bottom:22px}
+.t-proj-h{display:flex;align-items:center;gap:8px;margin:0 0 8px;min-width:0}
+.t-proj-t{display:flex;align-items:center;gap:8px;min-width:0;font:700 1.08rem/1.3 var(--f-display);color:var(--fg);border-radius:7px;padding:2px 6px;margin-left:-6px;text-align:left}
+.t-proj-t>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t-proj-t:hover{background:var(--hover)}
+.t-proj-n{flex:none;font:500 calc(12px*var(--fs))/1.7 var(--f-mono);color:var(--muted);background:var(--hover);border-radius:99px;padding:0 8px}
+.t-hide{flex:none;margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:calc(12.5px*var(--fs));color:var(--muted);padding:4px 9px;border-radius:7px}
+.t-hide:hover{background:var(--hover);color:var(--fg)}
+.t-hide svg,.t-projbtn svg{width:15px;height:15px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+@media (hover:hover){ .t-hide{opacity:.6} .t-proj-h:hover .t-hide,.t-hide:focus-visible{opacity:1} }
+.t-grp{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;padding:8px 14px 6px;background:color-mix(in srgb,var(--c-bg) 55%,var(--panel));border-bottom:1px solid var(--line)}
+.t-grp-t{font-weight:650;font-size:calc(13.5px*var(--fs));color:var(--c-fg);border-radius:5px;padding:0 4px;margin-left:-4px;text-align:left}
+.t-grp-pg{font-size:calc(12.5px*var(--fs));color:var(--muted);border-radius:5px;padding:0 4px}
+.t-grp-t:hover,.t-grp-pg:hover{background:color-mix(in srgb,var(--c-fg) 10%,transparent)}
+.t-grp-pg:hover{color:var(--fg)}
+.t-proj .card .task{padding-inline:14px}
+.filters{flex-wrap:wrap}
+.filters .t-projbtn{display:inline-flex;align-items:center;gap:6px;color:var(--fg2)}
+.filters .t-projbtn.has{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.t-pi .t-ck{width:16px;height:16px;flex:none;border-radius:4px;border:1.5px solid var(--faint);display:grid;place-items:center}
+.t-pi.on .t-ck{background:var(--accent);border-color:var(--accent)}
+.t-pi.on .t-ck::after{content:"";width:8px;height:4px;margin-top:-2px;border:2px solid var(--on-accent);border-top:0;border-right:0;transform:rotate(-45deg)}
+.t-pi .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+.t-pi:not(.on) .nm{color:var(--muted)}
+.t-pi .n{font:500 calc(12px*var(--fs)) var(--f-mono);color:var(--muted)}
+.t-hidnote{margin:-4px 0 0}

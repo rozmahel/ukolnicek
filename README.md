@@ -20,6 +20,11 @@
 
 Přehled změn a návod jsou v souboru **`navod.html`** (v aplikaci: Nastavení → Návod a novinky). Novou novinku přidáš zkopírováním bloku `<article class="g-rel new">` – postup je popsaný v komentáři na začátku souboru.
 
+## Co přibylo ve verzi 2.5
+
+- **Úkoly po projektech**: nahoře úkoly s termínem ze všech projektů (nejbližší první), pod nimi ostatní po projektech v pořadí z levého panelu a v nich podle podstránek a nadpisů H1.
+- **Skrytí projektu v Úkolech** tlačítkem *Skrýt*, zpět v menu *Projekty*. Ukládá se do nastavení, takže se synchronizuje přes Disk.
+
 ## Co přibylo ve verzi 2.4
 
 - **Automatické stažení z Disku po otevření** (a po návratu do aplikace). Jeden lehký dotaz na název a čas nejnovějšího souboru, stahuje se jen při rozdílu:
