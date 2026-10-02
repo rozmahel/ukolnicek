@@ -9,7 +9,7 @@
 | `index.html` | kostra stránky |
 | `style.css` | vzhled |
 | `app.js` | celá aplikace (stránky, editor, rozvrh, úkoly, nastavení) |
-| `storage.js` | ukládání v prohlížeči (IndexedDB): data, obrázky, místní zálohy, poslední verze společná s Diskem |
+| `storage.js` | ukládání v prohlížeči (IndexedDB): data (stránky, rozvrh, Index, nastavení), obrázky, místní zálohy, poslední verze společná s Diskem |
 | `driveSync.js` | přihlášení Google a práce se soubory na Disku (včetně lehkého dotazu na nejnovější verzi) |
 | `navod.html` | návod a novinky (zobrazuje se v Nastavení) |
 | `sw.js` | Service Worker: offline režim a nabídka nové verze |
@@ -19,6 +19,13 @@
 ## Novinky
 
 Přehled změn a návod jsou v souboru **`navod.html`** (v aplikaci: Nastavení → Návod a novinky). Novou novinku přidáš zkopírováním bloku `<article class="g-rel new">` – postup je popsaný v komentáři na začátku souboru.
+
+## Co přibylo ve verzi 2.6
+
+- **Index** (zapíná se v Nastavení → Obecné, výchozí vypnutý): databáze předmětů po semestrech. Body jedním číslem nebo po dílčích hodnoceních, známka A–F podle stupnice VUT, kredity se započítají se známkou A–E, cíl kreditů na semestr, souhrn a vážený průměr.
+- Předměty z Indexu se nabízejí v rozvrhu, z hodiny se jde tlačítkem *Otevřít v Indexu* na předmět.
+- **Zámek i v rozvrhu**: přejetím ani klikem do prázdna se nevytvoří nová hodina.
+- Data: v JSONu přibyly klíče `subjects` a `semesters` a u události volitelné `subj`. Přidávají se jen když Index něco obsahuje, takže starší zálohy se načtou beze změny. Verze starší než 2.6 Index neznají a při načtení ho vynechají, proto aktualizuj všechna zařízení (stačí je otevřít).
 
 ## Co přibylo ve verzi 2.5
 

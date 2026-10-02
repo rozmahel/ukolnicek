@@ -50,13 +50,14 @@ const ICONS={
   schedule:'<svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M8 13.5h3M8 17h6"/></svg>',
   tasks:'<svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="m8 12 3 3 5-6"/></svg>',
   search:'<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>',
+  index:'<svg viewBox="0 0 24 24"><path d="M2.5 9 12 4.5 21.5 9 12 13.5z"/><path d="M6.5 11.2v4.6c1.5 1.4 3.4 2.2 5.5 2.2s4-.8 5.5-2.2v-4.6"/><path d="M21.5 9v5"/></svg>',
   eyeOff:'<svg viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6 0 9.5 7 9.5 7a16.5 16.5 0 0 1-2.7 3.5M6.6 6.6C3.9 8.4 2.5 12 2.5 12s3.5 7 9.5 7c1.9 0 3.5-.5 4.9-1.4"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>',
   settings:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>'
 };
 
 /* ================= state ================= */
-function defaultSettings(){return {name:'Úkolníček',semesterStart:'',showWeekend:false,dayStart:7,dayEnd:20,miniCal:true,miniCalWeeks:true,showHidden:true,hourScale:1};}
-const S={ready:false,pages:{},events:{},settings:defaultSettings(),view:lsGet('uk-view',{kind:'today'}),weekOffset:0,calOffset:0,taskFilter:'open',expanded:lsGet('uk-exp',{}),pop:null,modal:null,deferRemote:false};
+function defaultSettings(){return {index:false,name:'Úkolníček',semesterStart:'',showWeekend:false,dayStart:7,dayEnd:20,miniCal:true,miniCalWeeks:true,showHidden:true,hourScale:1};}
+const S={ready:false,pages:{},events:{},subjects:{},semesters:{},settings:defaultSettings(),view:lsGet('uk-view',{kind:'today'}),weekOffset:0,calOffset:0,taskFilter:'open',expanded:lsGet('uk-exp',{}),pop:null,modal:null,deferRemote:false};
 const MONTHS_NOM=['leden','únor','březen','duben','květen','červen','červenec','srpen','září','říjen','listopad','prosinec'];
 const IS_MAC=/Mac|iPhone|iPad/.test(navigator.platform||navigator.userAgent);
 const LOCK_KEY=IS_MAC?'⌘⇧L':'Ctrl+Shift+L';
@@ -66,13 +67,13 @@ let LOCK=!!lsGet('uk-lock',false);
 function lockSvg(on){ return `<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9.5" rx="2.2"/>${on?'<path d="M8 11V8a4 4 0 0 1 8 0v3"/>':'<path d="M8 11V8a4 4 0 0 1 7.6-1.8"/>'}</svg>`; }
 function applyLock(){
   document.body.classList.toggle('locked',LOCK);
-  const b=$('#lock-btn'); if(!b) return;
-  b.classList.toggle('on',LOCK); b.innerHTML=lockSvg(LOCK); b.setAttribute('aria-pressed',String(LOCK));
-  const t=(LOCK?'Odemknout rozložení':'Zamknout rozložení')+` (${LOCK_KEY})`; b.title=t; b.setAttribute('aria-label',t);
+  const t=(LOCK?'Odemknout':'Zamknout')+` (${LOCK_KEY})`;
+  $$('.lock-btn').forEach(b=>{ b.classList.toggle('on',LOCK); b.innerHTML=lockSvg(LOCK); b.setAttribute('aria-pressed',String(LOCK)); b.title=t; b.setAttribute('aria-label',t); });
 }
 function toggleLock(){
   LOCK=!LOCK; lsSet('uk-lock',LOCK); closePop(); hideImgSel(); closeSlash(); applyLock();
-  toast(LOCK?'Zamčeno: bloky, řádky a sloupce drží na místě, psát a zaškrtávat můžeš dál.':'Odemčeno: můžeš zase přidávat, přesouvat a mazat.');
+  if(S.view.kind==='schedule') renderMain();
+  toast(LOCK?'Zamčeno: nic se nepřidá, nepřesune ani nesmaže omylem. Psát, zaškrtávat a upravovat můžeš dál.':'Odemčeno: můžeš zase přidávat, přesouvat a mazat.');
 }
 
 /* ================= storage (IndexedDB, see storage.js) ================= */
@@ -93,9 +94,9 @@ function hashData(d){
 }
 function dataHash(){ return hashData(dataForSave()); }
 /* otisk dat stažených z Disku (po normalizeImport), počítaný stejně jako otisk dat v zařízení */
-function hashOf(n){ return hashData(packData(n.pages,n.events,Object.assign(defaultSettings(),n.settings))); }
+function hashOf(n){ return hashData(packData(n.pages,n.events,Object.assign(defaultSettings(),n.settings),n.subjects,n.semesters)); }
 function isDirty(){
-  if(!Object.keys(S.pages).length&&!Object.keys(S.events).length) return false;
+  if(!Object.keys(S.pages).length&&!Object.keys(S.events).length&&!Object.keys(S.subjects).length) return false;
   if(META.syncedHash&&META.curHash) return META.curHash!==META.syncedHash;
   if(!META.remoteName&&!META.syncedAt) return true;   /* data, která ještě nikdy nebyla na Disku */
   return META.changedAt>META.syncedAt;
@@ -106,7 +107,7 @@ const Store={
     try{
       await Local.open();
       const st=await Local.loadState();
-      if(st){ const d=normalizeImport(st); S.pages=d.pages||{}; S.events=d.events||{}; S.settings=Object.assign(defaultSettings(),d.settings||{}); Object.assign(META,st.meta||{}); }
+      if(st){ const d=normalizeImport(st); S.pages=d.pages||{}; S.events=d.events||{}; S.subjects=d.subjects||{}; S.semesters=d.semesters||{}; S.settings=Object.assign(defaultSettings(),d.settings||{}); Object.assign(META,st.meta||{}); }
       const imgs=await Local.allImages(); imgs.forEach(r=>{ try{ IMGURL.set(r.id,URL.createObjectURL(r.blob)); }catch(_){} });
       Local.persist();
       META.curHash=dataHash();
@@ -133,11 +134,16 @@ function stripBlocks(blocks){
     return o;
   });
 }
-function packData(src,events,settings){
+/* Index (předměty a semestry) se do dat přidá jen když něco obsahuje,
+   takže data bez Indexu mají stejný tvar i otisk jako ve starších verzích */
+function packData(src,events,settings,subjects,semesters){
   const pages={}; Object.values(src||{}).forEach(p=>{ pages[p.id]=Object.assign({},p,{blocks:stripBlocks(p.blocks)}); });
-  return clone({pages,events:events||{},settings:settings||{}});
+  const out={pages,events:events||{},settings:settings||{}};
+  if(subjects&&Object.keys(subjects).length) out.subjects=subjects;
+  if(semesters&&Object.keys(semesters).length) out.semesters=semesters;
+  return clone(out);
 }
-function dataForSave(){ return packData(S.pages,S.events,S.settings); }
+function dataForSave(){ return packData(S.pages,S.events,S.settings,S.subjects,S.semesters); }
 function stateForStorage(){ return Object.assign(dataForSave(),{meta:clone(META)}); }
 /* accept older exports: Claude version (/_blob/ images, src on block images) */
 function legacyHtml(h){
@@ -147,7 +153,7 @@ function legacyHtml(h){
   return t.innerHTML;
 }
 function normalizeImport(d){
-  const out={pages:{},events:clone(d.events||{}),settings:clone(d.settings||{})};
+  const out={pages:{},events:clone(d.events||{}),settings:clone(d.settings||{}),subjects:clone(d.subjects||{}),semesters:clone(d.semesters||{})};
   delete out.settings.by; delete out.settings.updated;
   Object.entries(d.pages||{}).forEach(([k,p])=>{
     if(!p) return; const pg=clone(p); pg.id=pg.id||k; delete pg.by;
@@ -399,6 +405,7 @@ function renderSidebar(){
       ${S.ready&&S.settings.miniCal?renderMiniCal():''}</div>
     <nav class="nav">
       ${nav('today','Dnes')}
+      ${S.settings.index?nav('index','Index'):''}
       ${nav('schedule','Rozvrh')}
       ${nav('tasks','Úkoly',open?`<span class="badge">${open}</span>`:'')}
       <button class="nv" data-act="search">${ICONS.search}<span>Hledat</span><kbd>⌘K</kbd></button>
@@ -453,6 +460,7 @@ function renderMain(){
     renderPage(pg); title=pTitle(pg);
   } else if(v.kind==='schedule'){ renderSchedule(); title='Rozvrh'; }
   else if(v.kind==='tasks'){ renderTasks(); title='Úkoly'; }
+  else if(v.kind==='index'){ if(!S.settings.index){ S.view={kind:'today'}; lsSet('uk-view',S.view); return renderMain(); } renderIndex(); title='Index'; }
   else { renderToday(); title='Dnes'; }
   $('#tb-t').textContent=title;
 }
@@ -1170,7 +1178,7 @@ function showEvTip(btn){
   evtip.innerHTML=`<div class="et-k">${esc([ev.type,rep].filter(Boolean).join(' · '))}</div><div class="et-t">${esc(ev.title||'Bez názvu')}</div>
     <div class="et-r">🕘 ${esc(ev.start)}–${esc(ev.end)}${d?` · ${DAYS_FULL[(d.getDay()+6)%7]} ${shortDate(d)}`:''}</div>
     ${ev.place?`<div class="et-r">📍 ${esc(ev.place)}</div>`:''}${ev.who?`<div class="et-r">👤 ${esc(ev.who)}</div>`:''}
-    ${h?`<div class="et-r">📘 ${esc(h.short)}</div>`:''}${ev.note?`<div class="et-n">${esc(ev.note.length>180?ev.note.slice(0,180)+'…':ev.note)}</div>`:''}`;
+    ${S.settings.index&&ev.subj&&S.subjects[ev.subj]?`<div class="et-r">🎓 ${esc(subjLabel(S.subjects[ev.subj]))}</div>`:h?`<div class="et-r">📘 ${esc(h.short)}</div>`:''}${ev.note?`<div class="et-n">${esc(ev.note.length>180?ev.note.slice(0,180)+'…':ev.note)}</div>`:''}`;
   evtip.hidden=false;
   const r=btn.getBoundingClientRect(), w=evtip.offsetWidth, hgt=evtip.offsetHeight;
   let x=r.right+8; if(x+w>innerWidth-8) x=r.left-w-8; if(x<8) x=clamp(r.left,8,innerWidth-w-8);
@@ -1221,13 +1229,16 @@ function renderSchedule(){
         <button class="btn" data-act="wk-today">Tento týden</button>
         <button class="navbtn" data-act="wk-next" aria-label="Další týden">›</button>
         <span class="wk-label"><span>${shortDate(dates[0])} – ${shortDate(last)} ${last.getFullYear()}</span></span>
+        <button class="icon-btn lock-btn" data-act="lock"></button>
         <button class="btn pri" data-act="ev-add">＋ Přidat</button>
       </div></div>
     ${grid}${agenda}
-    <p class="sched-hint">${hasAny?'Klikni do volného místa pro novou hodinu, klikni na hodinu pro úpravu.':'Rozvrh je zatím prázdný. Klikni do mřížky na den a čas, kdy máš hodinu, nebo použij ＋ Přidat.'} ${S.settings.semesterStart?'':'Pro liché a sudé týdny si v Nastavení zadej začátek semestru.'}</p>
+    <p class="sched-hint">${LOCK?'Zamčeno: novou hodinu přidáš jen tlačítkem ＋ Přidat, klikem na hodinu ji upravíš.':hasAny?'Klikni do volného místa pro novou hodinu, klikni na hodinu pro úpravu.':'Rozvrh je zatím prázdný. Klikni do mřížky na den a čas, kdy máš hodinu, nebo použij ＋ Přidat.'} ${S.settings.semesterStart?'':'Pro liché a sudé týdny si v Nastavení zadej začátek semestru.'}</p>
   </div>`;
+  applyLock();
   const sg=$('#sg');
   sg.addEventListener('mousemove',e=>{
+    if(LOCK){ $$('.ghost',sg).forEach(g=>g.hidden=true); return; }
     const col=e.target.closest('.sg-col'); $$('.ghost',sg).forEach(g=>{ if(!col||g.parentElement!==col) g.hidden=true; });
     if(!col||e.target!==col) { if(col) $('.ghost',col).hidden=true; return; }
     const g=$('.ghost',col); const y=e.clientY-col.getBoundingClientRect().top; const m=h0*60+Math.floor(y/hh*2)/2*60;
@@ -1245,8 +1256,13 @@ function openEventModal(ev,preset){
   if(!ev.date) ev.date=ymd(new Date()); if(!ev.count) ev.count=4;
   const heads=allH1(), secOf=v=>heads.find(h=>h.key===v);
   if(ev.sec&&!secOf(ev.sec)) ev.sec='';
+  /* předměty z Indexu (jen když je Index zapnutý) */
+  const subs=S.settings.index?subjList():[], subOf=v=>S.subjects[v];
+  const subTitle=su=>su?(su.code||su.name||''):'';
+  const subSel=subs.length?`<div class="fld"><label for="ev-subj">Předmět z Indexu</label><select id="ev-subj"><option value="">Žádný</option>${[...semList(),null].map(sm=>{ const l=subjsOf(sm?sm.id:null); return l.length?`<optgroup label="${esc(sm?sm.name:'Bez semestru')}">${l.map(su=>`<option value="${su.id}" ${ev.subj===su.id?'selected':''}>${esc(subjLabel(su))}</option>`).join('')}</optgroup>`:''; }).join('')}</select></div>`:'';
   const m=openModal(isNew?'Nová událost':'Upravit událost',`<form class="m-body" id="evf" novalidate>
-    <div class="fld"><label for="ev-title">Co</label><input id="ev-title" list="ev-dl" value="${esc(ev.title)}" placeholder="Předmět nebo akce" autocomplete="off"><datalist id="ev-dl">${[...new Set(heads.map(h=>h.short))].map(t=>`<option value="${esc(t)}"></option>`).join('')}</datalist></div>
+    <div class="fld"><label for="ev-title">Co</label><input id="ev-title" list="ev-dl" value="${esc(ev.title)}" placeholder="Předmět nebo akce" autocomplete="off"><datalist id="ev-dl">${[...new Set([...subs.map(subTitle),...heads.map(h=>h.short)].filter(Boolean))].map(t=>`<option value="${esc(t)}"></option>`).join('')}</datalist></div>
+    ${subSel}
     <div class="fld"><span class="lbl">Typ</span><div class="seg" id="ev-type">${TYPES.map(t=>`<button type="button" class="${t===ev.type?'on':''}" data-t="${t}">${t}</button>`).join('')}</div></div>
     <div class="grid2">
       <div class="fld"><label for="ev-repeat">Opakování</label><select id="ev-repeat">${[['weekly','Každý týden'],['odd','Lichý týden'],['even','Sudý týden'],['count','Pevný počet týdnů'],['once','Jednorázově']].map(([v,l])=>`<option value="${v}" ${ev.repeat===v?'selected':''}>${l}</option>`).join('')}</select></div>
@@ -1261,7 +1277,7 @@ function openEventModal(ev,preset){
     <div class="fld"><span class="lbl">Barva</span><div class="swatches" id="ev-color" style="padding-left:0">${COLORS.map(c=>`<button type="button" class="sw hl-${c} ${evColor(ev)===c?'on':''}" data-c="${c}" aria-label="${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}</div></div>
     <div class="fld"><label for="ev-note">Poznámky</label><textarea id="ev-note" rows="3" placeholder="Co si vzít, co se probírá…">${esc(ev.note)}</textarea></div>
     <p class="err" id="ev-err" hidden></p>
-    <div class="m-actions">${isNew?'':'<button type="button" class="btn danger" id="ev-del">Smazat</button>'}<span class="sp"></span><button type="button" class="btn" id="ev-open" ${ev.sec?'':'hidden'}>Otevřít předmět</button><button type="button" class="btn" data-close>Zrušit</button><button type="submit" class="btn pri">${isNew?'Přidat':'Uložit'}</button></div>
+    <div class="m-actions">${isNew?'':'<button type="button" class="btn danger" id="ev-del">Smazat</button>'}<span class="sp"></span><button type="button" class="btn" id="ev-ix" ${subs.length&&ev.subj&&subOf(ev.subj)?'':'hidden'}>Otevřít v Indexu</button><button type="button" class="btn" id="ev-open" ${ev.sec?'':'hidden'}>${subs.length?'Otevřít nadpis':'Otevřít předmět'}</button><button type="button" class="btn" data-close>Zrušit</button><button type="submit" class="btn pri">${isNew?'Přidat':'Uložit'}</button></div>
   </form>`);
   let type=ev.type, color=evColor(ev);
   const cntNote=()=>{
@@ -1284,7 +1300,22 @@ function openEventModal(ev,preset){
   const setColor=c=>{ color=c; $$('#ev-color .sw',m).forEach(x=>x.classList.toggle('on',x.dataset.c===c)); };
   $('#ev-color',m).addEventListener('click',e=>{ const b=e.target.closest('[data-c]'); if(b) setColor(b.dataset.c); });
   const syncOpen=()=>{ $('#ev-open',m).hidden=!$('#ev-sec',m).value; };
-  $('#ev-title',m).addEventListener('change',e=>{ const v=norm(e.target.value.trim()); const h=v&&heads.find(h=>norm(h.short)===v||norm(h.text)===v); if(h&&!$('#ev-sec',m).value){ $('#ev-sec',m).value=h.key; syncOpen(); } });
+  const selSubj=$('#ev-subj',m);
+  const syncIx=()=>{ if(selSubj) $('#ev-ix',m).hidden=!subOf(selSubj.value); };
+  /* výběr předmětu doplní název, nadpis H1 a barvu */
+  const applySubj=(su,prev)=>{
+    const ti=$('#ev-title',m); if(su&&(!ti.value.trim()||ti.value.trim()===subTitle(prev))) ti.value=subTitle(su);
+    if(su&&su.sec&&secOf(su.sec)&&!$('#ev-sec',m).value){ $('#ev-sec',m).value=su.sec; syncOpen(); }
+    if(su&&su.color) setColor(su.color);
+    syncIx();
+  };
+  let prevSubj=selSubj?subOf(selSubj.value):null;
+  if(selSubj) selSubj.addEventListener('change',()=>{ const su=subOf(selSubj.value); applySubj(su,prevSubj); prevSubj=su; });
+  $('#ev-ix',m).addEventListener('click',()=>{ const su=selSubj&&subOf(selSubj.value); if(!su) return; closeModal(); S.ixFocus=su.id; go({kind:'index'}); });
+  $('#ev-title',m).addEventListener('change',e=>{ const v=norm(e.target.value.trim());
+    const su=v&&selSubj&&!selSubj.value&&subs.find(su=>norm(su.code||'')===v||norm(su.name||'')===v||norm(subjLabel(su))===v);
+    if(su){ selSubj.value=su.id; applySubj(su,null); prevSubj=su; }
+    const h=v&&heads.find(h=>norm(h.short)===v||norm(h.text)===v); if(h&&!$('#ev-sec',m).value){ $('#ev-sec',m).value=h.key; syncOpen(); } });
   $('#ev-sec',m).addEventListener('change',e=>{ const h=secOf(e.target.value); if(h&&!$('#ev-title',m).value.trim()) $('#ev-title',m).value=h.short; syncOpen(); });
   $('#ev-start',m).addEventListener('change',e=>{ const s=toMin(e.target.value), en=toMin($('#ev-end',m).value); if(e.target.value&&en<=s) $('#ev-end',m).value=fromMin(Math.min(s+110,23*60+59)); });
   const del=$('#ev-del',m); if(del) del.addEventListener('click',()=>{ const old=S.events[ev.id]; delete S.events[ev.id]; saveEvent({id:ev.id}); closeModal(); renderMain(); toast('Událost smazána','Vrátit',()=>{ S.events[old.id]=old; saveEvent(old); renderMain(); }); });
@@ -1293,6 +1324,7 @@ function openEventModal(ev,preset){
     e.preventDefault();
     const out=Object.assign(ev,{title:$('#ev-title',m).value.trim(),type,repeat:$('#ev-repeat',m).value,day:+$('#ev-day',m).value,date:$('#ev-date',m).value,count:parseInt($('#ev-count',m).value,10)||0,start:$('#ev-start',m).value,end:$('#ev-end',m).value,place:$('#ev-place',m).value.trim(),who:$('#ev-who',m).value.trim(),sec:$('#ev-sec',m).value,note:$('#ev-note',m).value,color});
     delete out.pageId;
+    if(selSubj){ if(selSubj.value) out.subj=selSubj.value; else delete out.subj; }
     const err=$('#ev-err',m); let msg='';
     if(!out.title) msg='Napiš, co to je (třeba název předmětu).';
     else if(!out.start||!out.end) msg='Vyplň čas od a do.';
@@ -1306,6 +1338,176 @@ function openEventModal(ev,preset){
     toast(isNew?'Událost přidána':'Změny uloženy');
   });
   setTimeout(()=>{ const ti=$('#ev-title',m); if(ti&&!ti.value) ti.focus(); },20);
+}
+
+/* ================= Index: databáze předmětů, kredity, body a známky ================= */
+/* stupnice VUT: [známka, od bodů, slovně, číselně] */
+const GRADES=[['A',90,'výborně',1],['B',80,'velmi dobře',1.5],['C',70,'dobře',2],['D',60,'uspokojivě',2.5],['E',50,'dostatečně',3],['F',0,'nedostatečně',4]];
+const GRADE_HL={A:'green',B:'green',C:'blue',D:'yellow',E:'orange',F:'red'};
+const ENDS=[['zk','Zápočet a zkouška','Zk'],['kz','Klasifikovaný zápočet','KZ'],['z','Zápočet','Z']];
+const endOf=k=>ENDS.find(e=>e[0]===k)||ENDS[0];
+const num=v=>{ if(v===''||v==null) return null; const n=parseFloat(String(v).replace(',','.')); return isFinite(n)?n:null; };
+const fmtNum=n=>n==null?'':String(Math.round(n*100)/100).replace('.',',');
+/* body: součet dílčích hodnocení, nebo jedno číslo, když žádná dílčí nejsou */
+function subjPoints(su){
+  const parts=su.parts||[];
+  if(parts.length){ const v=parts.map(p=>num(p.pts)).filter(x=>x!=null); return v.length?v.reduce((a,b)=>a+b,0):null; }
+  return num(su.pts);
+}
+function subjMax(su){ const parts=su.parts||[]; if(!parts.length||parts.some(p=>num(p.max)==null)) return null; return parts.reduce((a,p)=>a+num(p.max),0); }
+const gradeOf=pts=>pts==null?null:GRADES.find(g=>pts>=g[1]);
+function subjGrade(su){ return su.end==='z'?null:gradeOf(subjPoints(su)); }
+/* kredity se počítají, až je známka A–E (u zápočtu po zaškrtnutí „udělen“) */
+function subjDone(su){ if(su.end==='z') return !!su.passed; const g=subjGrade(su); return !!g&&g[0]!=='F'; }
+const subjCr=su=>num(su.credits)||0;
+function subjLabel(su){ return [su.code,su.name].filter(Boolean).join(' — ')||'Předmět'; }
+function wavg(list){ let c=0,s=0; list.forEach(su=>{ const g=subjGrade(su), cr=subjCr(su); if(g&&g[0]!=='F'&&cr){ c+=cr; s+=cr*g[3]; } }); return c?s/c:null; }
+/* výchozí název semestru podle začátku výuky (nebo dneška) */
+function semName(d){
+  d=d||parseD(S.settings.semesterStart)||new Date(); const m=d.getMonth()+1, y=d.getFullYear(), yy=n=>String(n).slice(2);
+  if(m>=8) return `ZS ${y}/${yy(y+1)}`; if(m===1) return `ZS ${y-1}/${yy(y)}`; return `LS ${y-1}/${yy(y)}`;
+}
+const semList=()=>Object.values(S.semesters).sort((a,b)=>(b.order||0)-(a.order||0));
+const subjsOf=sid=>Object.values(S.subjects).filter(su=>sid?su.sem===sid:!S.semesters[su.sem]).sort((a,b)=>(a.order||0)-(b.order||0)||String(a.code||a.name).localeCompare(String(b.code||b.name),'cs'));
+const subjList=()=>[...semList().flatMap(s=>subjsOf(s.id)),...subjsOf(null)];
+function gradeChip(su){
+  if(su.end==='z') return su.passed?'<span class="grade hl-green" title="Zápočet udělen">✓</span>':'<span class="grade none">–</span>';
+  const g=subjGrade(su); return g?`<span class="grade hl-${GRADE_HL[g[0]]}" title="${g[2]} (${fmtNum(g[3])})">${g[0]}</span>`:'<span class="grade none">–</span>';
+}
+function renderIndex(){
+  const subs=Object.values(S.subjects), sems=semList(), orphans=subjsOf(null);
+  const earned=subs.filter(subjDone).reduce((a,su)=>a+subjCr(su),0), enrolled=subs.reduce((a,su)=>a+subjCr(su),0), avg=wavg(subs);
+  const row=su=>{ const pts=subjPoints(su), mx=subjMax(su), done=subjDone(su);
+    return `<button class="ix-row hl-${esc(su.color||'purple')} ${done?'done':''}" data-act="subj" data-id="${su.id}">
+      <span class="ix-nm"><span class="ti-dot"></span><b>${esc(su.code||'')}</b><span>${esc(su.name||'')}</span></span>
+      <span class="ix-cr">${subjCr(su)?fmtNum(subjCr(su)):'–'}</span><span class="ix-end" title="${esc(endOf(su.end)[1])}">${endOf(su.end)[2]}</span>
+      <span class="ix-pts">${pts==null?'–':fmtNum(pts)+(mx?`<small>/${fmtNum(mx)}</small>`:'')}</span><span class="ix-gr">${gradeChip(su)}</span></button>`; };
+  const head='<div class="ix-th"><span>Předmět</span><span>Kredity</span><span>Ukončení</span><span>Body</span><span>Známka</span></div>';
+  const semHtml=sem=>{ const list=sem?subjsOf(sem.id):orphans; if(!sem&&!list.length) return '';
+    const got=list.filter(subjDone).reduce((a,su)=>a+subjCr(su),0), target=sem?(num(sem.target)||0):0, av=wavg(list);
+    return `<section class="ix-sem">
+      <div class="ix-sem-h"><h2>${esc(sem?sem.name||'Semestr':'Bez semestru')}</h2>
+        ${target?`<div class="ix-prog" title="Získané kredity v semestru"><span><b>${fmtNum(got)}</b> / ${fmtNum(target)} kr.</span><span class="bar"><i style="width:${Math.min(100,Math.round(got/target*100))}%"></i></span></div>`:`<span class="ix-prog"><span><b>${fmtNum(got)}</b> kr.</span></span>`}
+        ${av!=null?`<span class="ix-avg" title="Vážený průměr splněných předmětů (A = 1 … E = 3)">⌀ ${fmtNum(av)}</span>`:''}
+        ${sem?`<button class="icon-btn" data-act="sem-edit" data-id="${sem.id}" title="Upravit semestr" aria-label="Upravit semestr">⋯</button>`:''}</div>
+      <div class="card ix-tbl">${list.length?head+list.map(row).join(''):`<div class="empty" style="padding:14px 16px">V semestru zatím nic není. <button class="linkbtn" data-act="subj-new" data-sem="${sem.id}">Přidat předmět</button></div>`}</div></section>`; };
+  $('#view').innerHTML=`<div class="view" style="max-width:920px">
+    <div class="v-head"><div><div class="eyebrow">Předměty, kredity a známky</div><h1 class="v-title">Index</h1></div>
+      <div class="v-tools"><button class="icon-btn lock-btn" data-act="lock"></button><button class="btn" data-act="sem-new">＋ Semestr</button><button class="btn pri" data-act="subj-new">＋ Předmět</button></div></div>
+    ${subs.length?`<div class="ix-sum">
+      <div class="ix-tile"><span class="k">Získané kredity</span><b>${fmtNum(earned)}</b><small>ze ${fmtNum(enrolled)} zapsaných</small></div>
+      <div class="ix-tile"><span class="k">Splněné předměty</span><b>${subs.filter(subjDone).length}<span> / ${subs.length}</span></b><small>známka A–E nebo udělený zápočet</small></div>
+      <div class="ix-tile"><span class="k">Vážený průměr</span><b>${avg!=null?fmtNum(avg):'–'}</b><small>ze splněných, váhou jsou kredity</small></div></div>`
+    :`<div class="card"><div class="empty" style="padding:18px">Index je databáze tvých předmětů: kredity, body, známky. Předměty, které tu založíš, se ti budou nabízet i v rozvrhu. <div class="m-actions" style="margin-top:10px"><button class="btn pri" data-act="subj-new">＋ První předmět</button></div></div></div>`}
+    ${sems.map(semHtml).join('')}${semHtml(null)}
+    ${subs.length?'<p class="note">Známka se počítá z celkových bodů podle stupnice VUT: A od 90, B od 80, C od 70, D od 60, E od 50, jinak F.</p>':''}
+  </div>`;
+  applyLock();
+  if(S.ixFocus){ const el=$(`.ix-row[data-id="${S.ixFocus}"]`); S.ixFocus=null; if(el){ el.scrollIntoView({block:'center'}); el.classList.add('flash'); } }
+}
+/* výběr nadpisu H1 (stejný jako v rozvrhu) */
+function h1Select(id,val){
+  const heads=allH1();
+  return `<select id="${id}"><option value="">Žádný</option>${flatPages().filter(({p})=>heads.some(h=>h.pageId===p.id)).map(({p})=>`<optgroup label="${esc((p.icon?p.icon+' ':'')+pTitle(p))}">${heads.filter(h=>h.pageId===p.id).map(h=>`<option value="${esc(h.key)}" ${val===h.key?'selected':''}>${esc(h.text)}</option>`).join('')}</optgroup>`).join('')}</select>`;
+}
+function openSubjectModal(su,preset){
+  const isNew=!su;
+  su=su?clone(su):Object.assign({id:rid(),code:'',name:'',credits:'',sem:'',end:'zk',color:'purple',sec:'',pts:'',parts:[],passed:false,note:''},preset||{});
+  su.parts=su.parts||[];
+  const heads=allH1(), secOf=v=>heads.find(h=>h.key===v);
+  if(su.sec&&!secOf(su.sec)) su.lostSec=true;
+  const sems=semList(); if(!S.semesters[su.sem]) su.sem=sems.length?sems[0].id:'__new';
+  const evs=Object.values(S.events).filter(ev=>ev.subj===su.id);
+  const m=openModal(isNew?'Nový předmět':'Předmět',`<form class="m-body" id="suf" novalidate>
+    <div class="grid2 su-top"><div class="fld"><label for="su-code">Zkratka</label><input id="su-code" value="${esc(su.code)}" placeholder="MPA-ZJR" autocomplete="off"></div>
+      <div class="fld"><label for="su-cr">Kredity</label><input id="su-cr" type="number" min="0" max="60" step="1" inputmode="numeric" value="${esc(su.credits)}" placeholder="5"></div></div>
+    <div class="fld"><label for="su-name">Název</label><input id="su-name" value="${esc(su.name)}" placeholder="Celý název předmětu" autocomplete="off"></div>
+    <div class="grid2 su-semrow"><div class="fld"><label for="su-sem">Semestr</label><select id="su-sem">${sems.map(s=>`<option value="${s.id}" ${su.sem===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}<option value="__new" ${su.sem==='__new'?'selected':''}>＋ Nový semestr…</option></select>
+        <input id="su-semname" value="${esc(semName())}" placeholder="ZS 2026/27" ${su.sem==='__new'?'':'hidden'} style="margin-top:6px" aria-label="Název nového semestru"></div>
+      <div class="fld"><label for="su-end">Ukončení</label><select id="su-end">${ENDS.map(([k,l])=>`<option value="${k}" ${su.end===k?'selected':''}>${l}</option>`).join('')}</select></div></div>
+    <div class="fld"><label for="su-sec">Nadpis H1 v poznámkách</label>${h1Select('su-sec',su.lostSec?'':su.sec)}${su.lostSec?'<p class="note">Původní nadpis už neexistuje, vyber nový.</p>':heads.length?'':'<p class="note">Na stránkách zatím nemáš žádný nadpis H1.</p>'}</div>
+    <div class="fld"><span class="lbl">Barva</span><div class="swatches" id="su-color" style="padding-left:0">${COLORS.map(c=>`<button type="button" class="sw hl-${c} ${su.color===c?'on':''}" data-c="${c}" aria-label="${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}</div></div>
+    <div class="ix-eval">
+      <div class="ix-eval-h"><span class="lbl">Hodnocení</span><span id="su-res"></span></div>
+      <div id="su-parts"></div>
+      <div class="fld" id="su-total"><label for="su-pts" class="note">Body celkem</label><input id="su-pts" type="text" inputmode="decimal" value="${esc(su.pts)}" placeholder="např. 78"></div>
+      <div class="ix-eval-f"><button type="button" class="linkbtn" id="su-addpart">＋ Dílčí hodnocení</button><label class="chk" id="su-passed-l"><input type="checkbox" id="su-passed" ${su.passed?'checked':''}> Zápočet udělen</label></div>
+    </div>
+    <div class="fld"><label for="su-note">Poznámky</label><textarea id="su-note" rows="2" placeholder="Podmínky zápočtu, termíny zkoušek…">${esc(su.note)}</textarea></div>
+    <div class="ix-info" id="su-info"></div>
+    ${evs.length?`<div class="ix-evs"><span class="lbl">V rozvrhu</span>${evs.map(ev=>`<span>${esc(ev.type||'')} · ${ev.repeat==='once'||ev.repeat==='count'?shortDate(parseD(ev.date)):DAYS_FULL[+ev.day]} ${esc(ev.start)}–${esc(ev.end)}${ev.place?' · '+esc(ev.place):''}</span>`).join('')}</div>`:''}
+    <p class="err" id="su-err" hidden></p>
+    <div class="m-actions">${isNew?'':'<button type="button" class="btn danger lk-hide" id="su-del">Smazat</button>'}<span class="sp"></span><button type="button" class="btn" id="su-open" ${su.sec&&!su.lostSec?'':'hidden'}>Otevřít nadpis</button><button type="button" class="btn" data-close>Zrušit</button><button type="submit" class="btn pri">${isNew?'Přidat':'Uložit'}</button></div>
+  </form>`,'su-m');
+  let parts=clone(su.parts), color=su.color;
+  const cur=()=>({end:$('#su-end',m).value,pts:$('#su-pts',m).value,parts,passed:$('#su-passed',m).checked});
+  const update=()=>{
+    const c=cur(), pts=subjPoints(c), mx=subjMax(c), g=subjGrade(c), isZ=c.end==='z';
+    $('#su-total',m).hidden=!!parts.length;
+    $('#su-passed-l',m).hidden=!isZ;
+    $('#su-res',m).innerHTML=(pts!=null?`<span class="ix-ptsum">${fmtNum(pts)}${mx?` / ${fmtNum(mx)}`:''} b</span>`:'<span class="note">zatím bez bodů</span>')+(isZ?'':g?` <span class="grade hl-${GRADE_HL[g[0]]}">${g[0]}</span> <span class="ix-gw">${g[2]}</span>`:'');
+    const info=[];
+    if(g) info.push(`číselně ${fmtNum(g[3])}`);
+    const cr=num($('#su-cr',m).value);
+    if(cr) info.push(subjDone(c)?`${fmtNum(cr)} kr. se počítá do získaných`:`${fmtNum(cr)} kr. se připočítá ${isZ?'po udělení zápočtu':'se známkou A–E'}`);
+    const h=secOf($('#su-sec',m).value); if(h){ const open=allTasks().filter(t=>!t.done&&t.pg.id===h.pageId&&t.secId===h.blockId).length; if(open) info.push(`${open} ${plural(open,'nesplněný úkol','nesplněné úkoly','nesplněných úkolů')} pod nadpisem`); }
+    $('#su-info',m).textContent=info.join(' · '); $('#su-info',m).hidden=!info.length;
+  };
+  const drawParts=()=>{
+    $('#su-parts',m).innerHTML=parts.map((p,i)=>`<div class="ix-part" data-i="${i}"><input class="inp pn" value="${esc(p.name||'')}" placeholder="Cvičení, test, zkouška…" aria-label="Název"><input class="inp pp" value="${esc(p.pts??'')}" inputmode="decimal" placeholder="body" aria-label="Body"><span class="ps">/</span><input class="inp pm" value="${esc(p.max??'')}" inputmode="decimal" placeholder="max" aria-label="Maximum"><button type="button" class="icon-btn lk-hide" data-rm="${i}" aria-label="Odebrat">×</button></div>`).join('');
+    update();
+  };
+  $('#su-parts',m).addEventListener('input',e=>{ const r=e.target.closest('.ix-part'); if(!r) return; const p=parts[+r.dataset.i]; const k=e.target.classList.contains('pn')?'name':e.target.classList.contains('pp')?'pts':'max'; p[k]=e.target.value; update(); });
+  $('#su-parts',m).addEventListener('click',e=>{ const b=e.target.closest('[data-rm]'); if(!b) return; parts.splice(+b.dataset.rm,1); drawParts(); });
+  $('#su-addpart',m).addEventListener('click',()=>{
+    const t=num($('#su-pts',m).value);
+    if(!parts.length&&t!=null){ parts.push({id:rid(),name:'Body',pts:$('#su-pts',m).value,max:''}); $('#su-pts',m).value=''; }
+    parts.push({id:rid(),name:'',pts:'',max:''}); drawParts();
+    const last=$$('#su-parts .pn',m).pop(); if(last) last.focus();
+  });
+  ['#su-pts','#su-cr'].forEach(s=>$(s,m).addEventListener('input',update));
+  ['#su-end','#su-passed'].forEach(s=>$(s,m).addEventListener('change',update));
+  $('#su-sem',m).addEventListener('change',e=>{ const n=$('#su-semname',m); n.hidden=e.target.value!=='__new'; if(!n.hidden) n.select(); });
+  $('#su-color',m).addEventListener('click',e=>{ const b=e.target.closest('[data-c]'); if(!b) return; color=b.dataset.c; $$('#su-color .sw',m).forEach(x=>x.classList.toggle('on',x===b)); });
+  $('#su-sec',m).addEventListener('change',e=>{
+    const h=secOf(e.target.value); $('#su-open',m).hidden=!h; update(); if(!h) return;
+    const parts2=h.text.split(/\s+[—–-]\s+/), code=$('#su-code',m), name=$('#su-name',m);
+    if(!code.value.trim()&&!name.value.trim()){ if(parts2.length>1&&!/\s/.test(parts2[0])){ code.value=parts2[0]; name.value=parts2.slice(1).join(' – '); } else name.value=h.text; }
+  });
+  $('#su-open',m).addEventListener('click',()=>{ const h=secOf($('#su-sec',m).value); if(!h) return; closeModal(); revealBlock(h.pageId,h.blockId,true); });
+  const del=$('#su-del',m); if(del) del.addEventListener('click',()=>{ if(LOCK) return; const old=S.subjects[su.id]; delete S.subjects[su.id]; Store.queue(); closeModal(); renderMain();
+    toast(`Předmět ${old.code||old.name||''} smazán`,'Vrátit',()=>{ S.subjects[old.id]=old; Store.queue(); renderMain(); }); });
+  $('#suf',m).addEventListener('submit',e=>{
+    e.preventDefault();
+    const err=$('#su-err',m), code=$('#su-code',m).value.trim(), name=$('#su-name',m).value.trim(), cr=$('#su-cr',m).value.trim();
+    let msg=''; if(!code&&!name) msg='Vyplň zkratku nebo název předmětu.'; else if(cr&&(num(cr)==null||num(cr)<0)) msg='Kredity musí být kladné číslo.';
+    else if(parts.some(p=>p.pts!==''&&p.pts!=null&&num(p.pts)==null)||($('#su-pts',m).value.trim()&&num($('#su-pts',m).value)==null)) msg='Body piš jako číslo (třeba 12 nebo 7,5).';
+    if(msg){ err.textContent=msg; err.hidden=false; return; }
+    let sem=$('#su-sem',m).value;
+    if(sem==='__new'){ const s={id:rid(),name:$('#su-semname',m).value.trim()||semName(),target:30,order:Math.max(0,...Object.values(S.semesters).map(x=>x.order||0))+1}; S.semesters[s.id]=s; sem=s.id; }
+    const out=Object.assign(su,{code,name,credits:cr===''?'':num(cr),sem,end:$('#su-end',m).value,color,sec:$('#su-sec',m).value,pts:parts.length?'':$('#su-pts',m).value.trim(),
+      parts:parts.filter(p=>(p.name||'').trim()||String(p.pts??'').trim()||String(p.max??'').trim()).map(p=>({id:p.id||rid(),name:(p.name||'').trim(),pts:String(p.pts??'').trim(),max:String(p.max??'').trim()})),
+      passed:$('#su-passed',m).checked,note:$('#su-note',m).value});
+    delete out.lostSec; if(out.end!=='z') delete out.passed;
+    S.subjects[out.id]=out; Store.queue(); closeModal(); renderSidebar(); renderMain();
+    toast(isNew?'Předmět přidán':'Uloženo');
+  });
+  drawParts();
+  if(isNew) setTimeout(()=>{ const a=document.activeElement; if(!a||a===document.body||!m.contains(a)) $('#su-code',m).focus(); },20);
+}
+function openSemModal(sem){
+  const isNew=!sem; sem=sem?clone(sem):{id:rid(),name:semName(),target:30,order:Math.max(0,...Object.values(S.semesters).map(x=>x.order||0))+1};
+  const n=subjsOf(sem.id).length;
+  const m=openModal(isNew?'Nový semestr':'Semestr',`<form class="m-body" id="smf" novalidate>
+    <div class="grid2"><div class="fld"><label for="sm-name">Název</label><input id="sm-name" value="${esc(sem.name)}" placeholder="ZS 2026/27"></div>
+      <div class="fld"><label for="sm-t">Kredity na semestr</label><input id="sm-t" type="number" min="0" max="90" step="1" inputmode="numeric" value="${esc(sem.target??'')}" placeholder="30"></div></div>
+    <p class="note">Podle počtu kreditů se ukazuje, kolik ti v semestru ještě chybí. Obvykle 30.</p>
+    <div class="m-actions">${isNew?'':n?`<span class="note">Smazat jde jen prázdný semestr (teď ${n} ${plural(n,'předmět','předměty','předmětů')}).</span>`:'<button type="button" class="btn danger lk-hide" id="sm-del">Smazat</button>'}<span class="sp"></span><button type="button" class="btn" data-close>Zrušit</button><button type="submit" class="btn pri">${isNew?'Přidat':'Uložit'}</button></div>
+  </form>`);
+  const del=$('#sm-del',m); if(del) del.addEventListener('click',()=>{ if(LOCK) return; delete S.semesters[sem.id]; Store.queue(); closeModal(); renderMain(); });
+  $('#smf',m).addEventListener('submit',e=>{ e.preventDefault();
+    S.semesters[sem.id]=Object.assign(sem,{name:$('#sm-name',m).value.trim()||semName(),target:num($('#sm-t',m).value)??''}); Store.queue(); closeModal(); renderMain(); });
+  setTimeout(()=>$('#sm-name',m).select(),20);
 }
 
 /* ================= tasks ================= */
@@ -1468,7 +1670,7 @@ function openSearch(){
 }
 
 /* ================= settings ================= */
-const APP_VERSION='2.5.0';
+const APP_VERSION='2.6.0';
 function fmtTime(ts){ if(!ts) return ''; const d=new Date(ts); const t=`${d.getHours()}:${pad(d.getMinutes())}`; return sod(d).getTime()===sod(new Date()).getTime()?t:`${shortDate(d)} ${t}`; }
 function downloadFile(name,text){
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'application/json'})); a.download=name;
@@ -1477,7 +1679,8 @@ function downloadFile(name,text){
 function applyData(d){ applyNormalized(normalizeImport(d)); }
 function applyNormalized(n){
   n=clone(n);
-  S.pages=n.pages||{}; S.events=n.events||{}; S.settings=Object.assign(defaultSettings(),n.settings);
+  S.pages=n.pages||{}; S.events=n.events||{}; S.subjects=n.subjects||{}; S.semesters=n.semesters||{}; S.settings=Object.assign(defaultSettings(),n.settings);
+  if(S.view.kind==='index'&&!S.settings.index) S.view={kind:'today'};
   HIST.clear(); hideImgSel(); closePop();
   if(S.view.kind==='page'&&!S.pages[S.view.pageId]) S.view={kind:'today'};
   renderSidebar(); renderMain();
@@ -1515,6 +1718,9 @@ async function openSettings(focus){
       <div class="grid2"><div class="fld"><label for="st-h0">Rozvrh od</label><select id="st-h0">${Array.from({length:14},(_,i)=>i+5).map(h=>`<option ${+st.dayStart===h?'selected':''}>${h}</option>`).join('')}</select></div><div class="fld"><label for="st-h1">Rozvrh do</label><select id="st-h1">${Array.from({length:12},(_,i)=>i+13).map(h=>`<option ${+st.dayEnd===h?'selected':''}>${h}</option>`).join('')}</select></div></div>
       <div class="fld"><label for="st-hs">Výška hodiny v rozvrhu</label><select id="st-hs">${HOUR_SCALES.map(v=>`<option value="${v}" ${(+st.hourScale||1)===v?'selected':''}>${String(v).replace('.',',')}×</option>`).join('')}</select><p class="note">Vyšší políčka = u krátkých hodin se vejde víc textu. Celé informace ukáže najetí myší na hodinu.</p></div>
       <label class="chk"><input type="checkbox" id="st-we" ${st.showWeekend?'checked':''}> Zobrazovat v rozvrhu i víkend</label>
+      <div class="set-sep"></div>
+      <label class="chk"><input type="checkbox" id="st-ix" ${st.index?'checked':''}> Index v levém panelu (předměty, kredity, body a známky)</label>
+      <p class="note" style="margin-top:-8px;padding-left:26px">Předměty z Indexu se pak nabízejí i v rozvrhu. Vypnutím se nic nesmaže, Index se jen schová.</p>
     </section>
 
     <section class="set-pane" data-pane="look">
@@ -1568,12 +1774,12 @@ async function openSettings(focus){
 
   /* obecné a vzhled se ukládají hned při změně */
   const commit=()=>{
-    Object.assign(S.settings,{name:$('#st-name',m).value.trim()||'Úkolníček',semesterStart:$('#st-start',m).value,dayStart:+$('#st-h0',m).value,dayEnd:+$('#st-h1',m).value,showWeekend:$('#st-we',m).checked,miniCal:$('#st-mc',m).checked,miniCalWeeks:$('#st-mcw',m).checked,showHidden:$('#st-hid',m).checked,hourScale:+$('#st-hs',m).value});
+    Object.assign(S.settings,{name:$('#st-name',m).value.trim()||'Úkolníček',semesterStart:$('#st-start',m).value,dayStart:+$('#st-h0',m).value,dayEnd:+$('#st-h1',m).value,showWeekend:$('#st-we',m).checked,miniCal:$('#st-mc',m).checked,miniCalWeeks:$('#st-mcw',m).checked,showHidden:$('#st-hid',m).checked,hourScale:+$('#st-hs',m).value,index:$('#st-ix',m).checked});
     if(S.settings.semesterStart){ const d=parseD(S.settings.semesterStart); if(d.getDay()!==1){ S.settings.semesterStart=ymd(mondayOf(d)); $('#st-start',m).value=S.settings.semesterStart; } }
     $('#st-mcw',m).disabled=!S.settings.miniCal;
     saveSettings(); renderSidebar(); renderMain();
   };
-  ['#st-name','#st-start','#st-h0','#st-h1','#st-hs','#st-we','#st-mc','#st-mcw','#st-hid'].forEach(sel=>$(sel,m).addEventListener('change',commit));
+  ['#st-name','#st-start','#st-h0','#st-h1','#st-hs','#st-we','#st-mc','#st-mcw','#st-hid','#st-ix'].forEach(sel=>$(sel,m).addEventListener('change',commit));
   $('#st-theme',m).addEventListener('click',e=>{ const b=e.target.closest('[data-v]'); if(!b) return; lsSet('uk-theme',b.dataset.v); applyTheme(); $$('#st-theme button',m).forEach(x=>x.classList.toggle('on',x===b)); });
   $('#st-fs',m).addEventListener('click',e=>{ const b=e.target.closest('[data-v]'); if(!b) return; lsSet('uk-fs',+b.dataset.v); applyFontScale(); $$('#st-fs button',m).forEach(x=>x.classList.toggle('on',x===b)); });
   $$('[data-guide]',m).forEach(b=>b.addEventListener('click',()=>openGuide(b.dataset.guide)));
@@ -1603,7 +1809,7 @@ async function openSettings(focus){
         const d=JSON.parse(rd.result); if(!d||typeof d.pages!=='object') throw 0;
         await Local.addBackup(stateForStorage(),'Před importem ze souboru');
         const n=normalizeImport(d);
-        Object.assign(S.pages,n.pages); Object.assign(S.events,n.events);
+        Object.assign(S.pages,n.pages); Object.assign(S.events,n.events); Object.assign(S.subjects,n.subjects); Object.assign(S.semesters,n.semesters);
         if(d.settings) S.settings=Object.assign(defaultSettings(),n.settings);
         HIST.clear(); Store.queue();
         closeModal(); renderSidebar(); renderMain(); const np=Object.keys(n.pages).length, ne=Object.keys(n.events).length; toast(`Importováno: ${np} ${np===1?'stránka':np<5&&np>0?'stránky':'stránek'}, ${ne} ${ne===1?'událost':ne<5&&ne>0?'události':'událostí'}`);
@@ -1649,7 +1855,7 @@ const autoPull=()=>lsGet('uk-auto-pull',true)!==false;
    (porovnává se čas vytvoření na serveru Googlu, ne hodiny zařízení) */
 function newerOnDrive(top){ return !!(top&&top.name!==META.remoteName&&(!META.remoteAt||top.createdTime>META.remoteAt)); }
 /* data z Disku ve stejném tvaru jako dataForSave() (i s výchozím nastavením) */
-function packRemote(n){ return packData(n.pages,n.events,Object.assign(defaultSettings(),n.settings)); }
+function packRemote(n){ return packData(n.pages,n.events,Object.assign(defaultSettings(),n.settings),n.subjects,n.semesters); }
 
 /* ---- spojení dvou verzí („Ponechat obě“) ----
    B = poslední verze společná s Diskem (když je k dispozici, pozná se, kde se co změnilo).
@@ -1659,12 +1865,12 @@ function evSig(e){ return e?canon(e):''; }
 function syncDiff(L,R,B){
   const out={here:[],drive:[],both:[],differ:[],copies:0};
   const name=(k,lv,rv,inBase)=>{
-    const v=lv||rv; const t=k==='pages'?(v.icon?v.icon+' ':'')+(v.title||'Bez názvu'):'🗓️ '+(v.title||'Bez názvu')+(v.start?' '+v.start:'');
+    const v=lv||rv; const t=k==='pages'?(v.icon?v.icon+' ':'')+(v.title||'Bez názvu'):k==='subjects'?'🎓 '+[v.code,v.name].filter(Boolean).join(' '):k==='semesters'?'📅 '+(v.name||'Semestr'):'🗓️ '+(v.title||'Bez názvu')+(v.start?' '+v.start:'');
     if(lv&&rv) return t;
     if(inBase==null) return t+(lv?' (jen tady)':' (jen na Disku)');
     return t+(inBase?(lv?' (na Disku smazáno)':' (tady smazáno)'):(lv?' (nové tady)':' (nové na Disku)'));
   };
-  [['pages',pageSig],['events',evSig]].forEach(([k,sig])=>{
+  [['pages',pageSig],['events',evSig],['subjects',evSig],['semesters',evSig]].forEach(([k,sig])=>{
     const l=L[k]||{}, r=R[k]||{}, b=B?(B[k]||{}):null;
     new Set([...Object.keys(l),...Object.keys(r)]).forEach(id=>{
       const lv=l[id], rv=r[id], sl=sig(lv), sr=sig(rv); if(sl===sr) return;
@@ -1672,9 +1878,9 @@ function syncDiff(L,R,B){
         const sb=sig(b[id]);
         if(sl===sb){ out.drive.push(name(k,lv,rv,!!b[id])); return; }
         if(sr===sb){ out.here.push(name(k,lv,rv,!!b[id])); return; }
-        out.both.push(name(k,lv,rv,!!b[id])); if(lv&&rv) out.copies++; return;
+        out.both.push(name(k,lv,rv,!!b[id])); if(lv&&rv&&k!=='semesters') out.copies++; return;
       }
-      out.differ.push(name(k,lv,rv,null)); if(lv&&rv) out.copies++;
+      out.differ.push(name(k,lv,rv,null)); if(lv&&rv&&k!=='semesters') out.copies++;
     });
   });
   const ls=L.settings||{}, rs=R.settings||{};
@@ -1687,8 +1893,8 @@ function syncDiff(L,R,B){
   return out;
 }
 function mergeData(L,R,B){
-  const dev=deviceName(), out={pages:{},events:{},settings:{}}; let copies=0;
-  [['pages',pageSig],['events',evSig]].forEach(([k,sig])=>{
+  const dev=deviceName(), out={pages:{},events:{},settings:{},subjects:{},semesters:{}}; let copies=0;
+  [['pages',pageSig],['events',evSig],['subjects',evSig],['semesters',evSig]].forEach(([k,sig])=>{
     const l=L[k]||{}, r=R[k]||{}, b=B?(B[k]||{}):null;
     new Set([...Object.keys(l),...Object.keys(r)]).forEach(id=>{
       const lv=l[id], rv=r[id], sl=sig(lv), sr=sig(rv);
@@ -1701,8 +1907,10 @@ function mergeData(L,R,B){
       if(rv) out[k][id]=clone(rv);
       if(!lv) return;
       if(!rv){ out[k][id]=clone(lv); return; }               /* smazané na jedné straně a změněné na druhé: ponechat */
+      if(k==='semesters') return;                            /* semestr zůstane jen jednou (verze z Disku) */
       const c=clone(lv); c.id=rid(); copies++;
-      c.title=(lv.title||'Bez názvu')+' (kopie – '+dev+')';
+      if(k==='subjects') c.name=(lv.name||lv.code||'Předmět')+' (kopie – '+dev+')';
+      else c.title=(lv.title||'Bez názvu')+' (kopie – '+dev+')';
       if(k==='pages'){ c.order=(lv.order||0)+.5; (c.blocks||[]).forEach(bl=>{ bl.id=rid(); }); }
       out[k][c.id]=c;
     });
@@ -2243,6 +2451,7 @@ document.addEventListener('click',e=>{
   const im=e.target.closest&&e.target.closest('#doc .txt img.im, #doc .bimg'); if(im){ selectImage(im); return; }
   const col=e.target.classList&&e.target.classList.contains('sg-col')?e.target:null;
   if(col){
+    if(LOCK) return;   /* zamčeno: klik do prázdného místa nic nevytvoří */
     const sg=$('#sg'); const h0=+sg.dataset.h0; const y=e.clientY-col.getBoundingClientRect().top;
     const hh=+sg.dataset.hh||52;
     const s=clamp(Math.round((h0*60+Math.floor(y/hh*2)/2*60)),0,23*60);
@@ -2299,6 +2508,10 @@ document.addEventListener('click',e=>{
     case 'task-check': toggleTask(a.dataset.k); break;
     case 'goto-task': { const t=taskByKey(a.dataset.k); if(t) revealBlock(t.pg.id,t.b.id,false); break; }
     case 'goto-sec': revealBlock(a.dataset.p,a.dataset.b,true); break;
+    case 'subj': { const su=S.subjects[a.dataset.id]; if(su) openSubjectModal(su); break; }
+    case 'subj-new': openSubjectModal(null,a.dataset.sem?{sem:a.dataset.sem}:null); break;
+    case 'sem-new': openSemModal(null); break;
+    case 'sem-edit': { const sm=S.semesters[a.dataset.id]; if(sm) openSemModal(sm); break; }
     case 't-projs': openTaskProjects(a); break;
     case 't-showall': if(S.settings.taskHidden){ delete S.settings.taskHidden; saveSettings(); renderSidebar(); renderMain(); } break;
     case 't-hide': { const r=S.pages[a.dataset.id]; if(!r) break; setTaskHidden(r.id,true);
