@@ -1,5 +1,6 @@
 /* Úkolníček – místní úložiště v prohlížeči (IndexedDB)
    kv/state      … stránky, rozvrh, nastavení a stav synchronizace
+   kv/base       … verze naposledy společná s Diskem (pro „Ponechat obě“ při kolizi)
    images        … obrázky (Blob) podle ID; do JSONu na Disk jde jen ID a název
    backups       … posledních 5 místních záloh (vznikají před stažením z Disku a před obnovením) */
 (function () {
@@ -45,6 +46,17 @@
     async saveState(state) {
       const s = await store('kv', 'readwrite');
       await wrap(s.put(state, 'state'));
+    },
+
+    /* poslední verze společná s Diskem (po nahrání / stažení); slouží ke spojení dvou verzí při kolizi */
+    async loadBase() {
+      const s = await store('kv', 'readonly');
+      return (await wrap(s.get('base'))) || null;
+    },
+
+    async saveBase(data) {
+      const s = await store('kv', 'readwrite');
+      await wrap(s.put(data, 'base'));
     },
 
     async putImage(blob, name) {

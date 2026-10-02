@@ -19,7 +19,7 @@
 <main class="navod" id="navod">
 
 <section data-tab="navod" data-title="Návod">
-  <p class="g-lead">Úkolníček je školní sešit: stránky s poznámkami a úkoly, týdenní rozvrh a přehled termínů. Všechno se ukládá v zařízení a ručně se zálohuje na Google Disk.</p>
+  <p class="g-lead">Úkolníček je školní sešit: stránky s poznámkami a úkoly, týdenní rozvrh a přehled termínů. Všechno se ukládá v zařízení. Na Google Disk se nahrává ručně a novější verze z Disku se po otevření aplikace stáhne sama.</p>
   <div class="g-grid">
 
     <div class="g-card hl-purple">
@@ -68,13 +68,13 @@
 
     <div class="g-card hl-yellow">
       <h3><span class="g-ic">☁️</span>Záloha na Google Disk</h3>
-      <p>↑ nahraje data, ↓ je stáhne (podle nastavení rovnou nejnovější verzi, nebo výběr z posledních 10), synchronizace je ruční. Oranžová tečka u mráčku znamená změny, které na Disku nejsou. Rozbalení nadpisu se nepočítá a když změnu vrátíš (třeba <kbd>⌘Z</kbd>), tečka zmizí.</p>
-      <p>Žlutý mráček: přihlášení vypršelo (platí asi hodinu), stačí kliknout na ↑ nebo ↓. Obrázky zůstávají jen v zařízení, kde je vložíš.</p>
+      <p>↑ nahraje data, ↓ je stáhne (podle nastavení rovnou nejnovější verzi, nebo výběr z posledních 10). Po otevření aplikace se Úkolníček sám podívá na Disk: když je tam novější verze a ty tady nemáš neuložené změny, tiše ji stáhne (v oznámení je tlačítko <b>Vrátit</b>). Když se změnilo obojí, hned se zeptá: verze z Disku, tvoje, nebo obě. Před každým stažením se uloží místní záloha.</p>
+      <p>Oranžová tečka u mráčku znamená změny, které na Disku nejsou. Rozbalení nadpisu se nepočítá a když změnu vrátíš (třeba <kbd>⌘Z</kbd>), tečka zmizí. Žlutý mráček: přihlášení vypršelo (platí asi hodinu), první klepnutí kamkoli do aplikace ho obnoví a zkontroluje Disk. Obrázky zůstávají jen v zařízení, kde je vložíš.</p>
     </div>
 
     <div class="g-card hl-purple wide">
       <h3><span class="g-ic">⚙️</span>Nastavení</h3>
-      <p><b>Obecné:</b> název, začátek semestru (číslo týdne a lichý/sudý), rozsah a výška hodin v rozvrhu, víkend. <b>Vzhled:</b> světlý nebo tmavý motiv, velikost textu 100–160 %, mini kalendář s čísly týdnů v roce, počet skrytých bloků u sbaleného nadpisu. Motiv a velikost textu platí jen pro dané zařízení. <b>Synchronizace:</b> Google Disk, export a import souboru, místní zálohy.</p>
+      <p><b>Obecné:</b> název, začátek semestru (číslo týdne a lichý/sudý), rozsah a výška hodin v rozvrhu, víkend. <b>Vzhled:</b> světlý nebo tmavý motiv, velikost textu 100–160 %, mini kalendář s čísly týdnů v roce, počet skrytých bloků u sbaleného nadpisu. Motiv a velikost textu platí jen pro dané zařízení. <b>Synchronizace:</b> Google Disk, automatické stažení po otevření (jde vypnout pro dané zařízení), export a import souboru, místní zálohy.</p>
     </div>
 
   </div>
@@ -83,6 +83,18 @@
 <section data-tab="novinky" data-title="Novinky">
 
   <article class="g-rel new">
+    <h3>Automatické stažení z Disku <span class="v">2.4</span> <time datetime="2026-10-02">2. 10. 2026</time></h3>
+    <ul>
+      <li><b>Novější verze z Disku se stáhne sama</b> po otevření aplikace (i po návratu do ní), když tady nemáš neuložené změny. Kontrola je jeden malý dotaz, stahuje se jen při rozdílu. V oznámení je tlačítko <b>Vrátit</b>.</li>
+      <li><b>Změny tady i na Disku</b>: Úkolníček se hned zeptá a ukáže, co se kde změnilo. Vybereš verzi z Disku, svoji, nebo <b>obě</b>: co se změnilo jen na jedné straně, převezme se, co se změnilo na obou, bude dvakrát (tvoje jako kopie).</li>
+      <li>Před každým stažením se uloží místní záloha. Když začneš psát dřív, než se stahování dokončí, nic se nepřepíše a Úkolníček se zeptá.</li>
+      <li><b>Vypršelé přihlášení</b>: žlutý mráček, kontrola proběhne po prvním klepnutí do aplikace.</li>
+      <li>Bez internetu se kontrola přeskočí. Vypnout jde v Nastavení → Synchronizace (platí jen pro dané zařízení).</li>
+      <li>Když volbu odložíš, najdeš ji v menu mráčku jako <b>Porovnat s verzí na Disku…</b></li>
+    </ul>
+  </article>
+
+  <article class="g-rel">
     <h3>Rozvrh, stahování a úpravy vzhledu <span class="v">2.3</span> <time datetime="2026-10-01">1. 10. 2026</time></h3>
     <ul>
       <li><b>Výška hodiny v rozvrhu</b> 1× až 2× (Nastavení → Obecné). Krátké hodiny se vykreslí na jeden řádek a celé informace ukáže najetí myší.</li>

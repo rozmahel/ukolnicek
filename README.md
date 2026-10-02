@@ -1,6 +1,6 @@
 # Úkolníček
 
-Školní poznámky, úkoly a rozvrh na jednom místě. Běží jako statická webová aplikace na GitHub Pages, funguje offline (PWA) a data si umí ručně zálohovat na tvůj Google Disk.
+Školní poznámky, úkoly a rozvrh na jednom místě. Běží jako statická webová aplikace na GitHub Pages, funguje offline (PWA), data nahrává na tvůj Google Disk a novější verzi odtud po otevření sama stáhne.
 
 ## Soubory
 
@@ -9,8 +9,8 @@
 | `index.html` | kostra stránky |
 | `style.css` | vzhled |
 | `app.js` | celá aplikace (stránky, editor, rozvrh, úkoly, nastavení) |
-| `storage.js` | ukládání v prohlížeči (IndexedDB): data, obrázky, místní zálohy |
-| `driveSync.js` | přihlášení Google a práce se soubory na Disku |
+| `storage.js` | ukládání v prohlížeči (IndexedDB): data, obrázky, místní zálohy, poslední verze společná s Diskem |
+| `driveSync.js` | přihlášení Google a práce se soubory na Disku (včetně lehkého dotazu na nejnovější verzi) |
 | `navod.html` | návod a novinky (zobrazuje se v Nastavení) |
 | `sw.js` | Service Worker: offline režim a nabídka nové verze |
 | `manifest.webmanifest`, `icons/` | instalace na plochu |
@@ -19,6 +19,17 @@
 ## Novinky
 
 Přehled změn a návod jsou v souboru **`navod.html`** (v aplikaci: Nastavení → Návod a novinky). Novou novinku přidáš zkopírováním bloku `<article class="g-rel new">` – postup je popsaný v komentáři na začátku souboru.
+
+## Co přibylo ve verzi 2.4
+
+- **Automatické stažení z Disku po otevření** (a po návratu do aplikace). Jeden lehký dotaz na název a čas nejnovějšího souboru, stahuje se jen při rozdílu:
+  - na Disku nic nového → nic,
+  - na Disku novější verze a tady beze změn → stáhne se a tiše použije (oznámení s tlačítkem *Vrátit*),
+  - změny tady, Disk beze změny → nic, oranžová tečka zůstane,
+  - změny tady i na Disku → hned dialog: *Použít verzi z Disku*, *Ponechat moji verzi*, nebo *Ponechat obě* (spojí je; co se změnilo na obou místech, bude dvakrát).
+- Před každým přepsáním se uloží místní záloha. Psaní během stahování se počítá jako změna, nic se nepřepíše.
+- Vypršelé přihlášení: žlutý mráček, kontrola po prvním klepnutí do aplikace (okno přihlášení Googlu jde otevřít jen po akci uživatele).
+- Bez internetu se kontrola přeskočí. Vypíná se v **Nastavení → Synchronizace** (jen pro dané zařízení, výchozí: zapnuto).
 
 ## Co umí verze 2.1
 
@@ -73,13 +84,13 @@ Client ID není tajný klíč, bezpečnost hlídá seznam povolených adres a te
 ## 4. Jak funguje synchronizace
 
 - Data se průběžně ukládají **v zařízení** (IndexedDB). Aplikace funguje i bez internetu.
-- Synchronizace s Diskem je **ruční**:
-  - **↑ Nahrát** uloží aktuální stav jako nový soubor `ukolnicek_RRRR-MM-DDTHH-MM-SS.json` do skryté složky aplikace. Na Disku se drží posledních 10 verzí, starší se mažou.
-  - **↓ Stáhnout** nabídne seznam verzí a vybranou nahradí data v zařízení. Současný stav se předtím uloží do **Nastavení → Místní zálohy** (posledních 5).
+- **↑ Nahrát** (ručně) uloží aktuální stav jako nový soubor `ukolnicek_RRRR-MM-DDTHH-MM-SS.json` do skryté složky aplikace. Na Disku se drží posledních 10 verzí, starší se mažou.
+- **↓ Stáhnout** nabídne seznam verzí a vybranou nahradí data v zařízení. Současný stav se předtím uloží do **Nastavení → Místní zálohy** (posledních 5).
+- **Po otevření aplikace** se novější verze stáhne sama, pokud tady nejsou neuložené změny (podrobnosti výš u verze 2.4). Porovnává se otisk dat v zařízení s otiskem z poslední synchronizace a čas souboru na serveru Googlu, ne hodiny zařízení. Když se změnilo obojí, aplikace se zeptá.
 - Když se chystáš nahrát, ale na Disku je novější verze z jiného zařízení, aplikace se zeptá, jestli ji nechceš nejdřív stáhnout.
 - Mráček v levém panelu (na mobilu v horní liště):
   - **šedý přeškrtnutý**: Disk není připojený,
-  - **žlutý**: přihlášení vypršelo (token od Googlu platí asi hodinu), klepni a připoj se znovu,
+  - **žlutý**: přihlášení vypršelo (token od Googlu platí asi hodinu). Po otevření aplikace se obnoví prvním klepnutím kamkoli do aplikace, jinak klepni na mráček,
   - **zelený**: připojeno, u něj čas poslední synchronizace,
   - **oranžová tečka**: máš změny, které nejsou na Disku. Tečka u ↓ znamená, že na Disku je novější verze.
 - Skrytou složku aplikace na Disku běžně nevidíš. Smazat ji jde v Disku přes **Nastavení → Správa aplikací → Úkolníček → Smazat skrytá data aplikace**.

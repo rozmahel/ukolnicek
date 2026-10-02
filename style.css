@@ -624,3 +624,15 @@ body.navod-page section[data-tab]::before{content:attr(data-title);display:block
   .ti-acts{display:none}
   .ti:hover .ti-acts,.ti:focus-within .ti-acts{display:flex;opacity:1}
 }
+
+/* ---------- 2.4: kolize s verzí na Disku ---------- */
+.modal.cf-m{width:min(560px,100%)}
+.cf-sum{display:grid;gap:6px;padding:10px 12px;border-radius:9px;background:var(--side);font-size:calc(13.5px*var(--fs));color:var(--fg2)}
+.cf-k{display:block;font-size:calc(11px*var(--fs));font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:1px}
+.cf-list{display:grid;gap:8px}
+.cf-list .guide-link{grid-template-columns:auto minmax(0,1fr);background:var(--panel)}
+.cf-list .guide-link.rec{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.cf-list .guide-link em{font-style:normal;font-size:calc(11px*var(--fs));font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);margin-left:6px;vertical-align:.1em}
+.cf-list .gl-ic{width:26px;text-align:center}
+/* zaškrtávátka uvnitř pole (Nastavení → Synchronizace) nemají styl nadpisu pole */
+.fld>label.chk{text-transform:none;letter-spacing:0;font-weight:400;font-size:calc(14px*var(--fs));color:var(--fg)}

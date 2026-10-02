@@ -1,7 +1,8 @@
-/* Úkolníček – synchronizace s Google Diskem (ruční)
+/* Úkolníček – synchronizace s Google Diskem
    - přihlášení přes Google Identity Services (token platí zhruba 1 hodinu)
    - data leží ve skryté složce aplikace (appDataFolder), soubory ukolnicek_RRRR-MM-DDTHH-MM-SS.json
-   - nahrání = nový soubor, drží se posledních 10; stažení = vybraná verze */
+   - nahrání = nový soubor, drží se posledních 10; stažení = vybraná verze
+   - latest() = lehký dotaz jen na nejnovější soubor (název a čas na serveru Googlu), pro kontrolu při spuštění */
 (function () {
   'use strict';
   const SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
@@ -106,10 +107,15 @@
       opt = opt || {};
       const t = validToken();
       if (!t) throw { code: 'expired' };
-      let r;
+      let r, timer = null;
+      const ctl = opt.timeout && window.AbortController ? new AbortController() : null;
+      if (ctl) timer = setTimeout(() => ctl.abort(), opt.timeout);
+      const init = Object.assign({}, opt, { headers: Object.assign({ Authorization: 'Bearer ' + t }, opt.headers || {}) }, ctl ? { signal: ctl.signal } : {});
+      delete init.timeout;
       try {
-        r = await fetch(url, Object.assign({}, opt, { headers: Object.assign({ Authorization: 'Bearer ' + t }, opt.headers || {}) }));
+        r = await fetch(url, init);
       } catch (e) { throw { code: 'network' }; }
+      finally { if (timer) clearTimeout(timer); }
       if (r.status === 401) { ls.set(K.tok, null); throw { code: 'expired' }; }
       if (!r.ok) {
         let msg = '';
@@ -127,6 +133,14 @@
       return (j.files || []).filter((f) => f.name.indexOf(PREFIX) === 0);
     },
 
+    /* jen nejnovější záloha: id, název a čas vytvoření na serveru (pár set bajtů, bez obsahu) */
+    async latest(opt) {
+      const q = encodeURIComponent(`name contains '${PREFIX}' and trashed = false`);
+      const url = `${API}?spaces=appDataFolder&q=${q}&orderBy=${encodeURIComponent('createdTime desc')}&pageSize=3&fields=${encodeURIComponent('files(id,name,createdTime)')}`;
+      const j = await (await this.api(url, opt)).json();
+      return (j.files || []).find((f) => f.name.indexOf(PREFIX) === 0) || null;
+    },
+
     async upload(obj) {
       const meta = { name: PREFIX + stamp() + '.json', parents: ['appDataFolder'], mimeType: 'application/json' };
       const boundary = 'uk' + Math.random().toString(36).slice(2);
@@ -142,9 +156,9 @@
       return await r.json();
     },
 
-    async download(id) {
-      const r = await this.api(`${API}/${encodeURIComponent(id)}?alt=media`);
-      return await r.json();
+    async download(id, opt) {
+      const r = await this.api(`${API}/${encodeURIComponent(id)}?alt=media`, opt);
+      try { return await r.json(); } catch (e) { throw { code: e && e.name === 'SyntaxError' ? 'bad_file' : 'network' }; }
     },
 
     async remove(id) {
@@ -173,6 +187,7 @@
         case 'network': return 'Nepodařilo se spojit s Google Diskem.';
         case 'forbidden': return 'Google odmítl přístup' + (e.message ? ': ' + e.message : '. Je v projektu zapnuté Google Drive API?');
         case 'not_found': return 'Soubor na Disku už neexistuje. Zkus to znovu.';
+        case 'bad_file': return 'Soubor na Disku není platná záloha Úkolníčku.';
         default: return 'Synchronizace selhala' + (c ? ' (' + c + ')' : '') + '.';
       }
     }

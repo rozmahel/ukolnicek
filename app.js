@@ -85,14 +85,18 @@ function canon(v){
   return JSON.stringify(v);
 }
 function fnv(str){ let h=0x811c9dc5; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,0x01000193); } return (h>>>0).toString(36)+'.'+str.length; }
-function dataHash(){
-  const d=dataForSave();
-  Object.values(d.pages).forEach(p=>{ delete p.updated; (p.blocks||[]).forEach(b=>{ delete b.collapsed; }); });
+/* d musí být čerstvá kopie (upravuje se) */
+function hashData(d){
+  Object.values(d.pages||{}).forEach(p=>{ delete p.updated; (p.blocks||[]).forEach(b=>{ delete b.collapsed; }); });
   return fnv(canon(d));
 }
+function dataHash(){ return hashData(dataForSave()); }
+/* otisk dat stažených z Disku (po normalizeImport), počítaný stejně jako otisk dat v zařízení */
+function hashOf(n){ return hashData(packData(n.pages,n.events,Object.assign(defaultSettings(),n.settings))); }
 function isDirty(){
-  if(!Object.keys(S.pages).length) return false;
+  if(!Object.keys(S.pages).length&&!Object.keys(S.events).length) return false;
   if(META.syncedHash&&META.curHash) return META.curHash!==META.syncedHash;
+  if(!META.remoteName&&!META.syncedAt) return true;   /* data, která ještě nikdy nebyla na Disku */
   return META.changedAt>META.syncedAt;
 }
 const Store={
@@ -128,10 +132,11 @@ function stripBlocks(blocks){
     return o;
   });
 }
-function dataForSave(){
-  const pages={}; Object.values(S.pages).forEach(p=>{ pages[p.id]=Object.assign({},p,{blocks:stripBlocks(p.blocks)}); });
-  return clone({pages,events:S.events,settings:S.settings});
+function packData(src,events,settings){
+  const pages={}; Object.values(src||{}).forEach(p=>{ pages[p.id]=Object.assign({},p,{blocks:stripBlocks(p.blocks)}); });
+  return clone({pages,events:events||{},settings:settings||{}});
 }
+function dataForSave(){ return packData(S.pages,S.events,S.settings); }
 function stateForStorage(){ return Object.assign(dataForSave(),{meta:clone(META)}); }
 /* accept older exports: Claude version (/_blob/ images, src on block images) */
 function legacyHtml(h){
@@ -993,7 +998,7 @@ function openModal(title,body,cls){
   ov.addEventListener('click',e=>{ if(e.target.closest('[data-close]')) closeModal(); });
   S.modal=ov; return ov.firstElementChild;
 }
-function closeModal(){ if(S.modal){ S.modal.remove(); S.modal=null; if(S.deferRemote) renderMain(); } }
+function closeModal(){ if(S.modal){ S.modal.remove(); S.modal=null; if(S.deferRemote) renderMain(); if(Sync.pending) setTimeout(()=>Sync.resume(),0); } }
 let toastT=null;
 function toast(msg,actLabel,act){
   let t=$('.toast'); if(t) t.remove(); clearTimeout(toastT);
@@ -1399,15 +1404,16 @@ function openSearch(){
 }
 
 /* ================= settings ================= */
-const APP_VERSION='2.3.0';
+const APP_VERSION='2.4.0';
 function fmtTime(ts){ if(!ts) return ''; const d=new Date(ts); const t=`${d.getHours()}:${pad(d.getMinutes())}`; return sod(d).getTime()===sod(new Date()).getTime()?t:`${shortDate(d)} ${t}`; }
 function downloadFile(name,text){
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'application/json'})); a.download=name;
   document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1500);
 }
-function applyData(d){
-  const n=normalizeImport(d);
-  S.pages=n.pages; S.events=n.events; S.settings=Object.assign(defaultSettings(),n.settings);
+function applyData(d){ applyNormalized(normalizeImport(d)); }
+function applyNormalized(n){
+  n=clone(n);
+  S.pages=n.pages||{}; S.events=n.events||{}; S.settings=Object.assign(defaultSettings(),n.settings);
   HIST.clear(); hideImgSel(); closePop();
   if(S.view.kind==='page'&&!S.pages[S.view.pageId]) S.view={kind:'today'};
   renderSidebar(); renderMain();
@@ -1468,7 +1474,9 @@ async function openSettings(focus){
           ${ds==='ok'?`<button type="button" class="btn" id="st-up">↑ Nahrát na Disk</button><button type="button" class="btn" id="st-down">↓ Stáhnout z Disku…</button><span class="sp"></span><button type="button" class="btn danger" id="st-disc">Odpojit</button>`
             :`<button type="button" class="btn pri" id="st-conn">${ds==='expired'?'Připojit znovu':'Přihlásit k Disku'}</button>`}
         </div>
-        <p class="note">Synchronizace je ruční: ↑ uloží aktuální stav jako novou zálohu (drží se posledních 10), ↓ nahradí data v tomto zařízení vybranou verzí. Obrázky se nezálohují, na jiném zařízení se ukážou jako rámeček s názvem.</p>
+        <p class="note">↑ uloží aktuální stav jako novou zálohu (drží se posledních 10), ↓ nahradí data v tomto zařízení vybranou verzí. Obrázky se nezálohují, na jiném zařízení se ukážou jako rámeček s názvem.</p>
+        <label class="chk"><input type="checkbox" id="st-auto" ${autoPull()?'checked':''}> Po otevření aplikace stáhnout novější verzi z Disku</label>
+        <p class="note" style="margin-top:-8px;padding-left:26px">Stáhne se sama, jen když tady nemáš změny, které na Disku nejsou. Když se změnilo obojí, Úkolníček se zeptá. Před každým stažením se uloží místní záloha. Platí jen pro toto zařízení.</p>
         <label class="chk"><input type="checkbox" id="st-dll" ${lsGet('uk-dl-latest',false)?'checked':''}> Šipka ↓ stáhne rovnou nejnovější verzi (bez výběru z 10)</label>
         <p class="note" style="margin-top:-8px;padding-left:26px">Starší verzi pak vybereš po kliknutí na mráček → „Vybrat starší verzi…“. Platí jen pro toto zařízení.</p>
       </div>
@@ -1477,7 +1485,7 @@ async function openSettings(focus){
         <div class="m-actions"><button type="button" class="btn" id="st-exp">Exportovat do souboru</button><label class="btn" for="st-imp" style="cursor:pointer">Importovat ze souboru…</label><input type="file" id="st-imp" accept=".json,application/json" hidden></div>
         <p class="note">Import přidá stránky a události ze souboru (i ze zálohy z Claude verze). Stejné stránky přepíše.</p></div>
       <div class="fld"><span class="lbl">Místní zálohy</span>
-        ${backups.length?`<div class="bk-list scroll">${backups.map(b=>`<div class="bk"><span><b>${esc(fmtTime(b.id))}</b> · ${esc(b.label||'Záloha')}</span><button type="button" class="btn" data-bk="${b.id}">Obnovit</button></div>`).join('')}</div>`:'<p class="note">Zatím žádné. Vytvoří se samy před každým stažením z Disku nebo obnovením.</p>'}
+        ${backups.length?`<div class="bk-list scroll">${backups.map(b=>`<div class="bk"><span><b>${esc(fmtTime(b.id))}</b> · ${esc(b.label||'Záloha')}</span><button type="button" class="btn" data-bk="${b.id}">Obnovit</button></div>`).join('')}</div>`:'<p class="note">Zatím žádné. Vytvoří se samy před každým stažením z Disku (i automatickým) nebo obnovením.</p>'}
       </div>
     </section>
 
@@ -1510,11 +1518,12 @@ async function openSettings(focus){
   $('#st-cid',m).addEventListener('change',saveCid);
   $('#st-acc',m).addEventListener('change',e=>{ DriveSync.setAccount(e.target.value); });
   $('#st-dll',m).addEventListener('change',e=>{ lsSet('uk-dl-latest',e.target.checked); updateSyncUI(); });
+  $('#st-auto',m).addEventListener('change',e=>{ lsSet('uk-auto-pull',e.target.checked); if(e.target.checked){ Sync.lastCheck=0; Sync.check('setting'); } else Sync.disarm(); });
   $('#st-news',m).addEventListener('click',e=>{ e.preventDefault(); openGuide('novinky'); });
   const conn=$('#st-conn',m); if(conn) conn.addEventListener('click',async()=>{
     saveCid(); DriveSync.setAccount($('#st-acc',m).value);
     if(!DriveSync.clientId()){ toast('Nejdřív vlož Client ID.'); $('#st-cid',m).focus(); return; }
-    if(await Sync.ensure()){ toast('Připojeno k Google Disku'); closeModal(); openSettings('drive'); }
+    if(await Sync.ensure()){ toast('Připojeno k Google Disku'); closeModal(); await openSettings('drive'); Sync.check('login'); }
   });
   const up=$('#st-up',m); if(up) up.addEventListener('click',()=>{ closeModal(); Sync.upload(); });
   const down=$('#st-down',m); if(down) down.addEventListener('click',()=>{ closeModal(); Sync.openDownload(); });
@@ -1571,27 +1580,288 @@ async function openGuide(tab){
 /* ================= Google Drive sync (UI; transport in driveSync.js) ================= */
 function cloudSvg(off){ return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18.5h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.6 4.5 4.5 0 0 0 7 18.5Z"/>${off?'<path d="M4 4l16 16"/>':''}</svg>`; }
 function deviceName(){ const u=navigator.userAgent; return /iPhone/.test(u)?'iPhone':/iPad/.test(u)?'iPad':/Android/.test(u)?'Android':/Mac/.test(u)?'Mac':/Windows/.test(u)?'Windows':'Prohlížeč'; }
+const autoPull=()=>lsGet('uk-auto-pull',true)!==false;
+/* je nejnovější soubor na Disku jiný a novější než ten, se kterým bylo toto zařízení naposledy synchronizované?
+   (porovnává se čas vytvoření na serveru Googlu, ne hodiny zařízení) */
+function newerOnDrive(top){ return !!(top&&top.name!==META.remoteName&&(!META.remoteAt||top.createdTime>META.remoteAt)); }
+/* data z Disku ve stejném tvaru jako dataForSave() (i s výchozím nastavením) */
+function packRemote(n){ return packData(n.pages,n.events,Object.assign(defaultSettings(),n.settings)); }
+
+/* ---- spojení dvou verzí („Ponechat obě“) ----
+   B = poslední verze společná s Diskem (když je k dispozici, pozná se, kde se co změnilo).
+   Co se změnilo jen na jedné straně, převezme se; co se změnilo na obou, zůstane dvakrát (tvoje jako kopie). */
+function pageSig(p){ if(!p) return ''; const c=clone(p); delete c.updated; (c.blocks||[]).forEach(b=>{ delete b.collapsed; }); return canon(c); }
+function evSig(e){ return e?canon(e):''; }
+function syncDiff(L,R,B){
+  const out={here:[],drive:[],both:[],differ:[],copies:0};
+  const name=(k,lv,rv,inBase)=>{
+    const v=lv||rv; const t=k==='pages'?(v.icon?v.icon+' ':'')+(v.title||'Bez názvu'):'🗓️ '+(v.title||'Bez názvu')+(v.start?' '+v.start:'');
+    if(lv&&rv) return t;
+    if(inBase==null) return t+(lv?' (jen tady)':' (jen na Disku)');
+    return t+(inBase?(lv?' (na Disku smazáno)':' (tady smazáno)'):(lv?' (nové tady)':' (nové na Disku)'));
+  };
+  [['pages',pageSig],['events',evSig]].forEach(([k,sig])=>{
+    const l=L[k]||{}, r=R[k]||{}, b=B?(B[k]||{}):null;
+    new Set([...Object.keys(l),...Object.keys(r)]).forEach(id=>{
+      const lv=l[id], rv=r[id], sl=sig(lv), sr=sig(rv); if(sl===sr) return;
+      if(b){
+        const sb=sig(b[id]);
+        if(sl===sb){ out.drive.push(name(k,lv,rv,!!b[id])); return; }
+        if(sr===sb){ out.here.push(name(k,lv,rv,!!b[id])); return; }
+        out.both.push(name(k,lv,rv,!!b[id])); if(lv&&rv) out.copies++; return;
+      }
+      out.differ.push(name(k,lv,rv,null)); if(lv&&rv) out.copies++;
+    });
+  });
+  const ls=L.settings||{}, rs=R.settings||{};
+  if(canon(ls)!==canon(rs)){
+    const bs=B&&B.settings; const ch=k=>canon(ls[k])!==canon(bs[k]), cr=k=>canon(rs[k])!==canon(bs[k]);
+    const keys=[...new Set([...Object.keys(ls),...Object.keys(rs)])].filter(k=>canon(ls[k])!==canon(rs[k]));
+    if(!bs) out.differ.push('⚙️ Nastavení');
+    else { const h=keys.some(ch), d=keys.some(cr); (h&&d?out.both:h?out.here:out.drive).push('⚙️ Nastavení'); }
+  }
+  return out;
+}
+function mergeData(L,R,B){
+  const dev=deviceName(), out={pages:{},events:{},settings:{}}; let copies=0;
+  [['pages',pageSig],['events',evSig]].forEach(([k,sig])=>{
+    const l=L[k]||{}, r=R[k]||{}, b=B?(B[k]||{}):null;
+    new Set([...Object.keys(l),...Object.keys(r)]).forEach(id=>{
+      const lv=l[id], rv=r[id], sl=sig(lv), sr=sig(rv);
+      if(sl===sr){ out[k][id]=clone(lv||rv); return; }
+      if(b){
+        const sb=sig(b[id]);
+        if(sl===sb){ if(rv) out[k][id]=clone(rv); return; }   /* změněno (nebo smazáno) jen na Disku */
+        if(sr===sb){ if(lv) out[k][id]=clone(lv); return; }   /* změněno (nebo smazáno) jen tady */
+      }
+      if(rv) out[k][id]=clone(rv);
+      if(!lv) return;
+      if(!rv){ out[k][id]=clone(lv); return; }               /* smazané na jedné straně a změněné na druhé: ponechat */
+      const c=clone(lv); c.id=rid(); copies++;
+      c.title=(lv.title||'Bez názvu')+' (kopie – '+dev+')';
+      if(k==='pages'){ c.order=(lv.order||0)+.5; (c.blocks||[]).forEach(bl=>{ bl.id=rid(); }); }
+      out[k][c.id]=c;
+    });
+  });
+  /* podstránky stránky, která zmizela, přesunout na nejvyšší úroveň */
+  Object.values(out.pages).forEach(p=>{ if(p.parent&&!out.pages[p.parent]) p.parent=null; });
+  /* nastavení po položkách: změněné na Disku se převezme, jinak zůstane to z tohoto zařízení */
+  const ls=L.settings||{}, rs=R.settings||{}, bs=B?(B.settings||{}):null;
+  new Set([...Object.keys(ls),...Object.keys(rs)]).forEach(key=>{
+    const v=(bs&&canon(ls[key])===canon(bs[key]))?rs[key]:ls[key];
+    if(v!==undefined) out.settings[key]=clone(v);
+  });
+  return {data:out,copies};
+}
+/* kurzor a posunutí stránky přežijí překreslení po stažení */
+function keepFocus(){
+  const main=$('#main'), k={st:main?main.scrollTop:0,page:S.view.kind==='page'?S.view.pageId:null};
+  const a=document.activeElement, doc=$('#doc');
+  if(!a||!doc||!doc.contains(a)) return k;
+  if(a.id==='page-title'){ k.title=true; k.off=caretOffset(a); return k; }
+  const blk=a.closest&&a.closest('.blk[data-id]');
+  if(blk&&a.classList.contains('txt')&&!a.classList.contains('cell-txt')){ k.id=blk.dataset.id; k.off=caretOffset(a); }
+  return k;
+}
+function restoreFocus(k){
+  if(!k) return;
+  const main=$('#main'); if(main) main.scrollTop=k.st;
+  if(!k.page||S.view.kind!=='page'||S.view.pageId!==k.page) return;
+  if(k.title){ const t=$('#page-title'); if(t) focusEl(t,k.off); return; }
+  if(k.id){ const el=$(`#blocks .blk[data-id="${k.id}"] .txt:not(.cell-txt)`); if(el) focusEl(el,k.off); }
+}
+const plural=(n,one,few,many)=>n===1?one:n>1&&n<5?few:many;
+
 const Sync={
   busy:false,remoteNewer:false,
+  pending:null,      /* stažená novější verze, čeká na zavření dialogu */
+  armed:false,       /* token vypršel: kontrola proběhne po prvním klepnutí do aplikace */
+  connecting:null,checking:false,lastCheck:0,hiddenAt:0,snoozed:'',
   init(){
     DriveSync.preload(); updateSyncUI();
-    if(DriveSync.state()==='ok') this.peek();
-    document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'){ updateSyncUI(); if(DriveSync.state()==='ok') this.peek(); } });
-    window.addEventListener('online',updateSyncUI); window.addEventListener('offline',updateSyncUI);
+    this.check('start');
+    document.addEventListener('visibilitychange',()=>{
+      if(document.visibilityState==='hidden'){ this.hiddenAt=Date.now(); return; }
+      updateSyncUI();
+      const away=this.hiddenAt?Date.now()-this.hiddenAt:0;
+      /* návrat do aplikace = nové otevření (na telefonu se aplikace většinou jen probouzí);
+         s platným tokenem stačí lehký dotaz, okno přihlášení až po delší pauze */
+      if(DriveSync.state()==='expired'){ if(away>=5*60000) this.check('resume'); }
+      else if(Date.now()-this.lastCheck>30000) this.check('resume');
+    });
+    window.addEventListener('online',()=>{ updateSyncUI(); if(DriveSync.state()==='ok'&&Date.now()-this.lastCheck>30000) this.check('online'); });
+    window.addEventListener('offline',updateSyncUI);
+    document.addEventListener('click',e=>this.firstClick(e),true);
     setInterval(updateSyncUI,60000);
   },
-  setBusy(b){ this.busy=b; updateSyncUI(); },
+  setBusy(b){ this.busy=b; updateSyncUI(); if(!b&&this.pending&&!S.modal) setTimeout(()=>this.resume(),0); },
+  arm(){ if(autoPull()&&DriveSync.clientId()&&DriveSync.state()==='expired'&&!this.armed){ this.armed=true; updateSyncUI(); } },
+  disarm(){ if(this.armed){ this.armed=false; updateSyncUI(); } },
+  /* prohlížeč pustí okno přihlášení Googlu jen po akci uživatele, proto až první klepnutí */
+  firstClick(e){
+    if(!this.armed) return;
+    if(!autoPull()||!DriveSync.clientId()||DriveSync.state()!=='expired'){ this.disarm(); return; }
+    const t=e.target;
+    if(t&&t.closest&&t.closest('[data-act^="sync"],#st-conn,#st-up,#st-down,#st-disc,#upd-btn')) return; /* ty se připojují samy */
+    if(!navigator.onLine||this.busy||this.connecting) return;
+    this.disarm();
+    this.connect(true).then(ok=>{ if(ok) this.check('login'); });
+  },
+  /* přihlášení; jen jedno okno najednou */
+  connect(quiet){
+    if(this.connecting) return this.connecting;
+    this.connecting=DriveSync.connect()
+      .then(()=>{ this.armed=false; updateSyncUI(); return true; })
+      .catch(e=>{
+        updateSyncUI();
+        const c=e&&e.code;
+        toast(quiet&&(c==='popup_closed'||c==='access_denied')?'Přihlášení k Disku bylo zrušené, novější verze se nezkontrolovala. Klepni na žlutý mráček.':DriveSync.errText(e));
+        return false;
+      })
+      .finally(()=>{ this.connecting=null; });
+    return this.connecting;
+  },
   async ensure(){
     if(!navigator.onLine){ toast('Jsi offline. Synchronizace půjde, až budeš připojený.'); return false; }
     if(!DriveSync.clientId()){ openSettings('drive'); return false; }
-    if(DriveSync.state()==='ok') return true;
-    try{ await DriveSync.connect(); updateSyncUI(); return true; }
-    catch(e){ updateSyncUI(); toast(DriveSync.errText(e)); return false; }
+    if(DriveSync.state()==='ok'){ this.disarm(); return true; }
+    return await this.connect(false);
   },
   async peek(){
-    try{ const files=await DriveSync.list(); const top=files[0]; this.remoteNewer=!!(top&&top.name!==META.remoteName&&(!META.remoteAt||top.createdTime>META.remoteAt)); }
-    catch(_){}
+    try{ const top=await DriveSync.latest({timeout:15000}); this.remoteNewer=newerOnDrive(top); }
+    catch(e){ if(e&&e.code==='expired') updateSyncUI(); }
     updateSyncUI();
+  },
+  /* Kontrola po otevření aplikace:
+     1) na Disku nic nového → nic se nestahuje
+     2) na Disku novější verze, tady beze změn → stáhne se a tiše použije
+     3) tady neuložené změny, Disk beze změny → nic (oranžová tečka zůstane)
+     4) změny tady i na Disku → hned se zeptá */
+  async check(why,force){
+    if(this.checking||this.busy||this.pending||!DriveSync.clientId()) return;
+    const st=DriveSync.state();
+    if(st==='off') return;
+    if(st==='expired'){ this.arm(); return; }
+    if(!navigator.onLine){ if(force) toast('Jsi offline. Synchronizace půjde, až budeš připojený.'); return; }   /* offline: běží se z dat v zařízení */
+    if((!autoPull()&&!force)||Store.broken) return this.peek();
+    this.checking=true; this.lastCheck=Date.now();
+    try{
+      let top;
+      try{ top=await DriveSync.latest({timeout:15000}); }   /* jeden lehký dotaz: název a čas nejnovějšího souboru */
+      catch(e){ if(e&&e.code==='expired'){ updateSyncUI(); this.arm(); } return; }
+      if(!newerOnDrive(top)){ this.remoteNewer=false; updateSyncUI(); return; }      /* 1 a 3 */
+      this.remoteNewer=true; updateSyncUI();
+      if(Store.t) await Store.flush();
+      if(isDirty()&&this.snoozed===top.name) return;      /* kolize odložená tlačítkem „Rozhodnu později“ */
+      let d;
+      this.setBusy(true);
+      try{ d=await DriveSync.download(top.id,{timeout:30000}); if(!d||typeof d.pages!=='object') throw {code:'bad_file'}; }
+      catch(e){ if(e&&e.code==='expired') this.arm(); else if(e&&e.code==='bad_file') toast(DriveSync.errText(e)); return; }
+      finally{ this.setBusy(false); }
+      this.pending={top,d,n:normalizeImport(d)};
+    }finally{ this.checking=false; }
+    this.resume();
+  },
+  /* dokončení po stažení; když je otevřený dialog (rozepsaná hodina, nastavení…), počká se na jeho zavření */
+  async resume(){
+    const x=this.pending; if(!x||this.busy) return;
+    if(S.modal){ updateSyncUI(); return; }             /* closeModal zavolá resume znovu */
+    this.pending=null;
+    if(!newerOnDrive(x.top)){ this.remoteNewer=false; updateSyncUI(); return; }   /* mezitím staženo ručně */
+    if(Store.t) await Store.flush();
+    if(S.modal){ this.pending=x; return; }
+    x.rh=hashOf(x.n);
+    if(dataHash()===x.rh){                              /* v obou místech stejná data */
+      this.markSynced(x,x.rh); await Store.flush(); this.saveBase(x.n); updateSyncUI(); return;
+    }
+    if(isDirty()){                                      /* 4 – i když se začalo psát během stahování */
+      if(this.snoozed===x.top.name){ updateSyncUI(); return; }
+      return this.conflict(x);
+    }
+    return this.applyQuiet(x);                          /* 2 */
+  },
+  markSynced(x,hash,keepTimes){
+    META.remoteAt=x.top.createdTime; META.remoteName=x.top.name; META.syncedHash=hash;
+    if(!keepTimes) META.syncedAt=META.changedAt=Date.now();
+    META.curHash=dataHash(); this.remoteNewer=false;
+  },
+  saveBase(n){ Local.saveBase(packRemote(n)).catch(()=>{}); },
+  async applyQuiet(x){
+    this.setBusy(true);
+    let before;
+    try{ before=stateForStorage(); await Local.addBackup(before,'Před automatickým stažením z Disku'); }
+    catch(e){ this.setBusy(false); toast('Novější verze z Disku se nenačetla: nepodařilo se uložit místní zálohu.'); return; }
+    if(Store.t) await Store.flush();
+    if(isDirty()||S.modal){ this.setBusy(false); this.pending=x; return this.resume(); }   /* během zálohy se začalo psát / otevřel se dialog */
+    const keep=keepFocus();
+    applyNormalized(x.n); this.markSynced(x,dataHash()); META.lastDownload=Date.now();
+    restoreFocus(keep);
+    await Store.flush(); this.saveBase(x.n);
+    this.setBusy(false);
+    toast('Načtena novější verze z Disku · '+fmtTime(Date.parse(x.top.createdTime))+(x.d.device?' · '+x.d.device:''),'Vrátit',()=>this.undoQuiet(before));
+  },
+  /* „Vrátit“ po tichém stažení = ponechat svoji verzi (verze z Disku tam zůstává mezi zálohami) */
+  async undoQuiet(before){
+    if(this.busy) return;
+    if(Store.t) await Store.flush();
+    if(META.curHash!==META.syncedHash) await Local.addBackup(stateForStorage(),'Před vrácením automatického stažení').catch(()=>{});
+    applyNormalized(normalizeImport(before));
+    await Store.flush(); updateSyncUI();
+    toast('Vráceno. Verze z Disku tam zůstala, tvoje se na Disk dostane tlačítkem ↑.');
+  },
+  async conflict(x){
+    let base=null; try{ base=await Local.loadBase(); }catch(_){}
+    if(S.modal){ this.pending=x; return; }
+    if(Store.t) await Store.flush();
+    this.snoozed=x.top.name;
+    const L=dataForSave(), R=packRemote(x.n), df=syncDiff(L,R,base);
+    const list=(a)=>{ const v=a.slice(0,4).map(esc).join(', '); return a.length>4?v+` a ${a.length-4} ${plural(a.length-4,'další','další','dalších')}`:v; };
+    const rows=base
+      ?[['Změněno tady',df.here],['Změněno na Disku',df.drive],['Změněno na obou místech',df.both]]
+      :[['Liší se',df.differ]];
+    const sum=rows.filter(r=>r[1].length).map(([k,a])=>`<div><span class="cf-k">${k}</span>${list(a)}</div>`).join('');
+    const clean=!!base&&!df.copies;
+    const bothTxt=(clean?'Spojí je. Změny se nepřekrývají, nic se nezdvojí.'
+      :`Spojí je. ${df.copies?`${df.copies} ${plural(df.copies,'věc, která se liší, bude','věci, které se liší, budou','věcí, které se liší, bude')} dvakrát – tvoje jako kopie.`:''} Nic se neztratí.`)+' Předtím se uloží místní záloha.';
+    const when=fmtTime(Date.parse(x.top.createdTime));
+    const m=openModal('Změny tady i na Disku',`<div class="m-body">
+      <p>Na Disku je novější verze z <b>${esc(when)}</b>${x.d.device?' ('+esc(x.d.device)+')':''} a v tomto zařízení máš změny, které na Disku nejsou${META.changedAt?` (poslední úprava ${esc(fmtTime(META.changedAt))})`:''}.</p>
+      ${sum?`<div class="cf-sum">${sum}</div>`:''}
+      <div class="cf-list">
+        <button type="button" class="guide-link" data-cf="remote"><span class="gl-ic" aria-hidden="true">☁️</span><span><b>Použít verzi z Disku</b><small>Tvoje současná verze se předtím uloží do místních záloh.</small></span></button>
+        <button type="button" class="guide-link" data-cf="local"><span class="gl-ic" aria-hidden="true">💻</span><span><b>Ponechat moji verzi</b><small>Verze z Disku tam zůstane mezi zálohami. Tvoje se na Disk dostane tlačítkem ↑.</small></span></button>
+        <button type="button" class="guide-link ${clean?'rec':''}" data-cf="both"><span class="gl-ic" aria-hidden="true">⧉</span><span><b>Ponechat obě${clean?' <em>doporučeno</em>':''}</b><small>${esc(bothTxt)}</small></span></button>
+      </div>
+      <div class="m-actions"><span class="sp"></span><button type="button" class="btn" data-close>Rozhodnu později</button></div></div>`,'cf-m');
+    m.addEventListener('click',e=>{ const b=e.target.closest('[data-cf]'); if(b) this.resolveConflict(b.dataset.cf,x,base); });
+    updateSyncUI();
+  },
+  async resolveConflict(choice,x,base){
+    closeModal();
+    if(this.busy) return;
+    this.setBusy(true);
+    try{
+      if(Store.t) await Store.flush();
+      if(choice==='local'){
+        this.markSynced(x,x.rh,true);                    /* Disk viděn, tady zůstává moje → oranžová tečka */
+        await Store.flush(); this.saveBase(x.n);
+        toast('Ponechána tvoje verze. Na Disk ji dostaneš tlačítkem ↑.','Nahrát',()=>this.upload());
+        return;
+      }
+      await Local.addBackup(stateForStorage(),choice==='remote'?'Před stažením z Disku (kolize)':'Před spojením s verzí z Disku');
+      const keep=keepFocus();
+      if(choice==='remote'){
+        applyNormalized(x.n); this.markSynced(x,dataHash()); META.lastDownload=Date.now();
+        toast('Použita verze z Disku · '+fmtTime(Date.parse(x.top.createdTime))+'. Tvoje je v místních zálohách.');
+      }else{
+        const r=mergeData(dataForSave(),packRemote(x.n),base);
+        applyNormalized(r.data); this.markSynced(x,x.rh,true); META.changedAt=META.lastDownload=Date.now();
+        toast(r.copies?`Spojeno. ${r.copies} ${plural(r.copies,'položka je','položky jsou','položek je')} dvakrát (kopie – ${deviceName()}).`:'Spojeno.','Nahrát na Disk',()=>this.upload());
+      }
+      restoreFocus(keep);
+      await Store.flush(); this.saveBase(x.n);
+    }catch(e){ toast('Nepodařilo se uložit místní zálohu, nic se nezměnilo.'); }
+    finally{ this.setBusy(false); }
   },
   async upload(force){
     if(this.busy) return;
@@ -1599,12 +1869,13 @@ const Sync={
     this.setBusy(true);
     try{
       const files=await DriveSync.list(); const top=files[0];
-      if(!force&&top&&top.name!==META.remoteName&&(!META.remoteAt||top.createdTime>META.remoteAt)){ this.setBusy(false); return confirmNewerRemote(top); }
+      if(!force&&newerOnDrive(top)){ this.setBusy(false); return confirmNewerRemote(top); }
       await Store.flush();
-      const sentHash=dataHash();
-      const f=await DriveSync.upload(Object.assign({app:'ukolnicek',version:2,savedAt:new Date().toISOString(),device:deviceName()},dataForSave()));
+      const sent=dataForSave(), sentHash=hashData(clone(sent));
+      const f=await DriveSync.upload(Object.assign({app:'ukolnicek',version:2,savedAt:new Date().toISOString(),device:deviceName()},sent));
       META.remoteAt=f.createdTime||new Date().toISOString(); META.remoteName=f.name; META.syncedAt=META.changedAt; META.syncedHash=sentHash; META.lastUpload=Date.now(); this.remoteNewer=false;
       await Store.flush();
+      Local.saveBase(sent).catch(()=>{});
       await DriveSync.rotate(10).catch(()=>0);
       toast('Nahráno na Disk');
     }catch(e){ toast(DriveSync.errText(e)); }
@@ -1635,11 +1906,13 @@ const Sync={
       if(!d||typeof d.pages!=='object') throw {code:'bad_file'};
       await Store.flush();
       await Local.addBackup(stateForStorage(),'Před stažením z Disku');
-      applyData(d);
+      const n=normalizeImport(d);
+      applyNormalized(n);
       META.remoteAt=f.createdTime; META.remoteName=f.name; META.changedAt=META.syncedAt=Date.now(); META.syncedHash=META.curHash=dataHash(); META.lastDownload=Date.now(); this.remoteNewer=false;
       await Store.flush();
+      this.saveBase(n);
       toast('Staženo z Disku · verze '+fmtTime(Date.parse(f.createdTime)));
-    }catch(err){ toast(err&&err.code==='bad_file'?'Soubor na Disku není platná záloha Úkolníčku.':DriveSync.errText(err)); }
+    }catch(err){ toast(DriveSync.errText(err)); }
     finally{ this.setBusy(false); }
   },
   async openDownload(){
@@ -1677,7 +1950,7 @@ function updateSyncUI(){
   const dirty=isDirty();
   const cls=Sync.busy?'cl-busy':st==='ok'?'cl-ok':st==='expired'?'cl-exp':'cl-off';
   const label=Sync.busy?'Synchronizuji…':off&&st!=='off'?'Offline':st==='ok'?(META.lastUpload||META.lastDownload?'Disk · '+fmtTime(Math.max(META.lastUpload,META.lastDownload)):'Disk připojen'):st==='expired'?'Připojit znovu':'Disk nepřipojen';
-  const title=(st==='ok'?'Google Disk připojen':st==='expired'?'Přihlášení vypršelo – klepni pro připojení':'Google Disk není připojený')+(dirty?' · máš změny, které nejsou na Disku':'')+(Sync.remoteNewer?' · na Disku je novější verze':'');
+  const title=(st==='ok'?'Google Disk připojen':st==='expired'?(Sync.armed?'Přihlášení vypršelo – první klepnutí do aplikace ho obnoví a zkontroluje Disk':'Přihlášení vypršelo – klepni pro připojení'):'Google Disk není připojený')+(dirty?' · máš změny, které nejsou na Disku':'')+(Sync.remoteNewer?' · na Disku je novější verze':'');
   const btn=`<button class="cloud ${cls} ${dirty?'dirty':''}" data-act="sync-menu" title="${esc(title)}" aria-label="${esc(title)}">${cloudSvg(st==='off')}</button>`;
   const box=$('#sync-box');
   if(box) box.innerHTML=`${btn}<button class="sync-lbl ${cls}" data-act="sync-menu" title="${esc(title)}">${esc(label)}${dirty?'<small>neuloženo na Disk</small>':''}</button>
@@ -1687,7 +1960,7 @@ function updateSyncUI(){
 }
 function openSyncMenu(anchor){
   const st=DriveSync.state();
-  if(st==='expired'&&!Sync.busy){ Sync.ensure().then(ok=>{ if(ok){ toast('Připojeno k Google Disku'); Sync.peek(); } }); return; }
+  if(st==='expired'&&!Sync.busy){ Sync.ensure().then(ok=>{ if(ok){ toast('Připojeno k Google Disku'); Sync.check('login'); } }); return; }
   if(st==='off'){ openSettings('drive'); return; }
   const dirty=isDirty();
   const h=`<div class="pop-h">Google Disk</div>
@@ -1695,8 +1968,9 @@ function openSyncMenu(anchor){
     <button class="pop-item" data-v="up"><span class="pi-ic">↑</span>Nahrát na Disk</button>
     <button class="pop-item" data-v="down"><span class="pi-ic">↓</span>${lsGet('uk-dl-latest',false)?'Stáhnout nejnovější verzi':'Stáhnout z Disku…'}</button>
     ${lsGet('uk-dl-latest',false)?'<button class="pop-item" data-v="pick"><span class="pi-ic">☰</span>Vybrat starší verzi…</button>':''}
+    ${dirty&&Sync.remoteNewer?'<button class="pop-item" data-v="merge"><span class="pi-ic">⧉</span>Porovnat s verzí na Disku…</button>':''}
     <div class="pop-sep"></div><button class="pop-item" data-v="set"><span class="pi-ic">⚙</span>Nastavení Disku</button>`;
-  openPop(anchor,h,v=>{ if(v==='up') Sync.upload(); else if(v==='down') Sync.download(); else if(v==='pick') Sync.openDownload(); else openSettings('drive'); });
+  openPop(anchor,h,v=>{ if(v==='up') Sync.upload(); else if(v==='down') Sync.download(); else if(v==='pick') Sync.openDownload(); else if(v==='merge'){ Sync.snoozed=''; Sync.check('menu',true); } else openSettings('drive'); });
 }
 
 /* ================= odkazy ================= */
@@ -1992,6 +2266,7 @@ if('serviceWorker' in navigator&&location.protocol!=='file:'){
   const apply=w=>w.postMessage('skipWaiting');
   const offer=w=>{
     pending=w;
+    if(Sync.busy||Sync.checking){ setTimeout(()=>offer(w),1500); return; }   /* nepřerušit stahování z Disku */
     if(Date.now()-fresh<20000&&!S.modal&&!typing()) return apply(w);
     const bar=$('#upd'); if(!bar) return; bar.hidden=false; $('#upd-btn').onclick=()=>apply(w);
   };
