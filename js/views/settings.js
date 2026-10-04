@@ -15,7 +15,7 @@ import { autoPull, cloudSvg, Sync, updateSyncUI } from '../sync/sync.js';
 import { placeFrame } from '../editor/images.js';
 
 /* ================= settings ================= */
-const APP_VERSION='3.1.0';
+const APP_VERSION='3.1.1';
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
 const FS_STEPS=[1,1.15,1.3,1.45,1.6];
 function applyTheme(){
@@ -30,11 +30,11 @@ function applyFontScale(){
 }
 
 /* ---- nastavení po kategoriích ---- */
-const SET_TABS=[['general','Obecné','⚙️'],['look','Vzhled','🎨'],['sync','Synchronizace','☁️'],['help','Návod a novinky','📖']];
+const SET_TABS=[['general','Obecné','⚙️'],['look','Vzhled','🎨'],['school','Škola','🎓'],['sync','Google Disk','☁️'],['backup','Zálohy','🗂️'],['help','Návod a novinky','📖']];
 async function openSettings(focus){
   const st=S.settings, cid=DriveSync.clientId(), ds=DriveSync.state();
   let backups=[]; try{ backups=await Local.listBackups(); }catch(_){}
-  const tab=focus==='drive'?'sync':(S.setTab||'general');
+  const tab=focus==='drive'?'sync':(SET_TABS.some(t=>t[0]===S.setTab)?S.setTab:'general');
   const theme=lsGet('uk-theme','auto'), fs=+lsGet('uk-fs',1), cnt=schoolCounts(), skin=skinOf();
   const seg=(id,opts,cur)=>`<div class="seg" id="${id}">${opts.map(([v,l])=>`<button type="button" class="${String(v)===String(cur)?'on':''}" data-v="${v}">${l}</button>`).join('')}</div>`;
   const m=openModal('Nastavení',`<div class="set">
@@ -42,20 +42,34 @@ async function openSettings(focus){
     <form class="set-body" id="stf" novalidate>
 
     <section class="set-pane" data-pane="general">
-      <div class="fld"><label for="st-name">Název</label><input id="st-name" value="${esc(st.name)}" placeholder="Úkolníček"></div>
+      <div class="fld"><label for="st-name">Název</label><input id="st-name" value="${esc(st.name)}" placeholder="Úkolníček"><p class="note">Ukazuje se nahoře v levém panelu.</p></div>
+      <h3 class="set-h">Levý panel</h3>
+      <label class="chk"><input type="checkbox" id="st-mc" ${st.miniCal?'checked':''}> Mini kalendář pod číslem týdne</label>
+      <label class="chk sub"><input type="checkbox" id="st-mcw" ${st.miniCalWeeks!==false?'checked':''} ${st.miniCal?'':'disabled'}> V kalendáři ukazovat čísla týdnů v roce</label>
+      <h3 class="set-h">Poznámky</h3>
+      <label class="chk"><input type="checkbox" id="st-hid" ${st.showHidden!==false?'checked':''}> U sbaleného nadpisu ukazovat, kolik bloků je skrytých</label>
+    </section>
+
+    <section class="set-pane" data-pane="look">
       <div class="fld"><span class="lbl" id="st-skin-l">Barevný motiv</span>
         <div class="skins" id="st-skin" role="group" aria-labelledby="st-skin-l">${SKINS.map(([id,nm])=>`<button type="button" class="skin ${id===skin?'on':''}" data-v="${id}" aria-pressed="${id===skin}"><span class="skin-sw" data-sk="${id}" aria-hidden="true"><b>Aa</b><i></i><i></i><i></i></span><span class="skin-nm">${nm}</span></button>`).join('')}</div>
-        <p class="note">Mění jen barvy a písmo. Světlý nebo tmavý režim se nastavuje ve Vzhledu a funguje nezávisle. Motiv se na rozdíl od něj synchronizuje přes Disk.</p></div>
-      <div class="set-sep"></div>
+        <p class="note">Mění barvy a písmo. Synchronizuje se přes Disk, takže ho uvidíš na všech zařízeních.</p></div>
+      <div class="fld"><span class="lbl">Světlý nebo tmavý režim</span>${seg('st-theme',[['auto','Podle zařízení'],['light','☀︎ Světlý'],['dark','☾ Tmavý']],theme)}</div>
+      <div class="fld"><span class="lbl">Velikost textu</span>${seg('st-fs',FS_STEPS.map(v=>[v,Math.round(v*100)+' %']),FS_STEPS.includes(fs)?fs:1)}
+        <p class="note">Režim a velikost textu platí jen pro toto zařízení a nenahrávají se na Disk. Každý motiv má světlou i tmavou variantu.</p></div>
+    </section>
+
+    <section class="set-pane" data-pane="school">
       <label class="chk"><input type="checkbox" id="st-school" ${isSchool()?'checked':''}> <b>Školní režim</b></label>
       <p class="note" style="margin-top:-8px;padding-left:26px">Přidá Rozvrh, Index (předměty, kredity, body a známky), týden výuky a bloky <b>/předmět</b> v poznámkách. Vypnutím se nic nesmaže, jen se to schová.</p>
       <div class="set-school" id="st-school-box" ${isSchool()?'':'hidden'}>
         <label class="chk"><input type="checkbox" id="st-ix" ${S.settings.noIndex===true?'':'checked'}> Zobrazovat Index</label>
         <p class="note" style="margin-top:-8px;padding-left:26px">Předměty, kredity, body a známky. Bez Indexu zůstane rozvrh s vlastními názvy hodin, výběr předmětu a bloky /předmět se nenabízejí. Vypnutím se nic nesmaže.</p>
         <div class="fld"><label for="st-start">Začátek výuky (pondělí 1. týdne)</label><input type="date" id="st-start" value="${esc(st.semesterStart)}"><p class="note">Podle něj se počítá číslo týdne a lichý/sudý týden.</p></div>
-        <div class="grid2"><div class="fld"><label for="st-h0">Rozvrh od</label><select id="st-h0">${Array.from({length:14},(_,i)=>i+5).map(h=>`<option ${+st.dayStart===h?'selected':''}>${h}</option>`).join('')}</select></div><div class="fld"><label for="st-h1">Rozvrh do</label><select id="st-h1">${Array.from({length:12},(_,i)=>i+13).map(h=>`<option ${+st.dayEnd===h?'selected':''}>${h}</option>`).join('')}</select></div></div>
-        <div class="fld"><label for="st-hs">Výška hodiny v rozvrhu</label><select id="st-hs">${HOUR_SCALES.map(v=>`<option value="${v}" ${(+st.hourScale||1)===v?'selected':''}>${String(v).replace('.',',')}×</option>`).join('')}</select><p class="note">Vyšší políčka = u krátkých hodin se vejde víc textu. Celé informace ukáže najetí myší na hodinu.</p></div>
-        <label class="chk"><input type="checkbox" id="st-we" ${st.showWeekend?'checked':''}> Zobrazovat v rozvrhu i víkend</label>
+        <h3 class="set-h">Rozvrh</h3>
+        <div class="grid2"><div class="fld"><label for="st-h0">Od (hodina)</label><select id="st-h0">${Array.from({length:14},(_,i)=>i+5).map(h=>`<option ${+st.dayStart===h?'selected':''}>${h}</option>`).join('')}</select></div><div class="fld"><label for="st-h1">Do (hodina)</label><select id="st-h1">${Array.from({length:12},(_,i)=>i+13).map(h=>`<option ${+st.dayEnd===h?'selected':''}>${h}</option>`).join('')}</select></div></div>
+        <div class="fld"><label for="st-hs">Výška hodiny</label><select id="st-hs">${HOUR_SCALES.map(v=>`<option value="${v}" ${(+st.hourScale||1)===v?'selected':''}>${String(v).replace('.',',')}×</option>`).join('')}</select><p class="note">Vyšší políčka = u krátkých hodin se vejde víc textu. Celé informace ukáže najetí myší na hodinu.</p></div>
+        <label class="chk"><input type="checkbox" id="st-we" ${st.showWeekend?'checked':''}> Zobrazovat i víkend</label>
       </div>
       <div class="set-sep lk-hide"></div>
       <div class="fld lk-hide"><span class="lbl">Školní data</span>
@@ -63,18 +77,8 @@ async function openSettings(focus){
         <p class="note">Smaže předměty a semestry v Indexu a hodiny v rozvrhu. Poznámky, úkoly a nastavení zůstanou, bloky /předmět se změní na obyčejné nadpisy.</p></div>
     </section>
 
-    <section class="set-pane" data-pane="look">
-      <div class="fld"><span class="lbl">Motiv</span>${seg('st-theme',[['auto','Podle zařízení'],['light','☀︎ Světlý'],['dark','☾ Tmavý']],theme)}</div>
-      <div class="fld"><span class="lbl">Velikost textu</span>${seg('st-fs',FS_STEPS.map(v=>[v,Math.round(v*100)+' %']),FS_STEPS.includes(fs)?fs:1)}
-        <p class="note">Motiv a velikost textu platí jen pro toto zařízení a nenahrávají se na Disk.</p></div>
-      <div class="set-sep"></div>
-      <label class="chk"><input type="checkbox" id="st-mc" ${st.miniCal?'checked':''}> Mini kalendář v levém panelu pod číslem týdne</label>
-      <label class="chk sub"><input type="checkbox" id="st-mcw" ${st.miniCalWeeks!==false?'checked':''} ${st.miniCal?'':'disabled'}> V kalendáři ukazovat čísla týdnů v roce</label>
-      <label class="chk"><input type="checkbox" id="st-hid" ${st.showHidden!==false?'checked':''}> U sbaleného nadpisu ukazovat, kolik bloků je skrytých</label>
-    </section>
-
     <section class="set-pane" data-pane="sync">
-      <div class="fld" id="st-drive"><span class="lbl">Google Disk</span>
+      <div class="fld" id="st-drive"><span class="lbl">Připojení</span>
         <div class="drive-state ${ds==='ok'?'cl-ok':ds==='expired'?'cl-exp':'cl-off'}">${cloudSvg(ds==='off')}<span>${ds==='ok'?`Připojeno. ${META.lastUpload?'Naposledy nahráno '+fmtTime(META.lastUpload)+'.':'Zatím nic nenahráno.'}`:ds==='expired'?'Přihlášení vypršelo. Připoj se znovu.':'Nepřipojeno.'}</span></div>
         <label for="st-cid" class="note">OAuth Client ID (typ „Webová aplikace“) z Google Cloud. Ukládá se jen v tomto prohlížeči.</label>
         <input id="st-cid" value="${esc(cid)}" placeholder="123456789-abc….apps.googleusercontent.com" autocomplete="off" spellcheck="false">
@@ -85,15 +89,19 @@ async function openSettings(focus){
             :`<button type="button" class="btn pri" id="st-conn">${ds==='expired'?'Připojit znovu':'Přihlásit k Disku'}</button>`}
         </div>
         <p class="note">↑ uloží aktuální stav jako novou zálohu (drží se posledních 10), ↓ nahradí data v tomto zařízení vybranou verzí. Obrázky se nezálohují, na jiném zařízení se ukážou jako rámeček s názvem.</p>
+        <h3 class="set-h">Stahování z Disku</h3>
         <label class="chk"><input type="checkbox" id="st-auto" ${autoPull()?'checked':''}> Po otevření aplikace stáhnout novější verzi z Disku</label>
         <p class="note" style="margin-top:-8px;padding-left:26px">Stáhne se sama, jen když tady nemáš změny, které na Disku nejsou. Když se změnilo obojí, Úkolníček se zeptá. Před každým stažením se uloží místní záloha. Platí jen pro toto zařízení.</p>
         <label class="chk"><input type="checkbox" id="st-dll" ${lsGet('uk-dl-latest',false)?'checked':''}> Šipka ↓ stáhne rovnou nejnovější verzi (bez výběru z 10)</label>
         <p class="note" style="margin-top:-8px;padding-left:26px">Starší verzi pak vybereš po kliknutí na mráček → „Vybrat starší verzi…“. Platí jen pro toto zařízení.</p>
       </div>
-      <div class="set-sep"></div>
+    </section>
+
+    <section class="set-pane" data-pane="backup">
       <div class="fld"><span class="lbl">Soubor se zálohou</span>
         <div class="m-actions"><button type="button" class="btn" id="st-exp">Exportovat do souboru</button><label class="btn" for="st-imp" style="cursor:pointer">Importovat ze souboru…</label><input type="file" id="st-imp" accept=".json,application/json" hidden></div>
         <p class="note">Import přidá stránky a události ze souboru (i ze zálohy z Claude verze). Stejné stránky přepíše.</p></div>
+      <div class="set-sep"></div>
       <div class="fld"><span class="lbl">Místní zálohy</span>
         ${backups.length?`<div class="bk-list scroll">${backups.map(b=>`<div class="bk"><span><b>${esc(fmtTime(b.id))}</b> · ${esc(b.label||'Záloha')}</span><button type="button" class="btn" data-bk="${b.id}">Obnovit</button></div>`).join('')}</div>`:'<p class="note">Zatím žádné. Vytvoří se samy před každým stažením z Disku (i automatickým) nebo obnovením.</p>'}
       </div>
@@ -189,7 +197,7 @@ function confirmClearSchool(){
   const c=schoolCounts(), parts=[c.subj&&`${c.subj} ${plural(c.subj,'předmět','předměty','předmětů')}`,c.sem&&`${c.sem} ${plural(c.sem,'semestr','semestry','semestrů')}`,c.ev&&`${hodin(c.ev)} v rozvrhu`].filter(Boolean);
   const m=openModal('Smazat školní data?',`<div class="m-body">
     <p>Smaže se ${parts.join(', ').replace(/, ([^,]*)$/,' a $1')}.</p>
-    <p class="note">Poznámky, úkoly a nastavení zůstanou.${c.blk?` ${c.blk} ${plural(c.blk,'blok /předmět se změní','bloky /předmět se změní','bloků /předmět se změní')} na obyčejný nadpis H1 s názvem předmětu.`:''} Před smazáním se uloží místní záloha (Nastavení → Synchronizace → Místní zálohy).</p>
+    <p class="note">Poznámky, úkoly a nastavení zůstanou.${c.blk?` ${c.blk} ${plural(c.blk,'blok /předmět se změní','bloky /předmět se změní','bloků /předmět se změní')} na obyčejný nadpis H1 s názvem předmětu.`:''} Před smazáním se uloží místní záloha (Nastavení → Zálohy → Místní zálohy).</p>
     <div class="m-actions"><span class="sp"></span><button type="button" class="btn" id="cs-no">Zrušit</button><button type="button" class="btn pri danger-pri" id="cs-yes">Smazat školní data</button></div></div>`);
   $('#cs-no',m).addEventListener('click',()=>{ closeModal(); openSettings(); });
   $('#cs-yes',m).addEventListener('click',async()=>{

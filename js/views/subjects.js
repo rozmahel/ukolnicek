@@ -1,15 +1,14 @@
 /* Úkolníček – Index: karty předmětů (body se zapisují přímo na kartě), nastavení předmětu (ozubené kolečko), semestry, známky a kredity */
-import { $, $$, clone, COLOR_CZ, COLORS, DAYS_FULL, esc, ICONS, plain, plural, rid } from '../core.js';
+import { $, $$, clone, COLOR_CZ, COLORS, esc, ICONS, plain, plural, rid } from '../core.js';
 import { S } from '../state.js';
 import { applyLock, LOCK } from '../lock.js';
 import { Store } from '../store.js';
-import { parseD, shortDate } from '../dates.js';
+import { parseD } from '../dates.js';
 import { pIcon, pTitle, revealBlock } from '../pages.js';
-import { hodin, hodinu, linkNow, offerLink, semList, subjEvents, subjLabel, subjOcc, subjShort, subjsOf, unlinkedMatches } from '../school.js';
+import { offerLink, semList, subjLabel, subjOcc, subjShort, subjsOf } from '../school.js';
 import { renderSidebar } from '../sidebar.js';
-import { go, renderMain } from '../router.js';
+import { renderMain } from '../router.js';
 import { closeModal, openModal, openPop, toast } from '../ui.js';
-import { openEventModal } from './schedule.js';
 import { allTasks } from './tasks.js';
 
 /* ================= Index: databáze předmětů, kredity, body a známky ================= */
@@ -67,11 +66,9 @@ function partsHtml(su){
   return h;
 }
 function linksHtml(su){
-  const occ=subjOcc(su.id), evs=subjEvents(su.id), open=openTasksOf(su.id), match=unlinkedMatches(su), out=[];
+  const occ=subjOcc(su.id), open=openTasksOf(su.id), out=[];
   if(occ.length) out.push(`<button class="ixc-link" data-act="ix-notes" data-id="${su.id}" data-popanchor>Poznámky${occ.length>1?` · ${occ.length}`:''}</button>`);
-  if(evs.length) out.push(`<button class="ixc-link" data-act="ix-evs" data-id="${su.id}" data-popanchor>${hodin(evs.length)} v rozvrhu</button>`);
   if(open.length) out.push(`<button class="ixc-link" data-act="ix-tasks" data-id="${su.id}" data-popanchor>${open.length} ${plural(open.length,'nesplněný úkol','nesplněné úkoly','nesplněných úkolů')}</button>`);
-  if(match.length) out.push(`<button class="ixc-link ixc-offer" data-act="ix-link" data-id="${su.id}" title="Hodiny bez předmětu se stejným názvem: ${esc([...new Set(match.map(e=>e.title))].join(', '))}">Propojit ${hodinu(match.length)} z rozvrhu</button>`);
   return out.join('<span class="ixc-sep">·</span>');
 }
 function cardHtml(su){
@@ -154,19 +151,13 @@ function onPtsChange(e){
   }
   if(t.classList.contains('ixc-passed')){ x.su.passed=t.checked; Store.queue(); refreshCard(x.card,x.su); }
 }
-/* odkazy na kartě: poznámky, hodiny, úkoly, propojení s rozvrhem */
+/* odkazy na kartě: poznámky a úkoly */
 function ixAction(act,a){
   const su=S.subjects[a.dataset.id]; if(!su) return;
-  if(act==='ix-link'){ const evs=unlinkedMatches(su); if(evs.length) linkNow(su,evs); return; }
   if(act==='ix-notes'){
     const occ=subjOcc(su.id); if(!occ.length) return;
     if(occ.length===1) return revealBlock(occ[0].pg.id,occ[0].b.id,true);
     openPop(a,`<div class="pop-h">${esc(subjShort(su))} v poznámkách</div>`+occ.map((o,i)=>{ const r=pathOf(o.pg); return `<button class="pop-item" data-v="${i}">${pIcon(r[0])}<span>${esc(r.map(pTitle).join(' › '))}</span></button>`; }).join(''),v=>{ const o=occ[+v]; if(o) revealBlock(o.pg.id,o.b.id,true); });
-    return;
-  }
-  if(act==='ix-evs'){
-    const evs=subjEvents(su.id).sort((x,y)=>(+x.day-+y.day)||String(x.start).localeCompare(String(y.start)));
-    openPop(a,`<div class="pop-h">${esc(subjShort(su))} v rozvrhu</div>`+evs.map(ev=>`<button class="pop-item" data-v="${ev.id}"><span class="ti-dot" style="flex:none"></span><span>${esc(ev.type||'Hodina')} · ${ev.repeat==='once'||ev.repeat==='count'?shortDate(parseD(ev.date)):DAYS_FULL[+ev.day]} ${esc(ev.start)}–${esc(ev.end)}<small>${esc([ev.repeat==='odd'?'lichý týden':ev.repeat==='even'?'sudý týden':ev.repeat==='count'?`${+ev.count||1}×`:'',ev.place].filter(Boolean).join(' · '))}</small></span></button>`).join(''),v=>{ const ev=S.events[v]; if(!ev) return; go({kind:'schedule'}); if(!LOCK) openEventModal(ev); });
     return;
   }
   if(act==='ix-tasks'){

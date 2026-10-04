@@ -1,25 +1,30 @@
 /* Úkolníček – Nastavení a návod s novinkami (i samostatně otevřený navod.html) */
 
-/* ---------- nastavení po kategoriích ---------- */
-.modal.set-m{width:min(780px,100%)}
-.set{display:grid;grid-template-columns:190px minmax(0,1fr);min-height:440px;border-top:1px solid var(--line);margin-top:10px}
-.set-nav{display:flex;flex-direction:column;gap:2px;padding:12px 10px;border-right:1px solid var(--line);background:var(--side);border-bottom-left-radius:14px}
+/* ---------- nastavení po kategoriích ----------
+   Okno má pevnou výšku podle okna prohlížeče (nikdy se neořízne spodní hranou),
+   hlavička a levé menu stojí, posouvá se jen obsah kategorie. */
+.modal.set-m{width:min(780px,100%);height:min(640px,calc(100vh - 9vh - 24px));height:min(640px,calc(100dvh - 9vh - 24px));display:flex;flex-direction:column;overflow:hidden}
+.set{flex:1;min-height:0;display:grid;grid-template-columns:190px minmax(0,1fr);border-top:1px solid var(--line);margin-top:10px}
+.set-nav{display:flex;flex-direction:column;gap:2px;padding:12px 10px;border-right:1px solid var(--line);background:var(--side);border-bottom-left-radius:14px;overflow-y:auto}
 .set-nav button{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;text-align:left;color:var(--fg2);font-size:calc(14px*var(--fs))}
 .set-nav button:hover{background:var(--hover);color:var(--fg)}
 .set-nav button.on{background:var(--panel);color:var(--fg);font-weight:600;box-shadow:var(--shadow-sm)}
 .set-nav button span{width:20px;text-align:center}
-.set-body{padding:16px 20px 20px;min-width:0}
+.set-body{display:flex;flex-direction:column;padding:16px 20px 18px;min-width:0;min-height:0;overflow-y:auto;overscroll-behavior:contain}
 .set-pane{display:grid;gap:14px;align-content:start}
 .set-sep{height:1px;background:var(--line);margin:2px 0}
+.set-h{margin:8px 0 -4px;padding-top:12px;border-top:1px solid var(--line);font:700 calc(14.5px*var(--fs))/1.3 var(--f-display);color:var(--fg)}
+.fld>.set-h{margin-top:10px}
 .set-pane .guide-link{margin:0}
-.set-body{display:flex;flex-direction:column}
+.set .bk-list.scroll{max-height:none}
 .set-foot{margin:auto 0 0;padding-top:18px;font-size:calc(12.5px*var(--fs));color:var(--muted)}
 .set-news{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
 .set-news:hover{text-decoration-thickness:2px}
 .seg button[data-v]{min-width:0}
 @media (max-width:640px){
-  .set{grid-template-columns:minmax(0,1fr);min-height:0}
-  .set-nav{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);border-radius:0;padding:8px}
+  .modal.set-m{height:calc(100vh - 9vh - 24px);height:calc(100dvh - 9vh - 24px)}
+  .set{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+  .set-nav{flex-direction:row;overflow-x:auto;overflow-y:hidden;border-right:0;border-bottom:1px solid var(--line);border-radius:0;padding:8px}
   .set-nav button{white-space:nowrap;flex:none}
 }
 
@@ -57,7 +62,7 @@ body.navod-page section[data-tab]{margin-bottom:40px}
 body.navod-page section[data-tab]::before{content:attr(data-title);display:block;font:800 calc(28px*var(--fs))/1.2 var(--f-display);margin-bottom:16px}
 /* nastavení, která patří ke školnímu režimu */
 .set-school{display:grid;gap:14px;padding-left:26px}
-/* výběr barevného motivu (Nastavení → Obecné); .skin-sw si barvy bere z css/themes.css a base.css */
+/* výběr barevného motivu (Nastavení → Vzhled); .skin-sw si barvy bere z css/themes.css a base.css */
 .skins{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .skin{display:grid;gap:7px;padding:6px 6px 9px;border:1.5px solid var(--line);border-radius:12px;background:var(--panel);text-align:center;font-size:calc(13.5px*var(--fs));font-weight:600;color:var(--fg2)}
 .skin:hover{background:var(--hover)}

@@ -64,7 +64,7 @@ Bez Disku Úkolníček funguje normálně, jen se data nepřenášejí mezi zař
    - **Authorized JavaScript origins**: adresa, kde aplikace běží (např. `https://tvoje-jmeno.github.io`), a pro zkoušení `http://localhost:8000`,
    - Redirect URI nejsou potřeba.
 5. Zkopíruj **Client ID** (končí `.apps.googleusercontent.com`).
-6. V Úkolníčku: **Nastavení → Synchronizace** → vlož Client ID (volitelně i e-mail účtu Google, aby se nenabízel výběr účtu) → **Přihlásit k Disku**.
+6. V Úkolníčku: **Nastavení → Google Disk** → vlož Client ID (volitelně i e-mail účtu Google, aby se nenabízel výběr účtu) → **Přihlásit k Disku**.
 
 Při prvním přihlášení Google upozorní, že aplikace není ověřená. U vlastní aplikace v režimu Testing je to normální: **Pokračovat** (případně *Advanced → Go to Úkolníček*) a povol přístup k datům aplikace.
 
@@ -75,7 +75,7 @@ Client ID není tajný klíč, bezpečnost hlídá seznam povolených adres a te
 ### Google Disk
 - **↑ Nahrát** (ručně) uloží aktuální stav jako novou zálohu. Na Disku se drží posledních 10 verzí.
 - **↓ Stáhnout** nahradí data v zařízení zálohou z Disku: buď rovnou nejnovější, nebo vybranou z posledních 10 (podle nastavení).
-- **Po otevření aplikace** se novější verze z Disku stáhne sama, když v zařízení nemáš neuložené změny. Když se změnilo obojí, aplikace se zeptá: verze z Disku, tvoje, nebo obě spojené. Jde to vypnout v **Nastavení → Synchronizace**.
+- **Po otevření aplikace** se novější verze z Disku stáhne sama, když v zařízení nemáš neuložené změny. Když se změnilo obojí, aplikace se zeptá: verze z Disku, tvoje, nebo obě spojené. Jde to vypnout v **Nastavení → Google Disk**.
 - Mráček v levém panelu (na mobilu nahoře):
   - **šedý přeškrtnutý**: Disk není připojený,
   - **žlutý**: přihlášení vypršelo, obnoví ho první klepnutí do aplikace,
@@ -83,23 +83,23 @@ Client ID není tajný klíč, bezpečnost hlídá seznam povolených adres a te
   - **oranžová tečka**: máš změny, které ještě nejsou na Disku.
 
 ### Co se děje při stažení, a jak se vrátit
-- Před každým stažením z Disku (i automatickým), obnovením nebo importem se uloží **místní záloha**. Najdeš je v **Nastavení → Synchronizace → Místní zálohy**, kde je jedním klikem obnovíš.
+- Před každým stažením z Disku (i automatickým), obnovením nebo importem se uloží **místní záloha**. Najdeš je v **Nastavení → Zálohy → Místní zálohy**, kde je jedním klikem obnovíš.
 - Po automatickém stažení je v oznámení tlačítko **Vrátit**.
 - Po stažení stačí pokračovat v práci. Až něco změníš, objeví se oranžová tečka a změny nahraješ šipkou ↑.
 
 ### Soubor se zálohou (bez Disku)
-- **Nastavení → Synchronizace → Exportovat do souboru** stáhne všechna data jako `.json`. Hodí se jako ruční záloha nebo pro přenos na jiné zařízení.
+- **Nastavení → Zálohy → Exportovat do souboru** stáhne všechna data jako `.json`. Hodí se jako ruční záloha nebo pro přenos na jiné zařízení.
 - **Importovat ze souboru…** data ze souboru přidá k těm v zařízení. Stránky, hodiny a předměty se stejným ID přepíše, ostatní nechá, nastavení převezme ze souboru. Před importem se uloží místní záloha.
 - Exportovaný soubor obsahuje všechny tvoje poznámky. Nenahrávej ho do veřejného repozitáře.
 
 ### Nové zařízení
 1. Otevři aplikaci a přidej si ji na plochu.
-2. S Diskem: **Nastavení → Synchronizace**, vlož Client ID, přihlas se. Nejnovější záloha se stáhne sama.
+2. S Diskem: **Nastavení → Google Disk**, vlož Client ID, přihlas se. Nejnovější záloha se stáhne sama.
 3. Bez Disku: na původním zařízení **Exportovat do souboru**, na novém **Importovat ze souboru…**.
 4. Obrázky se nepřenášejí. Na novém zařízení je případně vlož znovu.
 
 ### Smazání dat
-- Jen školní data (předměty, semestry, rozvrh): **Nastavení → Obecné → Smazat školní data**. Poznámky a úkoly zůstanou.
+- Jen školní data (předměty, semestry, rozvrh): **Nastavení → Škola → Smazat školní data**. Poznámky a úkoly zůstanou.
 - Všechno v zařízení: smaž v prohlížeči data webu (úložiště) pro adresu aplikace.
 - Zálohy na Disku: v Google Disku **Nastavení → Správa aplikací → Úkolníček → Smazat skrytá data aplikace**.
 

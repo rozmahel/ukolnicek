@@ -92,9 +92,9 @@ function openSubjBlockMenu(anchor,pg,b){
     +(LOCK?'':`${ix?'<div class="pop-sep"></div>':''}<div class="pop-h">Formát nadpisu</div>
       <div class="sj-fmt">${fmtBtn('it','<i>I</i>','Kurzíva')}${fmtBtn('un','<u>U</u>','Podtržení')}${fmtBtn('st','<s>S</s>','Přeškrtnutí')}</div>
       <div class="pop-h">Zvýraznění</div><div class="swatches"><button class="sw sw-none ${b.hl?'':'on'}" data-v="h:" aria-label="Bez zvýraznění" title="Bez zvýraznění">∅</button>${COLORS.map(c=>`<button class="sw hl-${c} ${b.hl===c?'on':''}" data-v="h:${c}" aria-label="${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}</div>
-      <div class="pop-h">Ikona místo tečky</div><div class="emoji-grid">${EMOJI.map(e=>`<button data-v="e:${e}" aria-label="${e}" class="${b.icon===e?'on':''}">${e}</button>`).join('')}</div>
+      <div class="pop-h">Ikona před názvem</div><div class="emoji-grid">${EMOJI.map(e=>`<button data-v="e:${e}" aria-label="${e}" class="${b.icon===e?'on':''}">${e}</button>`).join('')}</div>
       <div class="emoji-in"><input class="inp" id="sj-emoji" placeholder="Vlastní emoji" maxlength="8" aria-label="Vlastní emoji"><button class="btn" data-v="custom">Použít</button></div>
-      ${b.icon?'<button class="pop-item" data-v="e:"><span class="pi-ic">•</span>Zpět tečka</button>':''}`);
+      ${b.icon?'<button class="pop-item" data-v="e:"><span class="pi-ic">×</span>Bez ikony</button>':''}`);
   const p=openPop(anchor,h,(v,btn,pop)=>{
     if(v==='ix'){ gotoSubject(su.id); return; }
     if(v==='pick'){ openSubjPicker(anchor,x=>toSubject(pg,b,x),b.subj); return true; }

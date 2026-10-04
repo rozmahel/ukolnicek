@@ -156,8 +156,7 @@ body.locked .ch,
 body.locked .tbl-tools,
 body.locked .tpl,
 body.locked .add-prop,
-body.locked .prop .icon-btn,
-body.locked .pb-acts [data-act="prop-add"]{display:none!important}
+body.locked .prop .icon-btn{display:none!important}
 body.locked .g-drag{pointer-events:none}
 
 /* ---------- tlačítka tabulky jako vrstva (mezera pod tabulkou je vždy stejná) ---------- */
@@ -178,10 +177,10 @@ a.lnk::after{content:"↗";display:inline-block;font-size:.72em;font-weight:700;
 .b-subj{margin-top:1.3em;clear:both}
 .b-subj:first-child{margin-top:0}
 .b-subj>.gut{left:calc(var(--lv,0)*26px - 78px)}
-.sj-h{display:flex;align-items:baseline;gap:.34em;max-width:100%;min-width:0;padding:0 .22em;margin:0 0 0 -.22em;border-radius:8px;text-align:left;font:750 1.72rem/1.25 var(--f-display);letter-spacing:-.01em;color:var(--fg)}
+/* obsah (emoji nebo text) začíná na stejné svislici jako text bloků pod ním (.txt má padding 2px) */
+.sj-h{display:flex;align-items:baseline;gap:.3em;max-width:100%;min-width:0;padding:3px .22em;margin:0 0 0 calc(2px - .22em);border-radius:8px;text-align:left;font:750 1.72rem/1.25 var(--f-display);letter-spacing:-.01em;color:var(--fg)}
 @media (hover:hover){ .sj-h:hover{background:var(--hover)} }
 .sj-h b{font-weight:800;color:var(--c-fg)}
-.sj-dot{flex:none;align-self:center;width:.34em;height:.34em;border-radius:.1em;background:var(--c-fg)}
 .sj-t{min-width:0}
 .sj-lost .sj-t{color:var(--muted);font-style:italic;font-weight:600}
 .sj-lost small{font:400 calc(13px*var(--fs)) var(--f-body);color:var(--faint);margin-left:4px}

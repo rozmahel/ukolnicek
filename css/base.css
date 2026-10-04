@@ -63,6 +63,12 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 img{max-width:100%}
+/* posuvníky v barvách motivu (místo bílé dráhy systému): průhledná dráha, ztlumený jezdec */
+*{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--fg) 24%,transparent) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
+::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--fg) 24%,transparent);border:2px solid transparent;border-radius:99px;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background-color:color-mix(in srgb,var(--fg) 38%,transparent)}
 html,body{height:100%;margin:0}
 html{font-size:calc(16px*var(--fs))}
 #app{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}

@@ -26,7 +26,7 @@ function renderPage(pg){
   <article class="doc ${pg.wide?'wide':''}" id="doc" data-page="${pg.id}">
     <div class="pagebar">
       <div class="crumbs">${crumbs.map(c=>`<button data-act="open" data-id="${c.id}">${esc(c.icon||'')} ${esc(pTitle(c))}</button><span>/</span>`).join('')}<span>${esc(pg.icon||'')} ${esc(pTitle(pg))}</span></div>
-      <div class="pb-acts">${pg.icon?'':`<button class="ghost-btn" data-act="icon" data-popanchor>☺ Ikona</button>`}<button class="ghost-btn" data-act="prop-add">＋ Vlastnost</button><button class="ghost-btn" data-act="wide">${pg.wide?'↤ Užší':'↔ Celá šířka'}</button>
+      <div class="pb-acts">${pg.icon?'':`<button class="ghost-btn" data-act="icon" data-popanchor>☺ Ikona</button>`}<button class="ghost-btn" data-act="wide">${pg.wide?'↤ Užší':'↔ Celá šířka'}</button>
         <span class="pb-sep"></span>
         <button class="icon-btn" id="undo-btn" data-act="undo" title="Zpět (⌘Z)" aria-label="Zpět"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
         <button class="icon-btn" id="redo-btn" data-act="redo" title="Znovu (⇧⌘Z)" aria-label="Znovu"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
@@ -94,10 +94,10 @@ function renderSubjHead(b){
   const su=S.subjects[b.subj], caret=`<button class="mk caret ${b.collapsed?'closed':''}" data-act="collapse" aria-label="${b.collapsed?'Rozbalit sekci':'Sbalit sekci'}"></button>`;
   if(!isSchool()) return `<div class="row">${caret}<div class="t-h1 sj-plain">${esc(subjBlockText(b))}</div></div>`;   /* klasické poznámky: obyčejný nadpis */
   if(!su) return `<div class="row">${caret}<button class="sj-h sj-lost" data-act="subj-blk" data-popanchor title="Vybrat jiný předmět"><span class="sj-t">Smazaný předmět</span>${plain(b.html).trim()?`<small>${esc(plain(b.html).trim())}</small>`:''}</button></div>`;
-  /* vlastní emoji místo tečky a formát celého nadpisu (kurzíva, podtržení, přeškrtnutí, zvýraznění) */
+  /* volitelné emoji před názvem a formát celého nadpisu (kurzíva, podtržení, přeškrtnutí, zvýraznění) */
   let t=`${su.code?`<b>${esc(su.code)}</b>`:''}${su.code&&su.name?' ':''}${esc(su.name||'')}`;
   if(b.it) t=`<i>${t}</i>`; if(b.un) t=`<u>${t}</u>`; if(b.st) t=`<s>${t}</s>`; if(b.hl) t=`<mark class="hl-${esc(b.hl)}">${t}</mark>`;
-  return `<div class="row">${caret}<button class="sj-h" data-act="subj-blk" data-popanchor title="${esc(subjLabel(su))} · předmět z Indexu">${b.icon?`<span class="sj-ic" aria-hidden="true">${esc(b.icon)}</span>`:'<span class="sj-dot" aria-hidden="true"></span>'}<span class="sj-t">${t}</span></button></div>`;
+  return `<div class="row">${caret}<button class="sj-h" data-act="subj-blk" data-popanchor title="${esc(subjLabel(su))} · předmět z Indexu">${b.icon?`<span class="sj-ic" aria-hidden="true">${esc(b.icon)}</span>`:''}<span class="sj-t">${t}</span></button></div>`;
 }
 function renderTable(b){
   let h=`<div class="tbl-wrap"><table class="tbl ${b.hrow?'hrow':''} ${b.hcol?'hcol':''}"><tbody>`;
