@@ -1,0 +1,50 @@
+/* Úkolníček – Google Disk: mráček, stav synchronizace, seznamy záloh, kolize, lišta nové verze */
+.syncbar{display:flex;align-items:center;gap:2px;border-top:1px solid var(--line);padding:8px 4px 0;margin-top:8px}
+.syncbar + .side-foot{border-top:0;margin-top:0;padding-top:4px}
+.cloud{position:relative;width:32px;height:32px;border-radius:8px;display:grid;place-items:center;flex:none}
+.cloud:hover{background:var(--hover)}
+.cloud svg,.drive-state svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cl-off{color:var(--faint)}
+.cl-exp{color:var(--hl-yellow-fg)}
+.cl-exp.cloud svg{fill:color-mix(in srgb,var(--hl-yellow-fg) 22%,transparent)}
+.cl-ok{color:var(--ok)}
+.cl-ok.cloud svg{fill:color-mix(in srgb,var(--ok) 16%,transparent)}
+.cl-busy{color:var(--accent)}
+.cloud.cl-busy svg{animation:pulse 1s ease-in-out infinite alternate}
+@keyframes pulse{from{opacity:.35}to{opacity:1}}
+.cloud.dirty::after,.sync-io.dirty::after{content:"";position:absolute;top:5px;right:4px;width:8px;height:8px;border-radius:50%;background:var(--hl-orange-fg);border:2px solid var(--side)}
+.sync-io{position:relative;font-size:calc(16px*var(--fs));font-weight:600}
+.sync-lbl{flex:1;min-width:0;text-align:left;font-size:calc(13px*var(--fs));padding:3px 6px;border-radius:7px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sync-lbl:hover{background:var(--hover)}
+.sync-lbl.cl-off{color:var(--muted)}
+.sync-lbl.cl-ok{color:var(--fg2)}
+.sync-lbl small{display:block;font-size:calc(11.5px*var(--fs));color:var(--hl-orange-fg)}
+.tb-sync{margin-left:auto}
+.tb-sync .cloud.dirty::after{border-color:var(--bg)}
+.drive-state{display:flex;align-items:center;gap:8px;font-size:calc(14px*var(--fs));font-weight:500;padding:8px 10px;border-radius:9px;background:var(--side)}
+.drive-state span{color:var(--fg)}
+.warn{margin:0;padding:10px 12px;border-radius:9px;background:var(--hl-orange-bg);color:var(--fg);font-size:calc(14px*var(--fs))}
+.bk-list{display:grid;gap:4px}
+.bk{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 10px;border:1px solid var(--line);border-radius:9px;font-size:calc(14px*var(--fs));cursor:pointer}
+.bk.on{border-color:var(--accent);background:var(--accent-soft)}
+.bk input{accent-color:var(--accent)}
+img.missing{background:none}
+.upd{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:95;background:var(--accent);color:var(--on-accent);border-radius:12px;padding:9px 10px 9px 16px;display:flex;gap:14px;align-items:center;font-size:calc(14px*var(--fs));box-shadow:var(--shadow);max-width:calc(100vw - 32px)}
+.upd button{background:var(--on-accent);color:var(--accent);font-weight:700;border-radius:8px;padding:5px 12px}
+
+/* ---------- posuvný seznam verzí (vidět jsou asi dvě) ---------- */
+.bk-list.scroll{max-height:96px;overflow:auto;overscroll-behavior:contain;padding-right:4px;scrollbar-gutter:stable}
+
+/* ---------- tlačítko ↓ s novější verzí na Disku (tečka už nepřekrývá šipku) ---------- */
+.sync-io.dirty{color:var(--hl-orange-fg);background:var(--hl-orange-bg)}
+.sync-io.dirty::after{top:-2px;right:-2px;width:7px;height:7px}
+
+/* ---------- kolize s verzí na Disku ---------- */
+.modal.cf-m{width:min(560px,100%)}
+.cf-sum{display:grid;gap:6px;padding:10px 12px;border-radius:9px;background:var(--side);font-size:calc(13.5px*var(--fs));color:var(--fg2)}
+.cf-k{display:block;font-size:calc(11px*var(--fs));font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:1px}
+.cf-list{display:grid;gap:8px}
+.cf-list .guide-link{grid-template-columns:auto minmax(0,1fr);background:var(--panel)}
+.cf-list .guide-link.rec{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.cf-list .guide-link em{font-style:normal;font-size:calc(11px*var(--fs));font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);margin-left:6px;vertical-align:.1em}
+.cf-list .gl-ic{width:26px;text-align:center}

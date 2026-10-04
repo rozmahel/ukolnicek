@@ -1,0 +1,86 @@
+/* Úkolníček – Pohledy Dnes a Úkoly, společné karty a hlavičky pohledů, hledání */
+
+/* ---------- hledání (⌘K) ---------- */
+.q-in{width:100%;border:0;outline:none;background:transparent;font-size:calc(17px*var(--fs));padding:16px 18px;border-bottom:1px solid var(--line)}
+.q-res{max-height:50vh;overflow:auto;padding:6px}
+.q-item{display:flex;gap:10px;align-items:flex-start;width:100%;padding:8px 10px;border-radius:8px}
+.q-item.act,.q-item:hover{background:var(--hover)}
+.q-item small{display:block;color:var(--muted);font-size:calc(12.5px*var(--fs));overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:420px}
+
+/* ---------- hlavičky pohledů, Dnes, karty, úkoly ---------- */
+.view{max-width:1120px;margin:0 auto;padding:44px 40px 80px}
+.v-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:22px}
+.v-title{font:800 2.3rem/1.1 var(--f-display);letter-spacing:-.015em;margin:0}
+.eyebrow{font-size:calc(12px*var(--fs));font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+.v-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:3px 10px;font-size:calc(13px*var(--fs));color:var(--fg2);background:var(--panel)}
+.pill b{font:600 calc(12.5px*var(--fs)) var(--f-mono);color:var(--accent)}
+.navbtn{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);display:grid;place-items:center;background:var(--panel)}
+.navbtn:hover{border-color:var(--faint)}
+.wk-label{font-weight:600;font-size:calc(14.5px*var(--fs));min-width:0}
+.wk-label span{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.cards{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px;align-items:start}
+.card{border:1px solid var(--line);border-radius:13px;background:var(--panel);overflow:hidden}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px 10px}
+.card-h h2{font:700 1.05rem/1.3 var(--f-display);margin:0}
+.card-body{padding:0 0 4px}
+.empty{padding:6px 16px 16px;color:var(--muted);font-size:calc(14px*var(--fs))}
+.subj{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;padding:9px 16px;text-align:left}
+.subj:hover{background:var(--hover)}
+.subj .bar{grid-column:2/4;height:5px;border-radius:3px;background:var(--hover);overflow:hidden;margin-top:-4px}
+.subj .bar i{display:block;height:100%;background:var(--c-fg)}
+.subj .n{font:500 calc(12.5px*var(--fs)) var(--f-mono);color:var(--muted)}
+.subj .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.task{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:8px;align-items:start;padding:8px 16px;border-bottom:1px solid var(--line)}
+.task:last-child{border-bottom:0}
+.task .check{margin-top:1px}
+.task-t{word-break:break-word}
+.task.done .task-t{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--faint)}
+.task-pg{display:inline-flex;gap:5px;align-items:center;font-size:calc(12.5px*var(--fs));color:var(--muted);border-radius:5px;padding:0 4px;margin-left:-4px;margin-top:1px}
+.task-pg:hover{background:var(--hover);color:var(--fg)}
+.chip{font:600 calc(12.5px*var(--fs))/1.5 var(--f-body);font-variant-numeric:tabular-nums;padding:1px 9px;border-radius:99px;background:var(--hover);color:var(--fg2);white-space:nowrap;margin-top:2px}
+.chip.soon{background:var(--hl-orange-bg);color:var(--hl-orange-fg)}
+.chip.late{background:var(--hl-red-bg);color:var(--hl-red-fg)}
+.chip.today{background:var(--accent);color:var(--on-accent)}
+.filters{display:flex;gap:6px}
+.filters button{border:1px solid var(--line);border-radius:99px;padding:4px 12px;font-size:calc(13.5px*var(--fs));background:var(--panel)}
+.filters button.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.t-sec{margin-bottom:22px}
+.t-sec>h2{display:flex;align-items:center;gap:8px;font:700 1.08rem/1.3 var(--f-display);margin:0 0 8px}
+.t-sec .card .task{padding-inline:14px}
+.loading{padding:80px 20px;text-align:center;color:var(--muted)}
+.welcome{max-width:520px;margin:12vh auto 0;text-align:center;display:grid;gap:12px;justify-items:center}
+.welcome h1{font:800 2rem/1.15 var(--f-display);margin:0}
+
+/* ---------- Úkoly po projektech ---------- */
+.task-pg{max-width:100%}
+.tp-ic:empty{display:none}
+.tp-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t-proj{margin-bottom:22px}
+.t-proj-h{display:flex;align-items:center;gap:8px;margin:0 0 8px;min-width:0}
+.t-proj-t{display:flex;align-items:center;gap:8px;min-width:0;font:700 1.08rem/1.3 var(--f-display);color:var(--fg);border-radius:7px;padding:2px 6px;margin-left:-6px;text-align:left}
+.t-proj-t>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t-proj-t:hover{background:var(--hover)}
+.t-proj-n{flex:none;font:500 calc(12px*var(--fs))/1.7 var(--f-mono);color:var(--muted);background:var(--hover);border-radius:99px;padding:0 8px}
+.t-hide{flex:none;margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:calc(12.5px*var(--fs));color:var(--muted);padding:4px 9px;border-radius:7px}
+.t-hide:hover{background:var(--hover);color:var(--fg)}
+.t-hide svg,.t-projbtn svg{width:15px;height:15px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+@media (hover:hover){ .t-hide{opacity:.6} .t-proj-h:hover .t-hide,.t-hide:focus-visible{opacity:1} }
+.t-grp{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;padding:8px 14px 6px;background:color-mix(in srgb,var(--c-bg) 55%,var(--panel));border-bottom:1px solid var(--line)}
+.t-grp-t{font-weight:650;font-size:calc(13.5px*var(--fs));color:var(--c-fg);border-radius:5px;padding:0 4px;margin-left:-4px;text-align:left}
+.t-grp-pg{font-size:calc(12.5px*var(--fs));color:var(--muted);border-radius:5px;padding:0 4px}
+.t-grp-t:hover,.t-grp-pg:hover{background:color-mix(in srgb,var(--c-fg) 10%,transparent)}
+.t-grp-pg:hover{color:var(--fg)}
+.t-proj .card .task{padding-inline:14px}
+.filters{flex-wrap:wrap}
+.filters .t-projbtn{display:inline-flex;align-items:center;gap:6px;color:var(--fg2)}
+.filters .t-projbtn.has{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.t-pi .t-ck{width:16px;height:16px;flex:none;border-radius:4px;border:1.5px solid var(--faint);display:grid;place-items:center}
+.t-pi.on .t-ck{background:var(--accent);border-color:var(--accent)}
+.t-pi.on .t-ck::after{content:"";width:8px;height:4px;margin-top:-2px;border:2px solid var(--on-accent);border-top:0;border-right:0;transform:rotate(-45deg)}
+.t-pi .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+.t-pi:not(.on) .nm{color:var(--muted)}
+.t-pi .n{font:500 calc(12px*var(--fs)) var(--f-mono);color:var(--muted)}
+.t-hidnote{margin:-4px 0 0}
+/* skupina úkolů pod blokem předmětu */
+.t-grp-t .ti-dot{margin-right:6px;vertical-align:1px}

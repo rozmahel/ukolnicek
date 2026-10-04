@@ -1,0 +1,15 @@
+{
+  "name": "ukolnicek",
+  "private": true,
+  "description": "Úkolníček – vývojové nástroje a testy (pro běh aplikace nejsou potřeba)",
+  "scripts": {
+    "test": "node tests/run.js",
+    "fix-imports": "node tools/fix-imports.js",
+    "serve": "python3 tools/serve.py"
+  },
+  "devDependencies": {
+    "acorn": "^8.15.0",
+    "eslint-scope": "^8.4.0",
+    "playwright": "^1.56.0"
+  }
+}

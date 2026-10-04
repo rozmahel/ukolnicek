@@ -1,0 +1,26 @@
+/* Úkolníček – Úzké obrazovky (telefon): vysouvací panel, menší okraje, agenda místo mřížky */
+@media (max-width:860px){
+  #app{grid-template-columns:minmax(0,1fr)}
+  .side{position:fixed;z-index:75;top:0;bottom:0;left:0;width:min(300px,86vw);transform:translateX(-102%);transition:transform .2s ease;padding-top:calc(16px + env(safe-area-inset-top,0px));box-shadow:var(--shadow)}
+  .side.open{transform:none}
+  .scrim.open{display:block;position:fixed;inset:0;z-index:74;background:var(--scrim)}
+  .topbar{display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line);padding:0 12px;height:48px}
+  .pagebar{top:48px;margin:0 -16px 14px;padding:8px 16px}
+  .page-icon{font-size:1.8rem}
+  .topbar .tb-t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .doc{padding:4px 16px 30vh 34px}
+  .gut{left:calc(var(--lv,0)*26px - 30px)}
+  .gut .g-add{display:none}
+  .b-h1>.gut,.b-h2>.gut,.b-h3>.gut{left:calc(var(--lv,0)*26px - 30px)}
+  .caret{left:auto;right:-6px;opacity:.55}
+  .b-h1 .txt,.b-h2 .txt,.b-h3 .txt{padding-right:22px}
+  .view{padding:24px 16px 60px}
+  .cards{grid-template-columns:minmax(0,1fr)}
+  .page-title{font-size:2rem}
+  .prop{grid-template-columns:110px minmax(0,1fr) 26px}
+}
+@media (max-width:760px){
+  .sg,.sched-hint{display:none}
+  .agenda{display:block}
+  .grid2{grid-template-columns:1fr}
+}

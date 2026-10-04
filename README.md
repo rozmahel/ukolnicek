@@ -1,122 +1,171 @@
 # Úkolníček
 
-Školní poznámky, úkoly a rozvrh na jednom místě. Běží jako statická webová aplikace na GitHub Pages, funguje offline (PWA), data nahrává na tvůj Google Disk a novější verzi odtud po otevření sama stáhne.
+Poznámky, úkoly a (volitelně) školní rozvrh a známky na jednom místě. Úkolníček je statická webová aplikace: běží celá v prohlížeči, funguje offline, dá se nainstalovat na plochu (PWA) a data si můžeš zálohovat na vlastní Google Disk. Žádný server ani účet u třetí strany nepotřebuje.
 
-## Soubory
+- **Stránky a bloky** jako v sešitu: nadpisy, odrážky, úkoly, tabulky (i s úkoly v buňkách), zvýraznění, odkazy, obrázky, podstránky. Nabídka bloků přes `/`, sbalování sekcí, zpět a znovu.
+- **Úkoly ze všech stránek** v jednom přehledu. Datum v textu úkolu (třeba `5.10.`) se stane termínem.
+- **Stránka Dnes** s blížícími se termíny a stavem úkolů.
+- **Školní režim** (zapíná se v nastavení): týdenní rozvrh, Index předmětů po semestrech s body, známkami A–F a kredity, týden výuky (lichý a sudý) a nadpisy s předměty v poznámkách (`/předmět`).
+- **Zámek** (⌘⇧L), aby se nic nepřesunulo ani nesmazalo omylem.
+- **Světlý a tmavý motiv**, velikost písma 100–160 %.
 
-| Soubor | K čemu je |
-|---|---|
-| `index.html` | kostra stránky |
-| `style.css` | vzhled |
-| `app.js` | celá aplikace (stránky, editor, rozvrh, úkoly, nastavení) |
-| `storage.js` | ukládání v prohlížeči (IndexedDB): data (stránky, rozvrh, Index, nastavení), obrázky, místní zálohy, poslední verze společná s Diskem |
-| `driveSync.js` | přihlášení Google a práce se soubory na Disku (včetně lehkého dotazu na nejnovější verzi) |
-| `navod.html` | návod a novinky (zobrazuje se v Nastavení) |
-| `sw.js` | Service Worker: offline režim a nabídka nové verze |
-| `manifest.webmanifest`, `icons/` | instalace na plochu |
-| `import-z-claude.json` | tvoje data z Claude verze k importu (po importu ho klidně smaž, **do repozitáře ho nenahrávej**) |
+Podrobný návod je přímo v aplikaci: **Nastavení → Návod a novinky** (soubor `navod.html`).
 
-## Novinky
+---
 
-Přehled změn a návod jsou v souboru **`navod.html`** (v aplikaci: Nastavení → Návod a novinky). Novou novinku přidáš zkopírováním bloku `<article class="g-rel new">` – postup je popsaný v komentáři na začátku souboru.
+## Kde jsou data
 
-## Co přibylo ve verzi 2.6
+- Všechno se ukládá **v prohlížeči zařízení** (IndexedDB). Aplikace funguje i bez internetu.
+- Každé zařízení a každý prohlížeč má vlastní data. Mezi zařízeními je přeneseš přes Google Disk, nebo exportem a importem souboru (viz níže).
+- Na Google Disk se data ukládají do **skryté složky aplikace**. Nikdo jiný k nim nemá přístup a Úkolníček nevidí ostatní soubory na tvém Disku.
+- Obrázky zůstávají jen v zařízení, kde jsi je vložil. Do zálohy jde jen jejich název, na jiném zařízení se místo nich ukáže rámeček s názvem.
+- Safari na iPhonu umí smazat data webu, který se 7 dní nepoužívá a **není přidaný na plochu**. Přidej si proto Úkolníček na plochu, nebo pravidelně zálohuj.
 
-- **Index** (zapíná se v Nastavení → Obecné, výchozí vypnutý): databáze předmětů po semestrech. Body jedním číslem nebo po dílčích hodnoceních, známka A–F podle stupnice VUT, kredity se započítají se známkou A–E, cíl kreditů na semestr, souhrn a vážený průměr.
-- Předměty z Indexu se nabízejí v rozvrhu, z hodiny se jde tlačítkem *Otevřít v Indexu* na předmět.
-- **Zámek i v rozvrhu**: přejetím ani klikem do prázdna se nevytvoří nová hodina.
-- Data: v JSONu přibyly klíče `subjects` a `semesters` a u události volitelné `subj`. Přidávají se jen když Index něco obsahuje, takže starší zálohy se načtou beze změny. Verze starší než 2.6 Index neznají a při načtení ho vynechají, proto aktualizuj všechna zařízení (stačí je otevřít).
+---
 
-## Co přibylo ve verzi 2.5
+## 1. Spuštění na počítači
 
-- **Úkoly po projektech**: nahoře úkoly s termínem ze všech projektů (nejbližší první), pod nimi ostatní po projektech v pořadí z levého panelu a v nich podle podstránek a nadpisů H1.
-- **Skrytí projektu v Úkolech** tlačítkem *Skrýt*, zpět v menu *Projekty*. Ukládá se do nastavení, takže se synchronizuje přes Disk.
-
-## Co přibylo ve verzi 2.4
-
-- **Automatické stažení z Disku po otevření** (a po návratu do aplikace). Jeden lehký dotaz na název a čas nejnovějšího souboru, stahuje se jen při rozdílu:
-  - na Disku nic nového → nic,
-  - na Disku novější verze a tady beze změn → stáhne se a tiše použije (oznámení s tlačítkem *Vrátit*),
-  - změny tady, Disk beze změny → nic, oranžová tečka zůstane,
-  - změny tady i na Disku → hned dialog: *Použít verzi z Disku*, *Ponechat moji verzi*, nebo *Ponechat obě* (spojí je; co se změnilo na obou místech, bude dvakrát).
-- Před každým přepsáním se uloží místní záloha. Psaní během stahování se počítá jako změna, nic se nepřepíše.
-- Vypršelé přihlášení: žlutý mráček, kontrola po prvním klepnutí do aplikace (okno přihlášení Googlu jde otevřít jen po akci uživatele).
-- Bez internetu se kontrola přeskočí. Vypíná se v **Nastavení → Synchronizace** (jen pro dané zařízení, výchozí: zapnuto).
-
-## Co umí verze 2.1
-
-- **Zámek** 🔒 vedle šipek zpět/vpřed (zkratka ⌘⇧L): skryje tečky, plusy, přidávání a mazání bloků, řádků a sloupců. Psaní, zaškrtávání a rozvrh fungují dál. Pamatuje si ho každé zařízení zvlášť.
-- **Mini kalendář** v levém panelu pod číslem týdne (dny v týdnu, volitelně čísla týdnů v roce). Zapíná se v Nastavení, klik na den otevře jeho týden v rozvrhu.
-- **Rozvrh – pevný počet opakování** (např. 4×), počítá se po týdnech od zvoleného data.
-- **Rozvrh – souběžné události**: najeď na pravý kraj hodiny a klikni na ＋, obě se zobrazí vedle sebe.
-- **Návod** v Nastavení.
-
-## 1. Vyzkoušení na počítači
-
-Service Worker a přihlášení Google nefungují z otevřeného souboru (`file://`), je potřeba malý server:
+Přihlášení Google a offline režim nefungují ze souboru otevřeného dvojklikem (`file://`). Je potřeba malý místní server. Stačí Python 3 (na macOS a Linuxu bývá předinstalovaný):
 
 ```bash
-cd ~/Documents/ukolnicek-webovka
-python3 -m http.server 8000
+cd cesta/ke/slozce/ukolnicek
+python3 tools/serve.py
 ```
 
-Pak otevři `http://localhost:8000`.
+Pak otevři `http://localhost:8000`. Server posílá soubory bez ukládání do mezipaměti, takže se každá změna projeví po obyčejném obnovení stránky.
+
+- Na `localhost` se Service Worker (offline režim) záměrně vypíná, aby se nenačítaly staré soubory. Vyzkoušet ho jde i tady: v konzoli prohlížeče zadej `localStorage.setItem('uk-dev-sw','true')` a obnov stránku.
+- Data na `localhost` jsou oddělená od zveřejněné verze (jiná adresa = jiné úložiště v prohlížeči). Když se tady přihlásíš ke stejnému Google Disku, stáhnou se tvoje data. Co odtud nahraješ, uvidí po otevření i tvoje ostatní zařízení.
 
 ## 2. Zveřejnění na GitHub Pages
 
-1. Na GitHubu vytvoř repozitář `ukolnicek` (může být veřejný, žádná tajemství v něm nejsou).
-2. Nahraj do něj obsah této složky **kromě `import-z-claude.json`** (a `.DS_Store`).
+1. Na GitHubu vytvoř repozitář, třeba `ukolnicek`. Může být veřejný, žádná tajemství v kódu nejsou.
+2. Nahraj do něj obsah této složky. **Nenahrávej** zálohy (`_zaloha-*`), `node_modules`, `tests/shots`, `.DS_Store` ani exportované soubory s daty (`*.json` se zálohou). Složky `tools/` a `tests/` a soubor `package.json` aplikace nepotřebuje, ale nevadí.
 3. V repozitáři: **Settings → Pages → Build and deployment → Deploy from a branch**, větev `main`, složka `/ (root)`.
-4. Za minutu poběží na `https://rozmahel.github.io/ukolnicek/`.
+4. Za chvíli aplikace poběží na `https://TVOJE-JMENO.github.io/ukolnicek/`.
 
-Instalace na plochu: v Safari na iPhonu **Sdílet → Přidat na plochu**, v Chrome ikona instalace v adresním řádku.
+Instalace na plochu: v Safari na iPhonu **Sdílet → Přidat na plochu**, v Chromu ikona instalace v adresním řádku.
 
-## 3. Nastavení Google Disku (jednorázově)
+Funguje to na jakémkoli statickém hostingu (Netlify, Cloudflare Pages, vlastní server). Podmínkou je HTTPS.
 
-Názvy položek v Google Cloud Console se občas mění, ale postup je takový:
+## 3. Nastavení Google Disku (jednorázově, nepovinné)
+
+Bez Disku Úkolníček funguje normálně, jen se data nepřenášejí mezi zařízeními automaticky. Každý, kdo si aplikaci zveřejní sám, potřebuje vlastní **Client ID** od Googlu. Názvy položek v Google Cloud Console se občas mění, postup je ale takový:
 
 1. Otevři [console.cloud.google.com](https://console.cloud.google.com) a vytvoř nový projekt, např. `Ukolnicek`.
 2. **APIs & Services → Library** → vyhledej **Google Drive API** → **Enable**.
 3. **OAuth consent screen** (v novější konzoli **Google Auth Platform**):
    - typ aplikace **External**, název `Úkolníček`, tvůj e-mail jako kontakt,
-   - stav nech **Testing** (vývojářský režim),
-   - v **Test users / Audience** přidej svůj Gmail (jen přidaní uživatelé se mohou přihlásit),
-   - v **Scopes / Data access** přidej `https://www.googleapis.com/auth/drive.appdata`.
+   - stav nech **Testing**,
+   - v **Test users / Audience** přidej účty Google, které se mají přihlašovat (jen ty se přihlásí, v režimu Testing až 100 lidí),
+   - v **Scopes / Data access** přidej `https://www.googleapis.com/auth/drive.appdata` (jen skrytá složka aplikace).
 4. **Credentials / Clients → Create credentials → OAuth client ID**:
    - typ **Web application**,
-   - **Authorized JavaScript origins**: `https://rozmahel.github.io` a pro testování `http://localhost:8000`,
+   - **Authorized JavaScript origins**: adresa, kde aplikace běží (např. `https://tvoje-jmeno.github.io`), a pro zkoušení `http://localhost:8000`,
    - Redirect URI nejsou potřeba.
 5. Zkopíruj **Client ID** (končí `.apps.googleusercontent.com`).
-6. V Úkolníčku: **Nastavení → Synchronizace** → vlož Client ID (a volitelně e-mail účtu Google, aby se nenabízel výběr účtu) → **Přihlásit k Disku**.
+6. V Úkolníčku: **Nastavení → Synchronizace** → vlož Client ID (volitelně i e-mail účtu Google, aby se nenabízel výběr účtu) → **Přihlásit k Disku**.
 
-Při prvním přihlášení Google ukáže varování, že aplikace není ověřená. To je u vlastních aplikací v režimu Testing normální: **Pokračovat** (případně *Advanced → Go to Úkolníček*). Pak povol přístup k datům aplikace na Disku.
+Při prvním přihlášení Google upozorní, že aplikace není ověřená. U vlastní aplikace v režimu Testing je to normální: **Pokračovat** (případně *Advanced → Go to Úkolníček*) a povol přístup k datům aplikace.
 
-Client ID není tajný klíč, bezpečnost hlídá seznam povolených adres a testovacích uživatelů v Google Cloud. Přihlašovací token se ukládá jen v tvém prohlížeči.
+Client ID není tajný klíč, bezpečnost hlídá seznam povolených adres a testovacích uživatelů. Přihlášení platí asi hodinu, potom stačí jedno klepnutí na obnovení. Token se ukládá jen v prohlížeči.
 
-## 4. Jak funguje synchronizace
+## 4. Záloha a přenos dat
 
-- Data se průběžně ukládají **v zařízení** (IndexedDB). Aplikace funguje i bez internetu.
-- **↑ Nahrát** (ručně) uloží aktuální stav jako nový soubor `ukolnicek_RRRR-MM-DDTHH-MM-SS.json` do skryté složky aplikace. Na Disku se drží posledních 10 verzí, starší se mažou.
-- **↓ Stáhnout** nabídne seznam verzí a vybranou nahradí data v zařízení. Současný stav se předtím uloží do **Nastavení → Místní zálohy** (posledních 5).
-- **Po otevření aplikace** se novější verze stáhne sama, pokud tady nejsou neuložené změny (podrobnosti výš u verze 2.4). Porovnává se otisk dat v zařízení s otiskem z poslední synchronizace a čas souboru na serveru Googlu, ne hodiny zařízení. Když se změnilo obojí, aplikace se zeptá.
-- Když se chystáš nahrát, ale na Disku je novější verze z jiného zařízení, aplikace se zeptá, jestli ji nechceš nejdřív stáhnout.
-- Mráček v levém panelu (na mobilu v horní liště):
+### Google Disk
+- **↑ Nahrát** (ručně) uloží aktuální stav jako novou zálohu. Na Disku se drží posledních 10 verzí.
+- **↓ Stáhnout** nahradí data v zařízení zálohou z Disku: buď rovnou nejnovější, nebo vybranou z posledních 10 (podle nastavení).
+- **Po otevření aplikace** se novější verze z Disku stáhne sama, když v zařízení nemáš neuložené změny. Když se změnilo obojí, aplikace se zeptá: verze z Disku, tvoje, nebo obě spojené. Jde to vypnout v **Nastavení → Synchronizace**.
+- Mráček v levém panelu (na mobilu nahoře):
   - **šedý přeškrtnutý**: Disk není připojený,
-  - **žlutý**: přihlášení vypršelo (token od Googlu platí asi hodinu). Po otevření aplikace se obnoví prvním klepnutím kamkoli do aplikace, jinak klepni na mráček,
-  - **zelený**: připojeno, u něj čas poslední synchronizace,
-  - **oranžová tečka**: máš změny, které nejsou na Disku. Tečka u ↓ znamená, že na Disku je novější verze.
-- Skrytou složku aplikace na Disku běžně nevidíš. Smazat ji jde v Disku přes **Nastavení → Správa aplikací → Úkolníček → Smazat skrytá data aplikace**.
+  - **žlutý**: přihlášení vypršelo, obnoví ho první klepnutí do aplikace,
+  - **zelený**: připojeno,
+  - **oranžová tečka**: máš změny, které ještě nejsou na Disku.
 
-### Obrázky
+### Co se děje při stažení, a jak se vrátit
+- Před každým stažením z Disku (i automatickým), obnovením nebo importem se uloží **místní záloha**. Najdeš je v **Nastavení → Synchronizace → Místní zálohy**, kde je jedním klikem obnovíš.
+- Po automatickém stažení je v oznámení tlačítko **Vrátit**.
+- Po stažení stačí pokračovat v práci. Až něco změníš, objeví se oranžová tečka a změny nahraješ šipkou ↑.
 
-Obrázky se ukládají jen v zařízení, kde byly vloženy. Do zálohy na Disku jde jen jejich ID a název. Na jiném zařízení se místo nich ukáže rámeček *„název – obrázek není zálohovaný“*. Na původním zařízení zůstanou i po stažení zálohy.
+### Soubor se zálohou (bez Disku)
+- **Nastavení → Synchronizace → Exportovat do souboru** stáhne všechna data jako `.json`. Hodí se jako ruční záloha nebo pro přenos na jiné zařízení.
+- **Importovat ze souboru…** data ze souboru přidá k těm v zařízení. Stránky, hodiny a předměty se stejným ID přepíše, ostatní nechá, nastavení převezme ze souboru. Před importem se uloží místní záloha.
+- Exportovaný soubor obsahuje všechny tvoje poznámky. Nenahrávej ho do veřejného repozitáře.
 
-## 5. Přechod z Claude verze
+### Nové zařízení
+1. Otevři aplikaci a přidej si ji na plochu.
+2. S Diskem: **Nastavení → Synchronizace**, vlož Client ID, přihlas se. Nejnovější záloha se stáhne sama.
+3. Bez Disku: na původním zařízení **Exportovat do souboru**, na novém **Importovat ze souboru…**.
+4. Obrázky se nepřenášejí. Na novém zařízení je případně vlož znovu.
 
-1. Spusť Úkolníček (lokálně nebo na GitHub Pages).
-2. **Nastavení → Importovat ze souboru…** → vyber `import-z-claude.json`.
-3. Obrázky z Claude verze se nepřenesou (jsou uložené u Claude), ukážou se jako rámeček. Vlož je znovu.
+### Smazání dat
+- Jen školní data (předměty, semestry, rozvrh): **Nastavení → Obecné → Smazat školní data**. Poznámky a úkoly zůstanou.
+- Všechno v zařízení: smaž v prohlížeči data webu (úložiště) pro adresu aplikace.
+- Zálohy na Disku: v Google Disku **Nastavení → Správa aplikací → Úkolníček → Smazat skrytá data aplikace**.
 
-## 6. Vydání nové verze
+---
 
-Když změníš jakýkoli soubor, **zvyš `VERSION` na začátku `sw.js`** (např. `ukolnicek-v2.1.1`) a v `app.js` případně `APP_VERSION`. Jinak si zařízení nechají starou verzi z mezipaměti. Po nahrání na GitHub se nová verze nasadí sama: při spuštění nebo návratu do aplikace (stránka se jednou krátce obnoví), případně když aplikaci schováš. Jen když zrovna píšeš nebo máš otevřený dialog, objeví se lišta **„Je dostupná nová verze – Obnovit“**.
+## 5. Pro vývojáře
+
+### Soubory
+
+Kód je rozdělený do malých souborů podle oblastí. Prohlížeč je načte sám jako ES moduly, nic se nesestavuje ani nepřekládá.
+
+| Soubor / složka | K čemu je |
+|---|---|
+| `index.html` | kostra stránky, načte styly a `js/main.js` |
+| `css/` | vzhled po oblastech (na pořadí v `index.html` záleží) |
+| `js/main.js` | start aplikace, globální kliknutí a klávesy, Service Worker |
+| `js/core.js`, `state.js`, `dates.js`, `ui.js`, `router.js`, `sidebar.js`, `pages.js`, `sanitize.js`, `lock.js` | základ: pomůcky, stav v paměti, data a časy, dialogy a oznámení, přepínání pohledů, levý panel, stránky, čištění HTML, zámek |
+| `js/school.js` | školní režim a předměty: výběr předmětu, propojení hodin s předměty, smazání školních dat |
+| `js/store.js` | ukládání do zařízení, otisk dat („neuloženo na Disk“), kontrola dat zvenku |
+| `js/editor/` | editor stránek: vykreslení, klávesy, `/` menu, lišty, menu bloků, odkazy, obrázky, zpět a znovu |
+| `js/views/` | pohledy: Dnes, Index, Rozvrh, Úkoly, Hledání, Nastavení |
+| `js/sync/` | synchronizace s Google Diskem a spojení dvou verzí při kolizi |
+| `js/storage.js` | IndexedDB: data, obrázky, místní zálohy |
+| `js/driveSync.js` | přihlášení Google a práce se soubory na Disku |
+| `navod.html` | návod a novinky (zobrazují se v Nastavení) |
+| `sw.js` | Service Worker: offline režim a nasazení nové verze |
+| `manifest.webmanifest`, `icons/` | instalace na plochu |
+| `tools/`, `tests/`, `package.json` | jen pro vývoj: místní server, kontrola importů, automatické testy |
+
+Každý soubor v `js/` začíná komentářem, co v něm je, a nahoře má seznam importů.
+
+### Testy a kontrola importů
+
+Potřebuješ Node.js. Jednou ve složce projektu:
+
+```bash
+npm install
+npx playwright install chromium
+```
+
+Pak:
+
+- `npm test`: zkontroluje importy mezi moduly a spustí testy v prohlížeči bez okna (synchronizace s napodobeným Diskem, Úkoly, Index, školní režim a další). Na Google se nic neposílá. Snímky obrazovky z testů jsou v `tests/shots/`. Test kompatibility se starou verzí potřebuje složku `_zaloha-v2.6.0`, bez ní poběží proti současné verzi.
+- `npm run fix-imports`: přepočítá řádky `import` a `export` ve všech modulech. Když přesuneš funkci do jiného souboru, stačí ho spustit. Nový modul přidej do seznamu `MODULES` v `tools/fix-imports.js` (určuje pořadí načítání).
+
+### Vydání nové verze
+
+1. Zvyš `VERSION` na začátku `sw.js` a `APP_VERSION` v `js/views/settings.js`. Jinak si zařízení nechají starou verzi z mezipaměti.
+2. Nový soubor (třeba další modul v `js/`) přidej do seznamu `ASSETS` v `sw.js`, jinak nebude fungovat offline.
+3. Novinku dopiš do `navod.html`: zkopíruj blok `<article class="g-rel new">`, postup je v komentáři na začátku souboru.
+4. Pusť `npm test` a nahraj soubory.
+
+Nová verze se v zařízeních nasadí sama, při spuštění nebo návratu do aplikace (stránka se jednou krátce obnoví). Když uživatel zrovna píše nebo má otevřený dialog, objeví se jen lišta **„Je dostupná nová verze – Obnovit“**.
+
+### Formát dat
+
+Data jsou jeden JSON: `pages`, `events`, `settings`, a když jsou použité, i `subjects` a `semesters`.
+
+- **Stránka:** `{id, title, icon, color, parent, order, props, blocks}`. Blok má `id`, `type` (`p`, `h1`–`h3`, `bullet`, `num`, `todo`, `quote`, `callout`, `table`, `divider`, `page`, `image`, `subj`) a `html`. Nadpis může mít `collapsed`, `until` (blok, po který se sbaluje) a `untilVis` (ten blok zůstane vidět).
+- **Blok předmětu** (`subj`): `subj` (ID předmětu), `html` (textová kopie názvu pro starší verze), volitelně `icon`, `it`, `un`, `st`, `hl` (emoji a formát nadpisu).
+- **Hodina v rozvrhu:** `{id, title, type, day, start, end, repeat, date, count, place, who, note, color, subj}`. Prázdné `color` u hodiny s předmětem znamená barvu podle předmětu.
+- **Předmět:** `{id, code, name, credits, sem, end, color, pts, parts:[{id, name, max, pts}], passed, note}`. **Semestr:** `{id, name, target, order}`, volitelně `noStats` (nepočítat do souhrnu) a `hidden` (neukazovat v seznamu Indexu).
+- `settings.school` je v datech jen tehdy, když je školní režim zapnutý.
+- Data zvenku (import, Disk, záloha) se před použitím kontrolují, takže podvržený soubor nemůže v aplikaci spustit kód.
+- Otisk dat (oranžová tečka) nepočítá sbalení nadpisů ani časy úprav. Nové klíče se do dat přidávají jen při použití, takže starší zálohy se načtou beze změny.
+
+### Historie verzí
+
+Podrobný přehled změn je v `navod.html` (v aplikaci: Nastavení → Návod a novinky → Novinky).

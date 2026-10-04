@@ -1,0 +1,96 @@
+/* Úkolníček – Index: souhrn, semestry, karty předmětů (body na kartě), nastavení předmětu */
+.ix-sum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:24px}
+.ix-tile{border:1px solid var(--line);border-radius:13px;background:var(--panel);padding:12px 16px;display:grid;gap:2px;min-width:0}
+.ix-tile .k{font-size:calc(11.5px*var(--fs));font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ix-tile b{font:800 calc(28px*var(--fs))/1.15 var(--f-display);font-variant-numeric:tabular-nums}
+.ix-tile b span{font-size:.6em;font-weight:600;color:var(--muted)}
+.ix-tile small{font-size:calc(12px*var(--fs));color:var(--muted)}
+.ix-sem{margin-bottom:26px}
+.ix-sem-h{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;margin:0 0 10px}
+.ix-sem-h h2{font:700 1.08rem/1.3 var(--f-display);margin:0}
+.ix-sem-h .icon-btn{margin-left:auto}
+.ix-prog{display:flex;align-items:center;gap:8px;font-size:calc(13px*var(--fs));color:var(--fg2);font-variant-numeric:tabular-nums}
+.ix-prog .bar{width:110px;height:6px;border-radius:3px;background:var(--hover);overflow:hidden}
+.ix-prog .bar i{display:block;height:100%;background:var(--ok)}
+.ix-avg{font-size:calc(12.5px*var(--fs));color:var(--muted);font-variant-numeric:tabular-nums}
+.grade{display:inline-grid;place-items:center;min-width:28px;height:24px;padding:0 6px;border-radius:7px;font:700 calc(13.5px*var(--fs)) var(--f-display);background:var(--c-bg);color:var(--c-fg)}
+.grade.none{background:transparent;color:var(--faint);font-weight:500}
+
+/* ---------- karta předmětu (pod sebou přes celou šířku) ---------- */
+.ix-cards{display:grid;gap:10px}
+.ix-card{position:relative;display:grid;gap:9px;padding:12px 12px 10px 18px;border:1px solid var(--line);border-radius:13px;background:var(--panel);overflow:hidden;min-width:0}
+.ix-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c-fg)}
+.ix-card.flash{animation:flash 1.6s ease-out}
+.ixc-h{display:flex;align-items:center;gap:10px;min-width:0}
+.ixc-h>.ti-dot{display:none}
+.ixc-nm{flex:1;min-width:0;margin:0;display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 9px;font:600 calc(15px*var(--fs))/1.3 var(--f-body)}
+.ixc-nm b{font:750 calc(16.5px*var(--fs))/1.25 var(--f-display);color:var(--c-fg);white-space:nowrap}
+.ixc-res{display:flex;align-items:center;gap:8px;flex:none;font-size:calc(13.5px*var(--fs));color:var(--muted);font-variant-numeric:tabular-nums}
+.ixc-res b{font:700 calc(16px*var(--fs)) var(--f-display);color:var(--fg)}
+.ixc-gear{flex:none;color:var(--muted)}
+.ixc-gear svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.ixc-gear:hover{color:var(--fg)}
+.ixc-meta{display:flex;flex-wrap:wrap;align-items:center;margin-top:-7px;font-size:calc(12.5px*var(--fs));color:var(--muted)}
+.ixc-sep{color:var(--faint);padding:0 7px}
+.ixc-num{color:var(--fg2)}
+.ixc-pts{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.ixc-part{display:flex;align-items:center;gap:8px;min-width:0;padding:4px 5px 4px 11px;border:1px solid var(--line);border-radius:9px;background:var(--side);font-size:calc(13.5px*var(--fs));cursor:text}
+.ixc-part .pn{color:var(--fg2);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ixc-part .pv{display:flex;align-items:center;gap:5px;flex:none}
+.ixc-part .pm{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;padding-right:4px}
+.ixc-in{width:60px;padding:4px 6px;border:1px solid var(--line);border-radius:7px;background:var(--panel);text-align:center;font:600 calc(14px*var(--fs)) var(--f-body);font-variant-numeric:tabular-nums;color:var(--fg);outline:none}
+.ixc-in::placeholder{color:var(--faint);font-weight:400}
+.ixc-in:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.ixc-in.bad{border-color:var(--danger);box-shadow:0 0 0 3px color-mix(in srgb,var(--danger) 18%,transparent)}
+/* body nad maximum dílčího hodnocení = bonus */
+.ixc-part.bonus{border-color:color-mix(in srgb,var(--ok) 50%,var(--line));background:color-mix(in srgb,var(--ok) 9%,var(--side))}
+.ixc-part.bonus .ixc-in{border-color:color-mix(in srgb,var(--ok) 70%,transparent);color:var(--ok)}
+.ixc-part.bonus .pm::after{content:"bonus";margin-left:7px;font-size:calc(10.5px*var(--fs));font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ok)}
+.ixc-pass{padding:4px 4px;font-size:calc(13.5px*var(--fs))}
+.ixc-links{display:flex;flex-wrap:wrap;align-items:center;row-gap:2px;padding-top:8px;border-top:1px solid var(--line);font-size:calc(13px*var(--fs));color:var(--muted)}
+.ixc-link{padding:1px 5px;margin:0 -5px;border-radius:5px;color:var(--fg2);font-weight:500}
+.ixc-link:hover{background:var(--hover);color:var(--fg)}
+.ixc-offer{color:var(--accent)}
+.ixc-offer:hover{background:var(--accent-soft);color:var(--accent)}
+.ixc-hint{color:var(--faint)}
+
+/* ---------- zobrazení semestrů (ozubené kolo nahoře) ---------- */
+.ix-cfg svg,.ixc-gear svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.v-tools .ix-cfg{width:36px;height:36px;color:var(--muted)}
+.v-tools .ix-cfg:hover{color:var(--fg)}
+.ix-sumnote{margin:-16px 0 22px}
+.ix-hidnote{margin-top:-6px}
+.ixv{border:1px solid var(--line);border-radius:11px;overflow:hidden}
+.ixv-h,.ixv-r{display:grid;grid-template-columns:minmax(0,1fr) 76px 76px;align-items:center;gap:8px;padding:9px 14px}
+.ixv-h{font-size:calc(11px*var(--fs));font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);background:var(--side);border-bottom:1px solid var(--line)}
+.ixv-h span:not(:first-child){text-align:center}
+.ixv-r+.ixv-r{border-top:1px solid var(--line)}
+.ixv-n{display:grid;min-width:0}
+.ixv-n small{color:var(--muted);font-size:calc(12.5px*var(--fs))}
+.ixv-c{display:grid;place-items:center;cursor:pointer}
+.ixv-c input{width:18px;height:18px;accent-color:var(--accent)}
+
+/* ---------- nastavení předmětu (ozubené kolečko) ---------- */
+.ix-eval{display:grid;gap:8px;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--side)}
+.ix-eval-h{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:22px}
+.ix-part{display:grid;grid-template-columns:minmax(0,1fr) auto 72px 54px 24px;gap:6px;align-items:center}
+.ix-part input{min-width:0}
+.ix-part .inp{padding:6px 8px}
+.ix-part .pm{text-align:center}
+.ix-part .ps{color:var(--muted);font-size:calc(12px*var(--fs))}
+.ix-part .pz{color:var(--muted);font-size:calc(12.5px*var(--fs));font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.ix-eval-f{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.modal.su-m{width:min(580px,100%)}
+.su-semrow{align-items:start}
+
+@media (max-width:640px){
+  .ix-sum{grid-template-columns:1fr 1fr}
+  .ix-sum .ix-tile:last-child{grid-column:1/-1}
+  .su-top{grid-template-columns:1fr 1fr!important}
+  .ix-card{padding:11px 10px 9px 15px}
+  .ixc-h{align-items:flex-start}
+  .ixc-nm{flex-direction:column;gap:0}
+  .ixc-res{padding-top:2px}
+  .ixc-part{flex:1 1 100%;justify-content:space-between}
+  .ix-part{grid-template-columns:minmax(0,1fr) auto 56px 44px 24px;gap:4px}
+}
