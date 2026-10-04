@@ -1,6 +1,7 @@
 /* Úkolníček – Nastavení, motiv a velikost písma, návod a novinky */
 import { $, $$, downloadFile, esc, lsGet, lsSet, plural } from '../core.js';
 import { defaultSettings, S } from '../state.js';
+import { applySkin, skinOf, SKINS, syncThemeColor } from '../theme.js';
 import { LOCK } from '../lock.js';
 import { applyData, dataForSave, META, normalizeImport, saveSettings, stateForStorage, Store } from '../store.js';
 import { HIST } from '../editor/history.js';
@@ -14,14 +15,13 @@ import { autoPull, cloudSvg, Sync, updateSyncUI } from '../sync/sync.js';
 import { placeFrame } from '../editor/images.js';
 
 /* ================= settings ================= */
-const APP_VERSION='3.0.1';
+const APP_VERSION='3.1.0';
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
 const FS_STEPS=[1,1.15,1.3,1.45,1.6];
 function applyTheme(){
   const t=lsGet('uk-theme','auto'), root=document.documentElement;
   if(t==='light'||t==='dark') root.setAttribute('data-theme',t); else root.removeAttribute('data-theme');
-  const dark=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);
-  $$('meta[name="theme-color"]').forEach(mt=>mt.setAttribute('content',dark?'#18161D':'#FCFBFE'));
+  syncThemeColor();
 }
 function applyFontScale(){
   const f=+lsGet('uk-fs',1); const v=FS_STEPS.includes(f)?f:1;
@@ -35,7 +35,7 @@ async function openSettings(focus){
   const st=S.settings, cid=DriveSync.clientId(), ds=DriveSync.state();
   let backups=[]; try{ backups=await Local.listBackups(); }catch(_){}
   const tab=focus==='drive'?'sync':(S.setTab||'general');
-  const theme=lsGet('uk-theme','auto'), fs=+lsGet('uk-fs',1), cnt=schoolCounts();
+  const theme=lsGet('uk-theme','auto'), fs=+lsGet('uk-fs',1), cnt=schoolCounts(), skin=skinOf();
   const seg=(id,opts,cur)=>`<div class="seg" id="${id}">${opts.map(([v,l])=>`<button type="button" class="${String(v)===String(cur)?'on':''}" data-v="${v}">${l}</button>`).join('')}</div>`;
   const m=openModal('Nastavení',`<div class="set">
     <nav class="set-nav" role="tablist">${SET_TABS.map(([k,l,ic])=>`<button type="button" role="tab" data-tab="${k}" class="${k===tab?'on':''}"><span aria-hidden="true">${ic}</span>${l}</button>`).join('')}</nav>
@@ -43,6 +43,9 @@ async function openSettings(focus){
 
     <section class="set-pane" data-pane="general">
       <div class="fld"><label for="st-name">Název</label><input id="st-name" value="${esc(st.name)}" placeholder="Úkolníček"></div>
+      <div class="fld"><span class="lbl" id="st-skin-l">Barevný motiv</span>
+        <div class="skins" id="st-skin" role="group" aria-labelledby="st-skin-l">${SKINS.map(([id,nm])=>`<button type="button" class="skin ${id===skin?'on':''}" data-v="${id}" aria-pressed="${id===skin}"><span class="skin-sw" data-sk="${id}" aria-hidden="true"><b>Aa</b><i></i><i></i><i></i></span><span class="skin-nm">${nm}</span></button>`).join('')}</div>
+        <p class="note">Mění jen barvy a písmo. Světlý nebo tmavý režim se nastavuje ve Vzhledu a funguje nezávisle. Motiv se na rozdíl od něj synchronizuje přes Disk.</p></div>
       <div class="set-sep"></div>
       <label class="chk"><input type="checkbox" id="st-school" ${isSchool()?'checked':''}> <b>Školní režim</b></label>
       <p class="note" style="margin-top:-8px;padding-left:26px">Přidá Rozvrh, Index (předměty, kredity, body a známky), týden výuky a bloky <b>/předmět</b> v poznámkách. Vypnutím se nic nesmaže, jen se to schová.</p>
@@ -130,6 +133,12 @@ async function openSettings(focus){
     saveSettings(); renderSidebar(); renderMain();
   });
   $('#st-clear',m).addEventListener('click',()=>{ if(!LOCK) confirmClearSchool(); });
+  $('#st-skin',m).addEventListener('click',e=>{
+    const b=e.target.closest('[data-v]'); if(!b) return;
+    const v=b.dataset.v;
+    if(skinOf()!==v){ if(v==='default') delete S.settings.theme; else S.settings.theme=v; saveSettings(); applySkin(); }
+    $$('#st-skin .skin',m).forEach(x=>{ x.classList.toggle('on',x===b); x.setAttribute('aria-pressed',String(x===b)); });
+  });
   $('#st-theme',m).addEventListener('click',e=>{ const b=e.target.closest('[data-v]'); if(!b) return; lsSet('uk-theme',b.dataset.v); applyTheme(); $$('#st-theme button',m).forEach(x=>x.classList.toggle('on',x===b)); });
   $('#st-fs',m).addEventListener('click',e=>{ const b=e.target.closest('[data-v]'); if(!b) return; lsSet('uk-fs',+b.dataset.v); applyFontScale(); $$('#st-fs button',m).forEach(x=>x.classList.toggle('on',x===b)); });
   $$('[data-guide]',m).forEach(b=>b.addEventListener('click',()=>openGuide(b.dataset.guide)));
@@ -160,7 +169,7 @@ async function openSettings(focus){
         await Local.addBackup(stateForStorage(),'Před importem ze souboru');
         const n=normalizeImport(d);
         Object.assign(S.pages,n.pages); Object.assign(S.events,n.events); Object.assign(S.subjects,n.subjects); Object.assign(S.semesters,n.semesters);
-        if(d.settings) S.settings=Object.assign(defaultSettings(),n.settings);
+        if(d.settings){ S.settings=Object.assign(defaultSettings(),n.settings); applySkin(); }
         HIST.clear(); Store.queue();
         closeModal(); renderSidebar(); renderMain(); const np=Object.keys(n.pages).length, ne=Object.keys(n.events).length; toast(`Importováno: ${np} ${np===1?'stránka':np<5&&np>0?'stránky':'stránek'}, ${ne} ${ne===1?'událost':ne<5&&ne>0?'události':'událostí'}`);
       }catch(_){ toast('Soubor se nepodařilo načíst. Vyber zálohu exportovanou z Úkolníčku.'); }

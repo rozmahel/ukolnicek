@@ -1,6 +1,7 @@
 /* Úkolníček – Ukládání do zařízení (IndexedDB přes storage.js), otisk dat pro „neuloženo na Disk“, převod importovaných dat */
 import { $, clamp, clone, COLORS, rid, TEXT_TYPES } from './core.js';
 import { defaultSettings, S } from './state.js';
+import { applySkin } from './theme.js';
 import { HIST, recordHistory } from './editor/history.js';
 import { isIndex, isSchool } from './school.js';
 import { renderSidebar } from './sidebar.js';
@@ -155,12 +156,14 @@ function saveSettings(){ Store.queue(); }
 
 function onDataReady(){
   S.ready=true;
+  applySkin();
   renderSidebar(); renderMain();
 }
 function applyData(d){ applyNormalized(normalizeImport(d)); }
 function applyNormalized(n){
   n=clone(n); bumpRev();
   S.pages=n.pages||{}; S.events=n.events||{}; S.subjects=n.subjects||{}; S.semesters=n.semesters||{}; S.settings=Object.assign(defaultSettings(),n.settings);
+  applySkin();
   if((S.view.kind==='schedule'&&!isSchool())||(S.view.kind==='index'&&!isIndex())) S.view={kind:'today'};
   HIST.clear(); hideImgSel(); closePop();
   if(S.view.kind==='page'&&!S.pages[S.view.pageId]) S.view={kind:'today'};

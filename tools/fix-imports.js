@@ -15,7 +15,7 @@ const ROOT = path.resolve(__dirname, '..');
 const JS = path.join(ROOT, 'js');
 const CLASSIC = new Set(['storage.js', 'driveSync.js']); /* klasické skripty (window.Local, window.DriveSync) */
 const MODULES = [
-  'core.js', 'state.js', 'lock.js', 'store.js', 'editor/history.js', 'dates.js', 'pages.js', 'school.js', 'sanitize.js',
+  'core.js', 'state.js', 'theme.js', 'lock.js', 'store.js', 'editor/history.js', 'dates.js', 'pages.js', 'school.js', 'sanitize.js',
   'editor/caret.js', 'sidebar.js', 'router.js', 'editor/render.js', 'editor/blocks.js', 'editor/slash.js',
   'editor/keys.js', 'editor/events.js', 'editor/toolbar.js', 'ui.js', 'editor/menus.js', 'views/schedule.js',
   'views/subjects.js', 'views/tasks.js', 'views/today.js', 'views/search.js', 'views/settings.js', 'sync/sync.js',

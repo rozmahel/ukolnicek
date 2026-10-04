@@ -1,10 +1,12 @@
 /* Úkolníček – Barvy (světlý a tmavý motiv), písma, základní nastavení prvků */
-:root{
+:root,
+.skin-sw[data-sk="default"]{
   --fs:1;
   --bg:#FCFBFE; --side:#F4F2F8; --panel:#FFFFFF; --fg:#1D1A24; --fg2:#4A4556; --muted:#77718A; --faint:#AAA4B8;
   --line:#E6E2EE; --hover:#ECE8F3; --sel:#E6DEFB; --accent:#6A3DE8; --accent-soft:#F1ECFD; --on-accent:#FFFFFF;
-  --danger:#CF3346; --ok:#1C8F63; --scrim:rgba(24,18,38,.34);
+  --danger:#CF3346; --on-danger:#FFFFFF; --ok:#1C8F63; --scrim:rgba(24,18,38,.34);
   --shadow:0 1px 2px rgba(29,26,36,.06),0 12px 32px rgba(29,26,36,.13);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.06);
   --hl-purple-bg:#EFE6FD; --hl-purple-fg:#7436D6;
   --hl-pink-bg:#FCE6F1;   --hl-pink-fg:#B8337A;
   --hl-red-bg:#FDE6E7;    --hl-red-fg:#C22E3C;
@@ -18,10 +20,11 @@
   --f-mono:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --hh:52px;
 }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]),
+:root:not([data-theme="light"]) .skin-sw[data-sk="default"]{
   --bg:#18161D; --side:#131117; --panel:#1F1C25; --fg:#ECE9F3; --fg2:#C8C3D3; --muted:#9A93AA; --faint:#6A6477;
   --line:#2D2A35; --hover:#29252F; --sel:#352C4D; --accent:#A98BFF; --accent-soft:#2A2340; --on-accent:#16121E;
-  --danger:#FF6E7C; --ok:#52D09B; --scrim:rgba(0,0,0,.55);
+  --danger:#FF6E7C; --on-danger:#FFFFFF; --ok:#52D09B; --scrim:rgba(0,0,0,.55);
   --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 36px rgba(0,0,0,.5);
   --hl-purple-bg:#382656; --hl-purple-fg:#D3B8FF;
   --hl-pink-bg:#452136;   --hl-pink-fg:#FF9DCB;
@@ -33,10 +36,11 @@
   --hl-gray-bg:#2E2B35;   --hl-gray-fg:#BFB9CB;
   color-scheme:dark;
 }}
-:root[data-theme="dark"]{
+:root[data-theme="dark"],
+:root[data-theme="dark"] .skin-sw[data-sk="default"]{
   --bg:#18161D; --side:#131117; --panel:#1F1C25; --fg:#ECE9F3; --fg2:#C8C3D3; --muted:#9A93AA; --faint:#6A6477;
   --line:#2D2A35; --hover:#29252F; --sel:#352C4D; --accent:#A98BFF; --accent-soft:#2A2340; --on-accent:#16121E;
-  --danger:#FF6E7C; --ok:#52D09B; --scrim:rgba(0,0,0,.55);
+  --danger:#FF6E7C; --on-danger:#FFFFFF; --ok:#52D09B; --scrim:rgba(0,0,0,.55);
   --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 36px rgba(0,0,0,.5);
   --hl-purple-bg:#382656; --hl-purple-fg:#D3B8FF;
   --hl-pink-bg:#452136;   --hl-pink-fg:#FF9DCB;

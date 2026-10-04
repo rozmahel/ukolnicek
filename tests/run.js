@@ -15,6 +15,8 @@ const { spawn } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const OLD_DIR = ['_zaloha-v2.6.0'].map((d) => path.join(ROOT, d)).find((d) => fs.existsSync(path.join(d, 'index.html')));
+/* předchozí verze 3.0.1 na /prev/ (test motivů porovnává Výchozí vzhled s ní, i po aktualizaci bez oranžové tečky) */
+const PREV_DIR = ['_zaloha-v3.0.1'].map((d) => path.join(ROOT, d)).find((d) => fs.existsSync(path.join(d, 'index.html')));
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml' };
 const only = process.argv.slice(2);
 
@@ -22,6 +24,7 @@ const server = http.createServer((req, res) => {
   let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
   let base = ROOT;
   if (p.startsWith('/old/')) { base = OLD_DIR || ROOT; p = p.slice(4); }
+  else if (p.startsWith('/prev/') && PREV_DIR) { base = PREV_DIR; p = p.slice(5); }
   if (p.endsWith('/')) p += 'index.html';
   const file = path.join(base, p);
   if (!file.startsWith(base)) { res.writeHead(403); return res.end(); }
@@ -35,7 +38,7 @@ const server = http.createServer((req, res) => {
 server.listen(0, 'localhost', async () => {
   const port = server.address().port;
   /* localhost (ne 127.0.0.1): stejný původ, jaký používá aplikace při vývoji */
-  const env = { ...process.env, UK_BASE: `http://localhost:${port}/`, UK_OLD: `http://localhost:${port}/old/` };
+  const env = { ...process.env, UK_BASE: `http://localhost:${port}/`, UK_OLD: `http://localhost:${port}/old/`, UK_PREV: PREV_DIR ? `http://localhost:${port}/prev/` : '' };
   const results = [];
   /* testy běží jako samostatné procesy; asynchronně, aby server v tomto procesu mohl odpovídat */
   const step = (name, cmd, args) => new Promise((resolve) => {

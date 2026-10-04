@@ -7,7 +7,7 @@ Poznámky, úkoly a (volitelně) školní rozvrh a známky na jednom místě. Ú
 - **Stránka Dnes** s blížícími se termíny a stavem úkolů.
 - **Školní režim** (zapíná se v nastavení): týdenní rozvrh, Index předmětů po semestrech s body, známkami A–F a kredity, týden výuky (lichý a sudý) a nadpisy s předměty v poznámkách (`/předmět`).
 - **Zámek** (⌘⇧L), aby se nic nepřesunulo ani nesmazalo omylem.
-- **Světlý a tmavý motiv**, velikost písma 100–160 %.
+- **Barevné motivy** (Výchozí, Papír, Les), každý ve světlé i tmavé variantě, velikost písma 100–160 %.
 
 Podrobný návod je přímo v aplikaci: **Nastavení → Návod a novinky** (soubor `navod.html`).
 
@@ -114,10 +114,11 @@ Kód je rozdělený do malých souborů podle oblastí. Prohlížeč je načte s
 | Soubor / složka | K čemu je |
 |---|---|
 | `index.html` | kostra stránky, načte styly a `js/main.js` |
-| `css/` | vzhled po oblastech (na pořadí v `index.html` záleží) |
+| `css/` | vzhled po oblastech (na pořadí v `index.html` záleží); `themes.css` jsou barevné motivy Papír a Les, Výchozí je v `base.css` |
 | `js/main.js` | start aplikace, globální kliknutí a klávesy, Service Worker |
 | `js/core.js`, `state.js`, `dates.js`, `ui.js`, `router.js`, `sidebar.js`, `pages.js`, `sanitize.js`, `lock.js` | základ: pomůcky, stav v paměti, data a časy, dialogy a oznámení, přepínání pohledů, levý panel, stránky, čištění HTML, zámek |
 | `js/school.js` | školní režim a předměty: výběr předmětu, propojení hodin s předměty, smazání školních dat |
+| `js/theme.js` | barevný motiv: čte `settings.theme`, nastavuje `data-skin` na `<html>` a barvu lišty prohlížeče |
 | `js/store.js` | ukládání do zařízení, otisk dat („neuloženo na Disk“), kontrola dat zvenku |
 | `js/editor/` | editor stránek: vykreslení, klávesy, `/` menu, lišty, menu bloků, odkazy, obrázky, zpět a znovu |
 | `js/views/` | pohledy: Dnes, Index, Rozvrh, Úkoly, Hledání, Nastavení |
@@ -142,7 +143,7 @@ npx playwright install chromium
 
 Pak:
 
-- `npm test`: zkontroluje importy mezi moduly a spustí testy v prohlížeči bez okna (synchronizace s napodobeným Diskem, Úkoly, Index, školní režim a další). Na Google se nic neposílá. Snímky obrazovky z testů jsou v `tests/shots/`. Test kompatibility se starou verzí potřebuje složku `_zaloha-v2.6.0`, bez ní poběží proti současné verzi.
+- `npm test`: zkontroluje importy mezi moduly a spustí testy v prohlížeči bez okna (synchronizace s napodobeným Diskem, Úkoly, Index, školní režim, barevné motivy a další). Na Google se nic neposílá. Snímky obrazovky z testů jsou v `tests/shots/`. Test kompatibility se starou verzí potřebuje složku `_zaloha-v2.6.0`, bez ní poběží proti současné verzi. Test motivů porovnává Výchozí vzhled se složkou `_zaloha-v3.0.1` (bez ní se to porovnání přeskočí).
 - `npm run fix-imports`: přepočítá řádky `import` a `export` ve všech modulech. Když přesuneš funkci do jiného souboru, stačí ho spustit. Nový modul přidej do seznamu `MODULES` v `tools/fix-imports.js` (určuje pořadí načítání).
 
 ### Vydání nové verze
@@ -163,6 +164,7 @@ Data jsou jeden JSON: `pages`, `events`, `settings`, a když jsou použité, i `
 - **Hodina v rozvrhu:** `{id, title, type, day, start, end, repeat, date, count, place, who, note, color, subj}`. Prázdné `color` u hodiny s předmětem znamená barvu podle předmětu.
 - **Předmět:** `{id, code, name, credits, sem, end, color, pts, parts:[{id, name, max, pts}], passed, note}`. **Semestr:** `{id, name, target, order}`, volitelně `noStats` (nepočítat do souhrnu) a `hidden` (neukazovat v seznamu Indexu).
 - `settings.school` je v datech jen tehdy, když je školní režim zapnutý.
+- `settings.theme` (`paper` nebo `forest`) je v datech jen tehdy, když si uživatel vybral jiný barevný motiv než Výchozí. Neznámá hodnota (třeba z novější verze) se bere jako Výchozí a v datech zůstane. Režim světlý / tmavý a velikost textu v datech nejsou, jsou jen v zařízení (`uk-theme`, `uk-fs`). Kopie motivu `uk-skin` v zařízení slouží jen k tomu, aby se motiv nastavil hned při startu, bez poblikání.
 - Data zvenku (import, Disk, záloha) se před použitím kontrolují, takže podvržený soubor nemůže v aplikaci spustit kód.
 - Otisk dat (oranžová tečka) nepočítá sbalení nadpisů ani časy úprav. Nové klíče se do dat přidávají jen při použití, takže starší zálohy se načtou beze změny.
 

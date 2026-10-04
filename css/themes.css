@@ -1,0 +1,114 @@
+/* Úkolníček – Barevné motivy (Papír, Les)
+   Motiv mění jen barvy a písmo. Vybírá se v Nastavení → Obecné a ukládá se do dat jako settings.theme (chybí = Výchozí).
+   Na <html> je pak atribut data-skin="paper|forest". Výchozí motiv žádný atribut nemá a jeho barvy jsou v base.css.
+   Režim světlý/tmavý/auto je nezávislý (data-theme a prefers-color-scheme): motiv × režim = 6 vzhledů.
+   Pravidla:
+   - každý blok níže obsahuje KOMPLETNÍ sadu proměnných (i barvy značek --hl-*), aby se nic ze světlého bloku nepřeneslo do tmavého;
+   - selektory s .skin-sw jsou pro malé ukázky v Nastavení, takže ukázka má stejné barvy jako skutečný motiv;
+   - písma jsou jen systémová (nic se nestahuje); --f-mono bez JetBrains Mono;
+   - světlé odstíny značek (--hl-*-fg) jsou o něco tmavší než ve Výchozím motivu, aby text dosáhl kontrastu aspoň 4,5:1
+     na všech površích (hlídá tests/motivy.test.js). */
+
+/* ===== Papír: béžový papír, patkové písmo ===== */
+:root[data-skin="paper"],
+.skin-sw[data-sk="paper"]{
+  --bg:#F4ECD8; --side:#E6DABC; --panel:#ECE2C8; --fg:#3B3226; --fg2:#54472F; --muted:#645743; --faint:#6A5E4A;
+  --line:#D9CBA8; --hover:#DDD0B0; --sel:#EAD3A5; --accent:#944B29; --accent-soft:#F3E0C8; --on-accent:#FFFAF0;
+  --danger:#B3261E; --on-danger:#FFFAF0; --ok:#296B3F; --scrim:rgba(43,32,16,.34);
+  --shadow:0 1px 2px rgba(59,50,38,.08),0 12px 32px rgba(59,50,38,.16);
+  --hl-purple-bg:#EFE6FD; --hl-purple-fg:#6E33CB;
+  --hl-pink-bg:#FCE6F1; --hl-pink-fg:#9C2B68;
+  --hl-red-bg:#FDE6E7; --hl-red-fg:#A72834;
+  --hl-orange-bg:#FDEDDC; --hl-orange-fg:#8B450A;
+  --hl-yellow-bg:#FBF2C9; --hl-yellow-fg:#715500;
+  --hl-green-bg:#DDF4E8; --hl-green-fg:#146642;
+  --hl-blue-bg:#E1EDFD; --hl-blue-fg:#2156AD;
+  --hl-gray-bg:#EEEDF2; --hl-gray-fg:#5B5766;
+  --f-display:"Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; --f-body:"Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; --f-mono:ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root[data-skin="paper"]:not([data-theme="light"]),
+  :root:not([data-theme="light"]) .skin-sw[data-sk="paper"]{
+    --bg:#1F1A14; --side:#17130E; --panel:#2A231B; --fg:#E6D9C0; --fg2:#CBBD9F; --muted:#A39477; --faint:#988A70;
+    --line:#3D3427; --hover:#352C21; --sel:#4A3A24; --accent:#D08A5C; --accent-soft:#3A2A1D; --on-accent:#1F1A14;
+    --danger:#EF8277; --on-danger:#1F1A14; --ok:#7BC58F; --scrim:rgba(0,0,0,.55);
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 36px rgba(0,0,0,.5);
+    --hl-purple-bg:#382656; --hl-purple-fg:#D3B8FF;
+    --hl-pink-bg:#452136; --hl-pink-fg:#FF9DCB;
+    --hl-red-bg:#4A2227; --hl-red-fg:#FF8C94;
+    --hl-orange-bg:#472D18; --hl-orange-fg:#FFB47A;
+    --hl-yellow-bg:#413816; --hl-yellow-fg:#F2D56C;
+    --hl-green-bg:#16392A; --hl-green-fg:#74DFAC;
+    --hl-blue-bg:#1A2E4B; --hl-blue-fg:#90BCFF;
+    --hl-gray-bg:#2E2B35; --hl-gray-fg:#BFB9CB;
+    color-scheme:dark;
+  }
+}
+:root[data-skin="paper"][data-theme="dark"],
+:root[data-theme="dark"] .skin-sw[data-sk="paper"]{
+  --bg:#1F1A14; --side:#17130E; --panel:#2A231B; --fg:#E6D9C0; --fg2:#CBBD9F; --muted:#A39477; --faint:#988A70;
+  --line:#3D3427; --hover:#352C21; --sel:#4A3A24; --accent:#D08A5C; --accent-soft:#3A2A1D; --on-accent:#1F1A14;
+  --danger:#EF8277; --on-danger:#1F1A14; --ok:#7BC58F; --scrim:rgba(0,0,0,.55);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 36px rgba(0,0,0,.5);
+  --hl-purple-bg:#382656; --hl-purple-fg:#D3B8FF;
+  --hl-pink-bg:#452136; --hl-pink-fg:#FF9DCB;
+  --hl-red-bg:#4A2227; --hl-red-fg:#FF8C94;
+  --hl-orange-bg:#472D18; --hl-orange-fg:#FFB47A;
+  --hl-yellow-bg:#413816; --hl-yellow-fg:#F2D56C;
+  --hl-green-bg:#16392A; --hl-green-fg:#74DFAC;
+  --hl-blue-bg:#1A2E4B; --hl-blue-fg:#90BCFF;
+  --hl-gray-bg:#2E2B35; --hl-gray-fg:#BFB9CB;
+  color-scheme:dark;
+}
+
+/* ===== Les: studená šalvějová zelená, bezpatkové písmo ===== */
+:root[data-skin="forest"],
+.skin-sw[data-sk="forest"]{
+  --bg:#EEF2EC; --side:#D9E3D6; --panel:#E1E9DF; --fg:#1F2A24; --fg2:#37463D; --muted:#4F5F55; --faint:#56655B;
+  --line:#C9D6CC; --hover:#CCD8C9; --sel:#C4DCCB; --accent:#376D4E; --accent-soft:#DCEBDF; --on-accent:#FFFFFF;
+  --danger:#B3261E; --on-danger:#FFFFFF; --ok:#266F44; --scrim:rgba(18,32,24,.34);
+  --shadow:0 1px 2px rgba(31,42,36,.07),0 12px 32px rgba(31,42,36,.15);
+  --hl-purple-bg:#EFE6FD; --hl-purple-fg:#7134D0;
+  --hl-pink-bg:#FCE6F1; --hl-pink-fg:#A02C6A;
+  --hl-red-bg:#FDE6E7; --hl-red-fg:#AB2835;
+  --hl-orange-bg:#FDEDDC; --hl-orange-fg:#90470A;
+  --hl-yellow-bg:#FBF2C9; --hl-yellow-fg:#735700;
+  --hl-green-bg:#DDF4E8; --hl-green-fg:#156844;
+  --hl-blue-bg:#E1EDFD; --hl-blue-fg:#2258B3;
+  --hl-gray-bg:#EEEDF2; --hl-gray-fg:#5B5766;
+  --f-display:system-ui, -apple-system, "Segoe UI", sans-serif; --f-body:system-ui, -apple-system, "Segoe UI", sans-serif; --f-mono:ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root[data-skin="forest"]:not([data-theme="light"]),
+  :root:not([data-theme="light"]) .skin-sw[data-sk="forest"]{
+    --bg:#121A16; --side:#0D1310; --panel:#1A2520; --fg:#D6E2D9; --fg2:#B6C7BB; --muted:#8AA093; --faint:#7D9386;
+    --line:#2B3A32; --hover:#243229; --sel:#2A4636; --accent:#6FB08A; --accent-soft:#1D3328; --on-accent:#0D1310;
+    --danger:#F2837A; --on-danger:#0D1310; --ok:#7BD09A; --scrim:rgba(0,0,0,.55);
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 36px rgba(0,0,0,.5);
+    --hl-purple-bg:#382656; --hl-purple-fg:#D3B8FF;
+    --hl-pink-bg:#452136; --hl-pink-fg:#FF9DCB;
+    --hl-red-bg:#4A2227; --hl-red-fg:#FF8C94;
+    --hl-orange-bg:#472D18; --hl-orange-fg:#FFB47A;
+    --hl-yellow-bg:#413816; --hl-yellow-fg:#F2D56C;
+    --hl-green-bg:#16392A; --hl-green-fg:#74DFAC;
+    --hl-blue-bg:#1A2E4B; --hl-blue-fg:#90BCFF;
+    --hl-gray-bg:#2E2B35; --hl-gray-fg:#BFB9CB;
+    color-scheme:dark;
+  }
+}
+:root[data-skin="forest"][data-theme="dark"],
+:root[data-theme="dark"] .skin-sw[data-sk="forest"]{
+  --bg:#121A16; --side:#0D1310; --panel:#1A2520; --fg:#D6E2D9; --fg2:#B6C7BB; --muted:#8AA093; --faint:#7D9386;
+  --line:#2B3A32; --hover:#243229; --sel:#2A4636; --accent:#6FB08A; --accent-soft:#1D3328; --on-accent:#0D1310;
+  --danger:#F2837A; --on-danger:#0D1310; --ok:#7BD09A; --scrim:rgba(0,0,0,.55);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 36px rgba(0,0,0,.5);
+  --hl-purple-bg:#382656; --hl-purple-fg:#D3B8FF;
+  --hl-pink-bg:#452136; --hl-pink-fg:#FF9DCB;
+  --hl-red-bg:#4A2227; --hl-red-fg:#FF8C94;
+  --hl-orange-bg:#472D18; --hl-orange-fg:#FFB47A;
+  --hl-yellow-bg:#413816; --hl-yellow-fg:#F2D56C;
+  --hl-green-bg:#16392A; --hl-green-fg:#74DFAC;
+  --hl-blue-bg:#1A2E4B; --hl-blue-fg:#90BCFF;
+  --hl-gray-bg:#2E2B35; --hl-gray-fg:#BFB9CB;
+  color-scheme:dark;
+}

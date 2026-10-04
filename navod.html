@@ -104,7 +104,7 @@
 
     <div class="g-card hl-purple wide">
       <h3><span class="g-ic">⚙️</span>Nastavení</h3>
-      <p><b>Obecné:</b> název, školní režim a s ním začátek semestru (číslo týdne a lichý/sudý), rozsah a výška hodin v rozvrhu a víkend, smazání školních dat. <b>Vzhled:</b> světlý nebo tmavý motiv, velikost textu 100–160 %, mini kalendář s čísly týdnů v roce, počet skrytých bloků u sbaleného nadpisu. Motiv a velikost textu platí jen pro dané zařízení. <b>Synchronizace:</b> Google Disk, automatické stažení po otevření (jde vypnout pro dané zařízení), export a import souboru, místní zálohy.</p>
+      <p><b>Obecné:</b> název, barevný motiv (Výchozí, Papír nebo Les; synchronizuje se přes Disk), školní režim a s ním začátek semestru (číslo týdne a lichý/sudý), rozsah a výška hodin v rozvrhu a víkend, smazání školních dat. <b>Vzhled:</b> světlý nebo tmavý motiv (jde libovolně kombinovat s barevným motivem), velikost textu 100–160 %, mini kalendář s čísly týdnů v roce, počet skrytých bloků u sbaleného nadpisu. Světlý nebo tmavý motiv a velikost textu platí jen pro dané zařízení. <b>Synchronizace:</b> Google Disk, automatické stažení po otevření (jde vypnout pro dané zařízení), export a import souboru, místní zálohy.</p>
     </div>
 
   </div>
@@ -113,6 +113,16 @@
 <section data-tab="novinky" data-title="Novinky">
 
   <article class="g-rel new">
+    <h3>Barevné motivy <span class="v">3.1.0</span> <time datetime="2026-10-04">4. 10. 2026</time></h3>
+    <ul>
+      <li><b>Barevný motiv</b> v Nastavení → Obecné: <b>Výchozí</b> (dnešní vzhled beze změny), <b>Papír</b> (béžový papír, patkové písmo) a <b>Les</b> (šalvějová zelená). Mění jen barvy a písmo, rozložení ani funkce se nemění.</li>
+      <li>Každý motiv má světlou i noční variantu. Přepínač světlý / tmavý / podle zařízení ve Vzhledu funguje nezávisle, dohromady je tedy 6 vzhledů.</li>
+      <li>Motiv se ukládá do dat a přenáší se přes Disk na ostatní zařízení. Dokud ho nezměníš, v datech není, takže po aktualizaci nenaskočí oranžová tečka.</li>
+      <li>Papír a Les používají jen systémová písma a fungují offline. Text má u nich kontrast aspoň 4,5:1 (WCAG AA). Světlé varianty proto mají barvy značek předmětů o něco tmavší než Výchozí.</li>
+    </ul>
+  </article>
+
+  <article class="g-rel">
     <h3>Index jde schovat <span class="v">3.0.1</span> <time datetime="2026-10-04">4. 10. 2026</time></h3>
     <ul>
       <li><b>Zobrazovat Index</b> v Nastavení → Obecné pod školním režimem (výchozí je zapnuto). Bez Indexu zůstane rozvrh s vlastními názvy hodin a nadpisy H1, výběr předmětu a bloky /předmět se nenabízejí. Nic se nesmaže, hodiny a nadpisy s předmětem zůstanou, jak jsou.</li>

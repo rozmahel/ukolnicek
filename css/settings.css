@@ -6,7 +6,7 @@
 .set-nav{display:flex;flex-direction:column;gap:2px;padding:12px 10px;border-right:1px solid var(--line);background:var(--side);border-bottom-left-radius:14px}
 .set-nav button{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;text-align:left;color:var(--fg2);font-size:calc(14px*var(--fs))}
 .set-nav button:hover{background:var(--hover);color:var(--fg)}
-.set-nav button.on{background:var(--panel);color:var(--fg);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.set-nav button.on{background:var(--panel);color:var(--fg);font-weight:600;box-shadow:var(--shadow-sm)}
 .set-nav button span{width:20px;text-align:center}
 .set-body{padding:16px 20px 20px;min-width:0}
 .set-pane{display:grid;gap:14px;align-content:start}
@@ -57,3 +57,14 @@ body.navod-page section[data-tab]{margin-bottom:40px}
 body.navod-page section[data-tab]::before{content:attr(data-title);display:block;font:800 calc(28px*var(--fs))/1.2 var(--f-display);margin-bottom:16px}
 /* nastavení, která patří ke školnímu režimu */
 .set-school{display:grid;gap:14px;padding-left:26px}
+/* výběr barevného motivu (Nastavení → Obecné); .skin-sw si barvy bere z css/themes.css a base.css */
+.skins{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.skin{display:grid;gap:7px;padding:6px 6px 9px;border:1.5px solid var(--line);border-radius:12px;background:var(--panel);text-align:center;font-size:calc(13.5px*var(--fs));font-weight:600;color:var(--fg2)}
+.skin:hover{background:var(--hover)}
+.skin.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);color:var(--fg)}
+.skin-sw{display:flex;align-items:center;gap:5px;height:46px;padding:0 10px;border-radius:8px;background:var(--bg);color:var(--fg);border:1px solid var(--line);overflow:hidden}
+.skin-sw b{margin-right:auto;font:600 18px/1 var(--f-body)}
+.skin-sw i{flex:none;width:12px;height:12px;border-radius:50%;border:1px solid var(--line)}
+.skin-sw i:nth-of-type(1){background:var(--side)}
+.skin-sw i:nth-of-type(2){background:var(--panel)}
+.skin-sw i:nth-of-type(3){background:var(--accent);border-color:var(--accent)}

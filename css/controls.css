@@ -80,5 +80,5 @@
 .sp-empty{display:grid;gap:6px;justify-items:start;padding:8px 8px 6px;max-width:290px}
 .sp-empty p{margin:0 0 4px;color:var(--muted);font-size:calc(13px*var(--fs))}
 /* tlačítko pro nevratné akce (smazání školních dat) */
-.btn.pri.danger-pri{background:var(--danger);border-color:var(--danger);color:#fff}
+.btn.pri.danger-pri{background:var(--danger);border-color:var(--danger);color:var(--on-danger)}
 .btn:disabled{opacity:.5;cursor:default}

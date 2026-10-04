@@ -19,6 +19,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <!-- styly po oblastech; na pořadí záleží (pozdější soubor může přebít dřívější) -->
 <link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/themes.css">
 <link rel="stylesheet" href="css/layout.css">
 <link rel="stylesheet" href="css/controls.css">
 <link rel="stylesheet" href="css/editor.css">
@@ -29,8 +30,9 @@
 <link rel="stylesheet" href="css/sync.css">
 <link rel="stylesheet" href="css/responsive.css">
 <script>
-/* motiv a velikost textu jsou uložené jen v tomto zařízení; nastaví se hned, aby stránka nepoblikla */
+/* režim (světlý/tmavý), velikost textu a kopie barevného motivu jsou uložené v tomto zařízení; nastaví se hned, aby stránka nepoblikla */
 try{var t=JSON.parse(localStorage.getItem('uk-theme')||'"auto"');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);
+var k=JSON.parse(localStorage.getItem('uk-skin')||'""');if(k==='paper'||k==='forest')document.documentElement.setAttribute('data-skin',k);
 var f=+JSON.parse(localStorage.getItem('uk-fs')||'1');if(f>1&&f<=1.6)document.documentElement.style.setProperty('--fs',f);}catch(e){}
 </script>
 </head>
