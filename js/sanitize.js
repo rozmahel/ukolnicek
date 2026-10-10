@@ -1,6 +1,7 @@
 /* Úkolníček – Čištění HTML z editoru, odkazy a zástupné obrázky */
 import { plain } from './core.js';
 import { IMGURL } from './store.js';
+import { mentionLabel } from './editor/mention.js';
 
 /* ================= sanitize ================= */
 const ALLOWED=new Set(['B','STRONG','I','EM','U','S','STRIKE','MARK','BR','CODE','IMG','A']);
@@ -30,6 +31,16 @@ function sanitize(html){
       if(ch.nodeType!==1){ ch.remove(); return; }
       walk(ch);
       if(!ALLOWED.has(ch.tagName)){ const f=document.createDocumentFragment(); if(ch.tagName==='DIV'||ch.tagName==='P') f.appendChild(document.createElement('br')); while(ch.firstChild) f.appendChild(ch.firstChild); ch.replaceWith(f); return; }
+      if(ch.tagName==='A'&&(ch.hasAttribute('data-page')||ch.hasAttribute('data-subj'))){
+        /* odkaz na stránku nebo předmět (@): jen bezpečné ID, text podle aktuálního názvu */
+        const kind=ch.hasAttribute('data-page')?'page':'subj', id=ch.getAttribute('data-'+kind)||'', old=ch.textContent;
+        [...ch.attributes].forEach(a=>ch.removeAttribute(a.name));
+        if(!/^[A-Za-z0-9_-]{1,64}$/.test(id)){ ch.replaceWith(document.createTextNode(old)); return; }
+        const lb=mentionLabel(kind,id);
+        ch.setAttribute('data-'+kind,id); ch.setAttribute('class','mention'+(lb==null?' gone':'')); ch.setAttribute('contenteditable','false');
+        ch.textContent=lb==null?(old||'Smazáno'):lb;
+        return;
+      }
       if(ch.tagName==='A'){
         const href=normUrl(ch.getAttribute('href'));
         [...ch.attributes].forEach(a=>ch.removeAttribute(a.name));

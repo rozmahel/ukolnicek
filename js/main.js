@@ -6,10 +6,10 @@ import { initStore, isDirty, META, savePage, saveSettings, Store } from './store
 import { redo, undo } from './editor/history.js';
 import { fmtTime, fromMin, parseD, weeksBetween, ymd } from './dates.js';
 import { createPage, curPage, emptyCell, newBlock, pTitle, revealBlock } from './pages.js';
-import { isSchool } from './school.js';
+import { gotoSubject, isSchool } from './school.js';
 import { isBlank } from './sanitize.js';
 import { focusBlock, focusEl, focusLine } from './editor/caret.js';
-import { closeSide, openSide, renderSidebar } from './sidebar.js';
+import { closeSide, initTreeDrag, openSide, renderSidebar } from './sidebar.js';
 import { go, renderMain } from './router.js';
 import { ctxOf, renderPage, rerenderBlocks, rerenderProps } from './editor/render.js';
 import { applyTemplate } from './editor/blocks.js';
@@ -28,11 +28,15 @@ import { openLinkPop } from './editor/links.js';
 import { initImages, selectImage } from './editor/images.js';
 
 /* posluchače ostatních modulů; pořadí je stejné jako dřív v jednom souboru app.js (na pořadí registrace záleží) */
-initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings(); initImages(); initIndex();
+initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings(); initImages(); initIndex(); initTreeDrag();
 
 /* ================= global actions ================= */
 document.addEventListener('click',e=>{
   if(e.target.closest('.pop,.modal,#fmt,#cellbar,#slash,#imgframe')) return;
+  /* odkaz na stránku nebo předmět (@) */
+  const mn=e.target.closest&&e.target.closest('a.mention');
+  if(mn){ e.preventDefault(); if(mn.classList.contains('gone')) return toast('Stránka nebo předmět už neexistuje.');
+    if(mn.dataset.page) go({kind:'page',pageId:mn.dataset.page}); else if(isSchool()) gotoSubject(mn.dataset.subj); return; }
   const lk=e.target.closest&&e.target.closest('a.lnk');
   if(lk){
     if(!lk.closest('[contenteditable="true"]')) return; /* mimo editor (Úkoly) se otevře normálně v nové kartě */
@@ -101,9 +105,10 @@ document.addEventListener('click',e=>{
     case 'task-check': toggleTask(a.dataset.k); break;
     case 'goto-task': { const t=taskByKey(a.dataset.k); if(t) revealBlock(t.pg.id,t.b.id,false); break; }
     case 'goto-sec': revealBlock(a.dataset.p,a.dataset.b,true); break;
+    case 'goto-blk': revealBlock(a.dataset.p,a.dataset.b,false); break;
     case 'subj': { const su=S.subjects[a.dataset.id]; if(su) openSubjectModal(su); break; }
     case 'subj-new': openSubjectModal(null,a.dataset.sem?{sem:a.dataset.sem}:null); break;
-    case 'ix-notes': case 'ix-evs': case 'ix-tasks': case 'ix-link': ixAction(act,a); break;
+    case 'ix-notes': case 'ix-ment': case 'ix-evs': case 'ix-tasks': case 'ix-link': ixAction(act,a); break;
     case 'ix-view': openIndexView(); break;
     case 'sem-new': openSemModal(null); break;
     case 'sem-edit': { const sm=S.semesters[a.dataset.id]; if(sm) openSemModal(sm); break; }

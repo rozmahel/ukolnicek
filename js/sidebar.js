@@ -1,10 +1,12 @@
 /* Úkolníček – Levý panel: menu, strom projektů, mini kalendář */
 import { $, DAYS, DAYS_FULL, esc, ICONS } from './core.js';
 import { MONTHS_NOM, S } from './state.js';
-import { updateSaving } from './store.js';
+import { LOCK } from './lock.js';
+import { savePage, updateSaving } from './store.js';
 import { isoWeek, mondayOf, parseD, weekInfo, weekNo, weeksBetween, ymd } from './dates.js';
-import { kids, pIcon, pTitle } from './pages.js';
+import { curPage, kids, pIcon, pTitle } from './pages.js';
 import { isIndex, isSchool } from './school.js';
+import { renderPage } from './editor/render.js';
 import { shownTasks } from './views/tasks.js';
 import { updateSyncUI } from './sync/sync.js';
 
@@ -67,8 +69,46 @@ function renderMiniCal(){
 }
 
 
+/* ---- přesouvání projektů tažením myší (na dotyk zůstává menu ⋯ Posunout nahoru/dolů) ----
+   puštění nad položkou = před ni, pod polovinou = za ni, na stejnou úroveň jako ona */
+let td=null, tdJust=0;
+function tdClear(){ document.querySelectorAll('.ti.drop-before,.ti.drop-after,.ti.ti-dragging').forEach(x=>x.classList.remove('drop-before','drop-after','ti-dragging')); document.body.classList.remove('tree-drag'); }
+const isInside=(id,anc)=>{ let p=S.pages[id]; for(let n=0;p&&n<50;n++){ if(p.id===anc) return true; p=S.pages[p.parent]; } return false; };
+function tdTarget(x,y,drag){
+  const el=document.elementFromPoint(x,y), it=el&&el.closest&&el.closest('#side .ti'); if(!it) return null;
+  const id=$('.ti-main',it).dataset.id; if(isInside(id,drag)) return null;   /* sám na sebe ani do vlastních podstránek ne */
+  const rc=it.getBoundingClientRect(); return {it,id,after:y>rc.top+rc.height/2};
+}
+function initTreeDrag(){
+  const side=$('#side');
+  side.addEventListener('pointerdown',e=>{
+    td=null; if(LOCK||e.button!==0||e.pointerType!=='mouse') return;
+    const it=e.target.closest('.ti'); if(!it||e.target.closest('.ti-acts,.ti-tog')) return;
+    td={id:$('.ti-main',it).dataset.id,it,x:e.clientX,y:e.clientY,on:false};
+  });
+  document.addEventListener('pointermove',e=>{
+    if(!td) return; if(!(e.buttons&1)){ td=null; tdClear(); return; }
+    if(!td.on){ if(Math.hypot(e.clientX-td.x,e.clientY-td.y)<6) return; td.on=true; td.it.classList.add('ti-dragging'); document.body.classList.add('tree-drag'); }
+    e.preventDefault();
+    document.querySelectorAll('.ti.drop-before,.ti.drop-after').forEach(x=>x.classList.remove('drop-before','drop-after'));
+    const t=tdTarget(e.clientX,e.clientY,td.id); if(t) t.it.classList.add(t.after?'drop-after':'drop-before');
+  });
+  document.addEventListener('pointerup',e=>{
+    if(!td) return; const d=td; td=null; if(!d.on) return;
+    tdJust=Date.now(); const t=tdTarget(e.clientX,e.clientY,d.id); tdClear(); if(!t) return;
+    const pg=S.pages[d.id], tg=S.pages[t.id]; if(!pg||!tg) return;
+    const par=tg.parent||null, moved=(pg.parent||null)!==par;
+    const sib=kids(par).filter(x=>x.id!==pg.id); let i=sib.findIndex(x=>x.id===tg.id); if(t.after) i++;
+    sib.splice(i,0,pg); pg.parent=par;
+    sib.forEach((x,k)=>{ if(x.order!==k+1||x===pg){ x.order=k+1; savePage(x,0); } });
+    renderSidebar(); if(moved&&curPage()===pg) renderPage(pg);
+  });
+  /* klik hned po puštění neotevírá projekt */
+  side.addEventListener('click',e=>{ if(Date.now()-tdJust<250){ e.stopPropagation(); e.preventDefault(); } },true);
+}
+
 /* levý panel na mobilu (vysouvací) */
 function openSide(){ $('#side').classList.add('open'); $('#scrim').classList.add('open'); }
 function closeSide(){ $('#side').classList.remove('open'); $('#scrim').classList.remove('open'); }
 
-export { closeSide, openSide, renderSidebar };
+export { closeSide, initTreeDrag, openSide, renderSidebar };

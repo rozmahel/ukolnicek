@@ -10,6 +10,7 @@ import { renderSidebar } from '../sidebar.js';
 import { renderMain } from '../router.js';
 import { closeModal, openModal, openPop, toast } from '../ui.js';
 import { allTasks } from './tasks.js';
+import { mentionsOf } from '../editor/mention.js';
 
 /* ================= Index: databáze předmětů, kredity, body a známky ================= */
 /* stupnice VUT: [známka, od bodů, slovně, číselně] */
@@ -29,9 +30,12 @@ function subjPoints(su){
 }
 function subjMax(su){ const parts=su.parts||[]; if(!parts.length||parts.some(p=>num(p.max)==null)) return null; return parts.reduce((a,p)=>a+num(p.max),0); }
 const gradeOf=pts=>pts==null?null:GRADES.find(g=>pts>=g[1]);
-function subjGrade(su){ return su.end==='z'?null:gradeOf(subjPoints(su)); }
-/* kredity se počítají, až je známka A–E (u zápočtu po zaškrtnutí „udělen“) */
-function subjDone(su){ if(su.end==='z') return !!su.passed; const g=subjGrade(su); return !!g&&g[0]!=='F'; }
+/* známka podle bodů bez ohledu na zápočet (jen pro nápovědu na kartě) */
+function rawGrade(su){ return su.end==='z'?null:gradeOf(subjPoints(su)); }
+/* známka platí, až je zaškrtnutý zápočet (u všech typů ukončení) */
+function subjGrade(su){ return su.passed?rawGrade(su):null; }
+/* kredity se počítají, až je zápočet a známka A–E (u předmětu jen se zápočtem stačí zápočet) */
+function subjDone(su){ if(!su.passed) return false; if(su.end==='z') return true; const g=subjGrade(su); return !!g&&g[0]!=='F'; }
 const subjCr=su=>num(su.credits)||0;
 function wavg(list){ let c=0,s=0; list.forEach(su=>{ const g=subjGrade(su), cr=subjCr(su); if(g&&g[0]!=='F'&&cr){ c+=cr; s+=cr*g[3]; } }); return c?s/c:null; }
 /* výchozí název semestru podle začátku výuky (nebo dneška) */
@@ -41,33 +45,37 @@ function semName(d){
 }
 function gradeChip(su){
   if(su.end==='z') return su.passed?'<span class="grade hl-green" title="Zápočet udělen">✓</span>':'<span class="grade none">–</span>';
-  const g=subjGrade(su); return g?`<span class="grade hl-${GRADE_HL[g[0]]}" title="${g[2]} (${fmtNum(g[3])})">${g[0]}</span>`:'<span class="grade none">–</span>';
+  const g=subjGrade(su); if(g) return `<span class="grade hl-${GRADE_HL[g[0]]}" title="${g[2]} (${fmtNum(g[3])})">${g[0]}</span>`;
+  return `<span class="grade none" ${rawGrade(su)?'title="Známka se ukáže po zaškrtnutí zápočtu"':''}>–</span>`;
 }
 /* nesplněné úkoly pod bloky předmětu v poznámkách */
 const openTasksOf=id=>allTasks().filter(t=>!t.done&&t.subj===id);
 
 /* ---- karta předmětu ---- */
 function resHtml(su){
+  if(su.end==='z') return gradeChip(su);
   const pts=subjPoints(su), mx=subjMax(su);
   return `<span class="ixc-sum">${pts==null?'– b':`<b>${fmtNum(pts)}</b>${mx?` / ${fmtNum(mx)}`:''} b`}</span>${gradeChip(su)}`;
 }
 function metaHtml(su){
-  const g=subjGrade(su), cr=subjCr(su);
-  return [cr?`${fmtNum(cr)} kr.`:'bez kreditů',esc(endOf(su.end)[1]),g?`<span class="ixc-num" title="Slovně a číselně">${g[2]} · ${fmtNum(g[3])}</span>`:''].filter(Boolean).join('<span class="ixc-sep">·</span>');
+  const g=subjGrade(su), cr=subjCr(su), wait=!su.passed&&rawGrade(su);
+  return [cr?`${fmtNum(cr)} kr.`:'bez kreditů',esc(endOf(su.end)[1]),wait?'<span class="ixc-wait">známka čeká na zápočet</span>':'',g?`<span class="ixc-num" title="Slovně a číselně">${g[2]} · ${fmtNum(g[3])}</span>`:''].filter(Boolean).join('<span class="ixc-sep">·</span>');
 }
 function ptField(id,name,val,max){
   const n=num(val), mx=num(max), bonus=n!=null&&mx!=null&&n>mx;
   return `<label class="ixc-part ${bonus?'bonus':''}"><span class="pn">${esc(name)}</span><span class="pv"><input class="ixc-in ${isNum(val)?'':'bad'}" data-part="${esc(id)}" type="text" inputmode="decimal" value="${esc(val??'')}" placeholder="–" autocomplete="off" aria-label="Body – ${esc(name)}">${mx!=null?`<span class="pm">/ ${fmtNum(mx)}</span>`:''}</span></label>`;
 }
 function partsHtml(su){
-  const parts=su.parts||[];
-  let h=parts.length?parts.map(p=>ptField(p.id,p.name||'Bez názvu',p.pts,p.max)).join(''):ptField('','Body celkem',su.pts,'');
-  if(su.end==='z') h+=`<label class="chk ixc-pass"><input type="checkbox" class="ixc-passed" ${su.passed?'checked':''}> Zápočet udělen</label>`;
-  return h;
+  /* předmět jen se zápočtem nemá body, jen zaškrtávátko */
+  const parts=su.parts||[], pass=`<label class="chk ixc-pass"><input type="checkbox" class="ixc-passed" ${su.passed?'checked':''}> Zápočet udělen</label>`;
+  if(su.end==='z') return pass;
+  return (parts.length?parts.map(p=>ptField(p.id,p.name||'Bez názvu',p.pts,p.max)).join(''):ptField('','Body celkem',su.pts,''))+pass;
 }
 function linksHtml(su){
   const occ=subjOcc(su.id), open=openTasksOf(su.id), out=[];
   if(occ.length) out.push(`<button class="ixc-link" data-act="ix-notes" data-id="${su.id}" data-popanchor>Poznámky${occ.length>1?` · ${occ.length}`:''}</button>`);
+  const men=mentionsOf('subj',su.id);
+  if(men.length) out.push(`<button class="ixc-link" data-act="ix-ment" data-id="${su.id}" data-popanchor>Zmínky · ${men.length}</button>`);
   if(open.length) out.push(`<button class="ixc-link" data-act="ix-tasks" data-id="${su.id}" data-popanchor>${open.length} ${plural(open.length,'nesplněný úkol','nesplněné úkoly','nesplněných úkolů')}</button>`);
   return out.join('<span class="ixc-sep">·</span>');
 }
@@ -91,7 +99,7 @@ const statSubs=()=>Object.values(S.subjects).filter(inStats);
 function sumInner(subs){
   const earned=subs.filter(subjDone).reduce((a,su)=>a+subjCr(su),0), enrolled=subs.reduce((a,su)=>a+subjCr(su),0), avg=wavg(subs);
   return `<div class="ix-tile"><span class="k">Získané kredity</span><b>${fmtNum(earned)}</b><small>ze ${fmtNum(enrolled)} zapsaných</small></div>
-      <div class="ix-tile"><span class="k">Splněné předměty</span><b>${subs.filter(subjDone).length}<span> / ${subs.length}</span></b><small>známka A–E nebo udělený zápočet</small></div>
+      <div class="ix-tile"><span class="k">Splněné předměty</span><b>${subs.filter(subjDone).length}<span> / ${subs.length}</span></b><small>zápočet a známka A–E</small></div>
       <div class="ix-tile"><span class="k">Vážený průměr</span><b>${avg!=null?fmtNum(avg):'–'}</b><small>ze splněných, váhou jsou kredity</small></div>`;
 }
 function semHeadInner(sem,list){
@@ -160,6 +168,12 @@ function ixAction(act,a){
     openPop(a,`<div class="pop-h">${esc(subjShort(su))} v poznámkách</div>`+occ.map((o,i)=>{ const r=pathOf(o.pg); return `<button class="pop-item" data-v="${i}">${pIcon(r[0])}<span>${esc(r.map(pTitle).join(' › '))}</span></button>`; }).join(''),v=>{ const o=occ[+v]; if(o) revealBlock(o.pg.id,o.b.id,true); });
     return;
   }
+  if(act==='ix-ment'){
+    const men=mentionsOf('subj',su.id); if(!men.length) return;
+    if(men.length===1) return revealBlock(men[0].pg.id,men[0].b.id,false);
+    openPop(a,`<div class="pop-h">Zmínky · ${esc(subjShort(su))}</div>`+men.map((o,i)=>{ const r=pathOf(o.pg), tx=plain(o.b.html||'').trim(); return `<button class="pop-item" data-v="${i}">${pIcon(r[0])}<span>${esc(r.map(pTitle).join(' › '))}${tx?`<small>${esc(tx.length>60?tx.slice(0,60)+'…':tx)}</small>`:''}</span></button>`; }).join(''),v=>{ const o=men[+v]; if(o) revealBlock(o.pg.id,o.b.id,false); });
+    return;
+  }
   if(act==='ix-tasks'){
     const ts=openTasksOf(su.id);
     openPop(a,`<div class="pop-h">Nesplněné úkoly · ${esc(subjShort(su))}</div>`+ts.map(t=>{ const tx=plain(t.html).trim()||'Bez textu'; return `<button class="pop-item" data-v="${esc(t.key)}"><span class="pi-ic">☐</span><span>${esc(tx.length>70?tx.slice(0,70)+'…':tx)}</span></button>`; }).join(''),v=>{ const t=allTasks().find(q=>q.key===v); if(t) revealBlock(t.pg.id,t.b.id,false); });
@@ -201,7 +215,7 @@ function openSubjectModal(su,preset){
     <div class="grid2 su-semrow"><div class="fld"><label for="su-sem">Semestr</label><select id="su-sem">${sems.map(s=>`<option value="${s.id}" ${su.sem===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>${!isNew&&noSem?'<p class="note">Předmět zatím nemá semestr, vyber ho.</p>':''}</div>
       <div class="fld"><label for="su-end">Ukončení</label><select id="su-end">${ENDS.map(([k,l])=>`<option value="${k}" ${su.end===k?'selected':''}>${l}</option>`).join('')}</select></div></div>
     <div class="fld"><span class="lbl">Barva</span><div class="swatches" id="su-color" style="padding-left:0">${COLORS.map(c=>`<button type="button" class="sw hl-${c} ${su.color===c?'on':''}" data-c="${c}" aria-label="${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}</div></div>
-    <div class="ix-eval">
+    <div class="ix-eval" id="su-eval">
       <div class="ix-eval-h"><span class="lbl">Dílčí hodnocení</span><span class="note" id="su-sum"></span></div>
       <div id="su-parts"></div>
       <div class="ix-eval-f"><button type="button" class="linkbtn" id="su-addpart">＋ Dílčí hodnocení</button></div>
@@ -216,7 +230,7 @@ function openSubjectModal(su,preset){
     $('#su-parts',m).innerHTML=parts.map((p,i)=>`<div class="ix-part su-pdef" data-i="${i}"><input class="inp pn" value="${esc(p.name||'')}" placeholder="Cvičení, test, zkouška…" aria-label="Název"><span class="ps">max</span><input class="inp pm" value="${esc(p.max??'')}" inputmode="decimal" placeholder="–" aria-label="Maximum bodů"><span class="pz">${String(p.pts??'').trim()?`${esc(p.pts)} b`:''}</span><button type="button" class="icon-btn lk-hide" data-rm="${i}" aria-label="Odebrat">×</button></div>`).join('');
     const mx=subjMax({parts});
     $('#su-sum',m).textContent=parts.length&&mx!=null?`celkem max ${fmtNum(mx)} b`:'';
-    $('#su-pnote',m).textContent=parts.length?'Body do nich zapisuješ přímo na kartě předmětu. Body nad maximum se počítají jako bonus.':'Bez dílčích hodnocení se na kartě zapisují jen body celkem.';
+    $('#su-pnote',m).textContent=(parts.length?'Body do nich zapisuješ přímo na kartě předmětu. Body nad maximum se počítají jako bonus.':'Bez dílčích hodnocení se na kartě zapisují jen body celkem.')+' Známka se ukáže až po zaškrtnutí zápočtu na kartě.';
     applyLock();
   };
   $('#su-parts',m).addEventListener('input',e=>{ const r=e.target.closest('.ix-part'); if(!r) return; const p=parts[+r.dataset.i]; p[e.target.classList.contains('pn')?'name':'max']=e.target.value; const mx=subjMax({parts}); $('#su-sum',m).textContent=parts.length&&mx!=null?`celkem max ${fmtNum(mx)} b`:''; });
@@ -227,6 +241,9 @@ function openSubjectModal(su,preset){
     parts.push({id:rid(),name:'',pts:'',max:''}); drawParts();
     const last=$$('#su-parts .pn',m).pop(); if(last) last.focus();
   });
+  /* u předmětu jen se zápočtem se body nezadávají (dílčí hodnocení se jen schovají, nesmažou) */
+  const endSync=()=>{ $('#su-eval',m).hidden=$('#su-end',m).value==='z'; };
+  $('#su-end',m).addEventListener('change',endSync); endSync();
   $('#su-color',m).addEventListener('click',e=>{ const b=e.target.closest('[data-c]'); if(!b) return; color=b.dataset.c; $$('#su-color .sw',m).forEach(x=>x.classList.toggle('on',x===b)); });
   const del=$('#su-del',m); if(del) del.addEventListener('click',()=>{ if(LOCK) return; const o=S.subjects[su.id]; if(!o) return closeModal(); delete S.subjects[su.id]; Store.queue(); closeModal(); renderSidebar(); renderMain();
     toast(`Předmět ${o.code||o.name||''} smazán`,'Vrátit',()=>{ S.subjects[o.id]=o; Store.queue(); renderSidebar(); renderMain(); }); });
@@ -239,7 +256,7 @@ function openSubjectModal(su,preset){
     const sem=$('#su-sem',m).value;
     const keep=parts.filter(p=>(p.name||'').trim()||String(p.pts??'').trim()||String(p.max??'').trim()).map(p=>({id:p.id||rid(),name:(p.name||'').trim(),pts:String(p.pts??'').trim(),max:String(p.max??'').trim()}));
     const out=Object.assign(su,{code,name,credits:cr===''?'':num(cr),sem,end:$('#su-end',m).value,color,pts:keep.length?'':String(su.pts??''),parts:keep,note:$('#su-note',m).value});
-    delete out.sec; delete out.lostSec; if(out.end!=='z') delete out.passed;   /* vazba na nadpis H1 ze starší verze se už nepoužívá */
+    delete out.sec; delete out.lostSec;   /* vazba na nadpis H1 ze starší verze se už nepoužívá */
     S.subjects[out.id]=out;
     /* blok /předmět si drží textovou kopii názvu pro starší verze aplikace */
     if(old&&subjLabel(old)!==subjLabel(out)) Object.values(S.pages).forEach(pg=>(pg.blocks||[]).forEach(b=>{ if(b.type==='subj'&&b.subj===out.id) b.html=esc(subjLabel(out)); }));

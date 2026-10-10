@@ -8,6 +8,7 @@ import { curPage, pIcon, pTitle } from '../pages.js';
 import { isSchool, subjBlockText, subjLabel } from '../school.js';
 import { imgSrc, isBlank, sanitize } from '../sanitize.js';
 import { hideImgSel, imgSel } from './images.js';
+import { backlinksHtml } from './mention.js';
 
 /* ================= page editor ================= */
 /* blok předmětu (/předmět) se chová jako nadpis H1: sbaluje se a ukončí ho další H1 nebo předmět */
@@ -39,6 +40,7 @@ function renderPage(pg){
     </div>
     ${isEmpty?`<div class="tpl"><span>Začít šablonou:</span><button data-act="tpl" data-v="subject">Předmět</button><button data-act="tpl" data-v="weeks">Přehled týdnů</button><button data-act="tpl" data-v="info">Obecné informace</button></div>`:''}
     <div class="blocks" id="blocks">${renderBlocks(pg)}</div>
+    ${backlinksHtml(pg)}
     <div class="doc-tail" data-act="tail"></div>
   </article>`;
   hist(pg); updateUndoBtns(); applyLock();

@@ -13,6 +13,8 @@ import { blockKeys, lineKeys } from './keys.js';
 import { applyMark, hideCellbar, showCellbar } from './toolbar.js';
 import { toast } from '../ui.js';
 import { handleImageFiles, pickImageBlock, rangeFromPoint } from './images.js';
+import { mentionInput, mentionKey } from './mention.js';
+import { blockEsc, initMultiSel } from './multisel.js';
 
 /* ---- document events ---- */
 const viewEl=$('#view');
@@ -26,6 +28,7 @@ function endDrag(){ dragId=null; $$('.drop-before,.drop-after,.dragging').forEac
 
 /* posluchače a nastavení při startu (volá main.js ve stejném pořadí jako dřív) */
 export function initEvents(){
+  initMultiSel();
   viewEl.addEventListener('input',e=>{ setTypingNow(!!e.inputType&&!/^history/.test(e.inputType)); },true);
   document.addEventListener('input',()=>{ setTypingNow(false); });
   viewEl.addEventListener('input',e=>{
@@ -45,16 +48,17 @@ export function initEvents(){
     if(t.innerHTML==='<br>') t.innerHTML='';
     const x=ctxOf(t); if(!x) return;
     const typed=e.inputType==='insertText';
-    if(x.line){ x.line.html=t.innerHTML; if(typed&&mdLine(x,t)) return; savePage(pg); return; }
+    if(x.line){ x.line.html=t.innerHTML; if(typed&&mdLine(x,t)) return; mentionInput(e,t); savePage(pg); return; }
     x.b.html=t.innerHTML;
     if(typed&&mdBlock(x,t)) return;
+    mentionInput(e,t);
     if(slash.open) updateSlash();
     else if(typed&&e.data==='/'){ const off=caretOffset(t); const before=t.textContent.slice(0,off-1); if(!before||/\s$/.test(before)) openSlash(t,x.b.id,off-1,'slash'); }
     savePage(pg);
   });
   viewEl.addEventListener('keydown',e=>{
     const t=e.target;
-    if(slashKey(e)) return;
+    if(slashKey(e)||mentionKey(e)) return;
     if(t.id==='page-title'){
       if(e.key==='Enter'||(e.key==='ArrowDown'&&onLastLine(t))){ e.preventDefault(); const pg=curPage(); if(!pg.blocks.length){ pg.blocks.push(newBlock('p')); rerenderBlocks(); } const first=$('#blocks .txt'); if(first) focusEl(first,'start'); else { pg.blocks.unshift(newBlock('p')); rerenderBlocks(); focusEl($('#blocks .txt'),0);} }
       return;
@@ -62,6 +66,7 @@ export function initEvents(){
     if(t.classList.contains('cap')){ if(e.key==='Enter'){ e.preventDefault(); const x=ctxOf(t); if(!x) return; let nx=x.pg.blocks[x.bi+1]; if(!nx||!TEXT_TYPES.includes(nx.type)){ nx=newBlock('p'); x.pg.blocks.splice(x.bi+1,0,nx); savePage(x.pg); rerenderBlocks(); } focusBlock(nx.id,0); } return; }
     if(t.classList.contains('pk')||t.classList.contains('pv')){ if(e.key==='Enter'){ e.preventDefault(); if(t.classList.contains('pk')) focusEl(t.nextElementSibling,'end'); else t.blur(); } return; }
     if(!t.classList.contains('txt')) return;
+    if(blockEsc(e,t)) return;
     if((e.metaKey||e.ctrlKey)&&!e.altKey){
       const k=e.key.toLowerCase();
       if(k==='b'||k==='i'||k==='u'){ e.preventDefault(); document.execCommand({b:'bold',i:'italic',u:'underline'}[k]); return; }

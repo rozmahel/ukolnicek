@@ -35,6 +35,12 @@
 .ti-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--fg2);font-size:calc(14.5px*var(--fs))}
 .ti-acts{display:flex;opacity:0;padding-right:3px}
 .ti:hover .ti-acts,.ti:focus-within .ti-acts{opacity:1}
+.ti{position:relative}
+.ti.ti-dragging{opacity:.45}
+.ti.drop-before::before,.ti.drop-after::after{content:"";position:absolute;left:calc(var(--d)*14px + 6px);right:6px;height:2px;border-radius:1px;background:var(--accent);pointer-events:none}
+.ti.drop-before::before{top:-1px}
+.ti.drop-after::after{bottom:-1px}
+body.tree-drag,body.tree-drag *{cursor:grabbing!important;user-select:none}
 .tree-empty{padding:6px 10px;color:var(--muted);font-size:calc(13.5px*var(--fs))}
 .side-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--line);padding:10px 6px 2px;margin-top:8px}
 .side-foot .nv{width:auto}

@@ -33,7 +33,10 @@
 
     <div class="g-card hl-purple">
       <h3><span class="g-ic">📄</span>Stránky a bloky</h3>
-      <p>Projekty a jejich podstránky jsou v levém panelu. ＋ přidá nový, ⋯ u názvu otevře možnosti.</p>
+      <p>Projekty a jejich podstránky jsou v levém panelu. ＋ přidá nový, ⋯ u názvu otevře možnosti. Pořadí změníš tažením myší (na telefonu přes ⋯ → Posunout nahoru/dolů).</p>
+      <p>Tažením myší přes víc bloků vybereš text z nich všech. <kbd>⌘C</kbd> ho zkopíruje i s odrážkami a zaškrtávátky, <kbd>⌘X</kbd> vyjme, <kbd>⌫</kbd> smaže, <kbd>Esc</kbd> výběr zruší.</p>
+      <p><b>Celé bloky</b> vybereš klávesou <kbd>Esc</kbd> při psaní, <kbd>Shift</kbd>+klikem na jiný blok nebo tažením myši z okraje stránky. <kbd>⇧↑</kbd> <kbd>⇧↓</kbd> výběr rozšíří. Pak: lišta nad výběrem (převést na jiný typ, duplikovat, smazat, kopírovat), <kbd>Tab</kbd> odsadí, <kbd>⌥⇧↑</kbd> <kbd>⌥⇧↓</kbd> posune (jde i při psaní v bloku), <kbd>⌘D</kbd> duplikuje, <kbd>⌫</kbd> smaže, <kbd>Enter</kbd> se vrátí k psaní. Druhé <kbd>⌘A</kbd> v bloku vybere všechny bloky.</p>
+      <p><kbd>@</kbd> v textu nabídne termín (dnes, zítra, dny v týdnu, kalendář), odkaz na jinou stránku nebo předmět z Indexu. Termín se vloží jako „12. 10.“, takže úkol hned dostane datum. Odkaz se klikem otevře a jeho text se drží podle aktuálního názvu. Dole na stránce je <b>Odkazuje sem</b>: odkud na ni vedou odkazy. Na kartě předmětu v Indexu jsou to <b>Zmínky</b>.</p>
       <p>Na stránce piš jako v sešitu. <kbd>Enter</kbd> udělá nový řádek, <kbd>/</kbd> otevře nabídku bloků. Blok přesuneš chycením za tečky ⋮⋮, plusem vedle nich přidáš nový. Šipka u nadpisu sbalí sekci. Přes ⋮⋮ u bloku nastavíš, kam až se má nadpis sbalit. U oddělovače si vybereš, jestli se schová taky, nebo zůstane vidět.</p>
     </div>
 
@@ -75,7 +78,7 @@
     <div class="g-card hl-green">
       <h3><span class="g-ic">🎓</span>Index</h3>
       <p>Jediné místo, kde se zakládají předměty. Nejdřív založ <b>semestr</b>, pak do něj přidáváš předměty tlačítkem <b>＋ Předmět</b>. Každý předmět je karta. <b>Body zapisuješ přímo na kartě</b>, buď do jednotlivých dílčích hodnocení (cvičení, test, zkouška), nebo jedním číslem. Body nad maximum se počítají jako bonus.</p>
-      <p><b>Ozubené kolečko</b> na kartě otevře nastavení předmětu: zkratka, název, kredity, semestr, ukončení, barva a dílčí hodnocení (název a maximum). Známka se počítá z celkových bodů podle stupnice A–F (A od 90, B od 80, C od 70, D od 60, E od 50, jinak F), kredity se započítají se známkou A–E, u zápočtu po zaškrtnutí „Zápočet udělen“. Odkazy dole na kartě vedou na poznámky, hodiny v rozvrhu a nesplněné úkoly.</p>
+      <p><b>Ozubené kolečko</b> na kartě otevře nastavení předmětu: zkratka, název, kredity, semestr, ukončení, barva a dílčí hodnocení (název a maximum). Známka se počítá z celkových bodů podle stupnice A–F (A od 90, B od 80, C od 70, D od 60, E od 50, jinak F), známka se ale ukáže až po zaškrtnutí <b>Zápočet udělen</b> na kartě. Kredity se započítají se zápočtem a známkou A–E. U předmětu zakončeného jen zápočtem se body nezadávají, stačí zaškrtnout zápočet. Odkazy dole na kartě vedou na poznámky, hodiny v rozvrhu a nesplněné úkoly.</p>
       <p><b>Ozubené kolo nahoře</b> (vedle „＋ Semestr“) určí, které semestry se počítají do souhrnu a které jsou vidět v seznamu. Hotový semestr tak schováš, nic se nesmaže.</p>
     </div>
 
@@ -113,6 +116,19 @@
 <section data-tab="novinky" data-title="Novinky">
 
   <article class="g-rel new">
+    <h3>Zápočet, výběr bloků, odkazy @, přesouvání projektů <span class="v">3.2.0</span> <time datetime="2026-10-10">10. 10. 2026</time></h3>
+    <ul>
+      <li><b>Zápočet u všech předmětů:</b> na kartě v Indexu je zaškrtávátko „Zápočet udělen“. Známka se ukáže a kredity započítají až se zápočtem, i když body stačí. Do té doby je u karty „známka čeká na zápočet“.</li>
+      <li>Předmět zakončený <b>jen zápočtem</b> nemá body, jen zaškrtávátko. V nastavení předmětu se dílčí hodnocení schovají.</li>
+      <li>Karty v Indexu už nemají <b>barevný pruh</b> vlevo.</li>
+      <li><b>Výběr přes víc bloků:</b> tažením myší vybereš text z několika bloků najednou a zkopíruješ ho (odrážky a zaškrtávátka zůstanou), vyjmeš nebo smažeš.</li>
+      <li><b>Projekty v levém panelu</b> přesuneš tažením myší, čára ukáže, kam se vloží.</li>
+      <li><b>Výběr celých bloků:</b> Esc, Shift+klik nebo tažení z okraje stránky. Vybrané bloky převedeš na jiný typ, odsadíš, posuneš (⌥⇧↑/↓), duplikuješ (⌘D), zkopíruješ nebo smažeš.</li>
+      <li><b>Nabídka @:</b> termín, odkaz na stránku nebo předmět. Stránka ukazuje dole <b>Odkazuje sem</b>, karta předmětu v Indexu <b>Zmínky</b>.</li>
+    </ul>
+  </article>
+
+  <article class="g-rel">
     <h3>Přehlednější nastavení <span class="v">3.1.1</span> <time datetime="2026-10-04">4. 10. 2026</time></h3>
     <ul>
       <li><b>Nastavení</b> je okno s pevnou výškou, které se nikdy neořízne spodní hranou prohlížeče. Posouvá se jen obsah kategorie.</li>

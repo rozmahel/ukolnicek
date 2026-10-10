@@ -196,3 +196,34 @@ a.lnk::after{content:"↗";display:inline-block;font-size:.72em;font-weight:700;
 .sw.sw-none{display:grid;place-items:center;background:var(--bg);border-color:var(--line);color:var(--muted);font-size:calc(13px*var(--fs))}
 .sw.sw-none.on{outline:2px solid var(--fg2);outline-offset:2px}
 .emoji-grid button.on{background:var(--accent-soft)}
+body.xsel #blocks .txt{cursor:text}
+#blocks .gut,#blocks .mk{user-select:none;-webkit-user-select:none}
+
+/* ---------- výběr celých bloků (Esc, Shift+klik, rámeček z okraje) ---------- */
+#blocks > .blk.bsel{background:var(--accent-soft);border-radius:7px;box-shadow:0 0 0 2px var(--accent-soft)}
+body.bmode #blocks .gut{opacity:0}
+.band{position:fixed;z-index:60;border:1px solid color-mix(in srgb,var(--accent) 60%,transparent);background:color-mix(in srgb,var(--accent) 9%,transparent);border-radius:4px;pointer-events:none}
+.bselbar{position:fixed;z-index:65;display:flex;align-items:center;gap:2px;padding:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);font-size:calc(13px*var(--fs))}
+.bselbar[hidden]{display:none}
+.bselbar .bs-n{padding:0 8px 0 6px;color:var(--muted);font-weight:600;white-space:nowrap}
+.bselbar button{padding:5px 9px;border-radius:7px;color:var(--fg2);font-weight:500;white-space:nowrap}
+.bselbar button:hover{background:var(--hover);color:var(--fg)}
+.bselbar button.danger{color:var(--danger)}
+.bselbar .bs-x{font-size:17px;line-height:1;padding:3px 8px;color:var(--muted)}
+
+/* ---------- odkaz na stránku nebo předmět (@) ---------- */
+a.mention{display:inline;padding:0 5px 1px;border-radius:6px;background:var(--accent-soft);color:var(--accent);font-weight:600;text-decoration:none;cursor:pointer;white-space:nowrap;user-select:all}
+a.mention::before{content:"↗";margin-right:3px;font-weight:700;opacity:.7}
+a.mention[data-subj]::before{content:"🎓";margin-right:4px;opacity:1}
+a.mention:hover{background:color-mix(in srgb,var(--accent) 22%,transparent)}
+a.mention.gone{color:var(--muted);background:var(--hover);text-decoration:line-through}
+.men-pop .pi-ic .ti-dot{display:inline-block}
+
+/* ---------- zpětné odkazy dole na stránce ---------- */
+.backlinks{margin:34px 0 0;padding-top:14px;border-top:1px solid var(--line)}
+.bl-h{font-size:calc(11.5px*var(--fs));font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.bl-h span{margin-left:4px;color:var(--faint)}
+.bl-pg{margin-bottom:10px}
+.bl-t{display:flex;align-items:center;gap:6px;font-weight:600;color:var(--fg2);font-size:calc(14px*var(--fs));margin-bottom:2px}
+.bl-it{display:block;width:100%;text-align:left;padding:4px 8px 4px 28px;border-radius:7px;color:var(--muted);font-size:calc(13.5px*var(--fs));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bl-it:hover{background:var(--hover);color:var(--fg)}

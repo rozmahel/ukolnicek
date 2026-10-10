@@ -128,4 +128,4 @@ async function clearSchoolData(){
   };
 }
 
-export { clearSchoolData, gotoSubject, hodin, hodinu, isIndex, isSchool, linkNow, offerLink, openSubjPicker, schoolCounts, semList, subjAsH1, subjBlockText, subjEvents, subjLabel, subjList, subjOcc, subjShort, subjsOf, unlinkedMatches };
+export { clearSchoolData, gotoSubject, hodin, isIndex, isSchool, offerLink, openSubjPicker, schoolCounts, semList, subjAsH1, subjBlockText, subjLabel, subjList, subjOcc, subjShort, subjsOf };
