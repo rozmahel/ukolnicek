@@ -11,6 +11,7 @@ import { placePop } from '../ui.js';
 import { openLinkDialog } from './links.js';
 import { pickImageBlock, pickImageInline } from './images.js';
 import { importMd } from './markdown.js';
+import { insertEq, openEqEditor, toEqBlock } from './math.js';
 
 /* ---- slash menu ---- */
 let slash={open:false};
@@ -59,6 +60,12 @@ function chooseSlash(it){
     return;
   }
   if(it.k==='mdimport'){ savePage(pg); importMd(pg,b.id); return; }
+  if(it.k==='eq'){
+    /* prázdný odstavec → rovnice na samostatném řádku, jinak rovnice v textu na místě kurzoru */
+    if(b.type==='p'&&isBlank(b.html)){ toEqBlock(pg,b); return; }
+    const s=getSelection(); const sp=insertEq(el,s.rangeCount&&el.contains(s.getRangeAt(0).startContainer)?s.getRangeAt(0).cloneRange():null,'');
+    openEqEditor(sp,true); return;
+  }
   if(it.k==='image'){
     if(b.type==='p'&&isBlank(b.html)){ savePage(pg); pickImageBlock(pg.id,b.id,true); }
     else { const s=getSelection(); pickImageInline(el,s.rangeCount?s.getRangeAt(0).cloneRange():null); }

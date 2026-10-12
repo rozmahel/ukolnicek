@@ -13,6 +13,7 @@ import { blockKeys, lineKeys } from './keys.js';
 import { applyMark, hideCellbar, showCellbar } from './toolbar.js';
 import { toast } from '../ui.js';
 import { handleImageFiles, pickImageBlock, rangeFromPoint } from './images.js';
+import { dollarInput, eqFromSelection } from './math.js';
 import { mentionInput, mentionKey } from './mention.js';
 import { blockEsc, initMultiSel } from './multisel.js';
 
@@ -48,6 +49,7 @@ export function initEvents(){
     if(t.innerHTML==='<br>') t.innerHTML='';
     const x=ctxOf(t); if(!x) return;
     const typed=e.inputType==='insertText';
+    if(typed&&e.data==='$') dollarInput(t);
     if(x.line){ x.line.html=t.innerHTML; if(typed&&mdLine(x,t)) return; mentionInput(e,t); savePage(pg); return; }
     x.b.html=t.innerHTML;
     if(typed&&mdBlock(x,t)) return;
@@ -70,6 +72,7 @@ export function initEvents(){
     if((e.metaKey||e.ctrlKey)&&!e.altKey){
       const k=e.key.toLowerCase();
       if(k==='b'||k==='i'||k==='u'){ e.preventDefault(); document.execCommand({b:'bold',i:'italic',u:'underline'}[k]); return; }
+      if(k==='e'&&e.shiftKey){ e.preventDefault(); eqFromSelection(); return; }
       if(k==='e'){ e.preventDefault(); applyMark('hl-purple'); return; }
     }
     const x=ctxOf(t); if(!x) return;

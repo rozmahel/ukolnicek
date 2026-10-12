@@ -38,8 +38,8 @@ function blockKeys(e,x,t){
     const pi=pg.blocks.findIndex(q=>q.id===prevEl.dataset.id); const prev=pg.blocks[pi]; if(!prev) return;
     e.preventDefault();
     /* oddělovač, odkaz na podstránku a blok předmětu se Backspacem smažou celé (jde vrátit ⌘Z) */
-    if(['divider','page','subj'].includes(prev.type)&&LOCK) return;
-    if(['divider','page','subj'].includes(prev.type)){ pg.blocks.splice(pi,1); savePage(pg); rerenderBlocks(); focusBlock(b.id,0); return; }
+    if(['divider','page','subj','eq'].includes(prev.type)&&LOCK) return;
+    if(['divider','page','subj','eq'].includes(prev.type)){ pg.blocks.splice(pi,1); savePage(pg); rerenderBlocks(); focusBlock(b.id,0); return; }
     if(prev.type==='table'||prev.type==='image'){ if(isBlankEl(t)){ pg.blocks.splice(bi,1); savePage(pg); rerenderBlocks(); const last=$$(`#blocks .blk[data-id="${prev.id}"] .txt`).pop(); focusEl(last,'end'); } return; }
     const len=plain(prev.html).length; prev.html=(prev.html||'')+(b.html||''); pg.blocks.splice(bi,1);
     savePage(pg); rerenderBlocks(); focusBlock(prev.id,len); return;

@@ -161,7 +161,7 @@ const seed = () => {
     await page.keyboard.press('Escape'); await sleep(150);
     return { bad, total };
   };
-  const nm = { default: 'Výchozí', paper: 'Papír', forest: 'Les' }, md = { light: 'světlý', dark: 'noční' };
+  const nm = { default: 'Výchozí', paper: 'Papír', forest: 'Les', mist: 'Mlha', rose: 'Šípek', lavender: 'Levandule' }, md = { light: 'světlý', dark: 'noční' };
 
   /* ================================================================ */
   console.log('1) Výchozí vzhled je beze změny proti verzi 3.0.1');
@@ -209,12 +209,12 @@ const seed = () => {
   ok(!('theme' in (await idbState()).settings), 'Výchozí: v datech není klíč theme');
   await openSettings('look');
   const btns = await page.$$eval('#st-skin .skin', (b) => b.map((x) => [x.dataset.v, x.getAttribute('aria-pressed'), x.textContent.replace(/Aa/, '').trim()]));
-  ok(JSON.stringify(btns) === JSON.stringify([['default', 'true', 'Výchozí'], ['paper', 'false', 'Papír'], ['forest', 'false', 'Les']]), 'tři volby Výchozí / Papír / Les, vybrané Výchozí: ' + JSON.stringify(btns));
+  ok(JSON.stringify(btns) === JSON.stringify([['default', 'true', 'Výchozí'], ['paper', 'false', 'Papír'], ['forest', 'false', 'Les'], ['mist', 'false', 'Mlha'], ['rose', 'false', 'Šípek'], ['lavender', 'false', 'Levandule']]), 'šest voleb Výchozí / Papír / Les / Mlha / Šípek / Levandule, vybrané Výchozí: ' + JSON.stringify(btns));
   ok(await page.$eval('#st-skin', (e) => !!e.closest('[data-pane="look"]')), 'výběr je v kategorii Vzhled');
   ok(await page.$eval('#st-theme', (e) => !!e.closest('[data-pane="look"]')), 'přepínač světlý/tmavý/auto zůstal ve Vzhledu');
   /* ukázky mají skutečné barvy a písmo motivů (ne společné) */
   const sw = await page.$$eval('#st-skin .skin-sw', (els) => els.map((e) => ({ bg: getComputedStyle(e).backgroundColor, ff: getComputedStyle(e.querySelector('b')).fontFamily, dots: [...e.querySelectorAll('i')].map((i) => getComputedStyle(i).backgroundColor) })));
-  ok(new Set(sw.map((s) => s.bg)).size === 3 && sw.every((s) => new Set(s.dots).size === 3), 'ukázky se barevně liší a každá má 3 různé tečky');
+  ok(new Set(sw.map((s) => s.bg)).size === 6 && sw.every((s) => new Set(s.dots).size === 3), 'ukázky se barevně liší a každá má 3 různé tečky');
   ok(/Onest/.test(sw[0].ff) && /Iowan/.test(sw[1].ff) && /system-ui/.test(sw[2].ff), 'ukázka ukazuje i písmo motivu: ' + sw.map((s) => s.ff.split(',')[0]).join(' | '));
   await page.click('#st-skin [data-v="paper"]'); await sleep(500);
   ok((await html('data-skin')) === 'paper', 'Papír: <html data-skin="paper"> hned po kliknutí');
@@ -253,7 +253,7 @@ const seed = () => {
 
   /* ================================================================ */
   console.log('4) Kontrast WCAG AA (≥ 4,5:1), počítaný ze skutečného CSS, všech 6 vzhledů');
-  const LOOKS = [['default', 'light'], ['default', 'dark'], ['paper', 'light'], ['paper', 'dark'], ['forest', 'light'], ['forest', 'dark']];
+  const LOOKS = [['default', 'light'], ['default', 'dark'], ['paper', 'light'], ['paper', 'dark'], ['forest', 'light'], ['forest', 'dark'], ['mist', 'light'], ['mist', 'dark'], ['rose', 'light'], ['rose', 'dark'], ['lavender', 'light'], ['lavender', 'dark']];
   for (const [skin, mode] of LOOKS) {
     await fresh({ theme: skin === 'default' ? null : skin, mode });
     const t = await tokens();
@@ -294,8 +294,8 @@ const seed = () => {
   ok(ff.paper.body.startsWith('"Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif') && ff.paper.disp === ff.paper.body, 'Papír: Iowan Old Style → Palatino Linotype → Palatino → Georgia → serif');
   ok(ff.forest.body.startsWith('system-ui, -apple-system, "Segoe UI", sans-serif') && ff.forest.disp === ff.forest.body, 'Les: system-ui → -apple-system → Segoe UI → sans-serif');
   const themesCss = fs.readFileSync(path.join(ROOT, 'css/themes.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
-  ok(!/@import|url\(|fonts\.g|https?:\/\//i.test(themesCss), 'themes.css nic nestahuje (žádné @import, url(), odkazy na internet)');
-  ok(!/JetBrains|Onest|Bricolage/.test(themesCss) && !/JetBrains/.test(ff.paper.mono + ff.forest.mono), 'nové motivy nepoužívají webová písma ani u --f-mono');
+  ok(!/@import|url\(|fonts\.g|https?:\/\//i.test(themesCss), 'themes.css nic nestahuje (žádné @import, url(), odkazy na internet; webová písma jsou jen v odkazu v index.html)');
+  ok(!/JetBrains|Onest|Bricolage/.test(themesCss) && !/JetBrains/.test(ff.paper.mono + ff.forest.mono), 'Papír a Les nepoužívají webová písma ani u --f-mono');
 
   /* ================================================================ */
   console.log('7) Motiv po načtení, neznámá hodnota, rychlý start');

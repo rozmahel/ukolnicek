@@ -29,6 +29,8 @@ function sanitize(html){
     [...node.childNodes].forEach(ch=>{
       if(ch.nodeType===3) return;
       if(ch.nodeType!==1){ ch.remove(); return; }
+      /* rovnice v textu: uvnitř je jen zdroj TeX (vykreslení je ve shadow DOM a do HTML se nepropíše) */
+      if(ch.tagName==='SPAN'&&ch.classList.contains('eq')){ const q=document.createElement('span'); q.className='eq'; q.setAttribute('contenteditable','false'); q.textContent=ch.textContent; ch.replaceWith(q); return; }
       walk(ch);
       if(!ALLOWED.has(ch.tagName)){ const f=document.createDocumentFragment(); if(ch.tagName==='DIV'||ch.tagName==='P') f.appendChild(document.createElement('br')); while(ch.firstChild) f.appendChild(ch.firstChild); ch.replaceWith(f); return; }
       if(ch.tagName==='A'&&(ch.hasAttribute('data-page')||ch.hasAttribute('data-subj'))){

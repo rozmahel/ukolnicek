@@ -1,5 +1,5 @@
 /* Úkolníček – Markdown: import souboru .md do stránky (/ → Import Markdownu) a export stránky do .md (tlačítko u zámku) */
-import { esc, TEXT_TYPES } from '../core.js';
+import { esc, plain, TEXT_TYPES } from '../core.js';
 import { S } from '../state.js';
 import { savePage } from '../store.js';
 import { newBlock, pTitle } from '../pages.js';
@@ -15,11 +15,14 @@ import { toast } from '../ui.js';
 const CALLOUT_MAP={note:['💡','blue'],info:['💡','blue'],tip:['✅','green'],important:['❗','purple'],warning:['⚠️','orange'],caution:['🔴','red'],danger:['🔴','red']};
 const CALLOUT_BACK={'💡':'NOTE','✅':'TIP','❗':'IMPORTANT','⚠️':'WARNING','🔴':'CAUTION'};
 
+const eqSpan=t=>`<span class="eq" contenteditable="false">${esc(t)}</span>`;
 /* řádkový markdown → bezpečné HTML (výsledek se stejně ještě čistí přes sanitize) */
 function mdInline(s){
   const keep=[]; const put=h=>`\u0000${keep.push(h)-1}\u0000`;
   s=String(s||'');
   s=s.replace(/(`+)([^`]|[^`][\s\S]*?[^`])\1(?!`)/g,(_,q,c)=>put(`<code>${esc(c.trim()===''?c:c.replace(/^ (.*) $/,'$1'))}</code>`));
+  /* rovnice $…$ a $$…$$ uprostřed textu (obsah nezačíná ani nekončí mezerou, takže „$5 a $6“ zůstane textem) */
+  s=s.replace(/\$\$([^$]+?)\$\$|(^|[^\\$\w])\$(?=[^\s$])([^$\n]*?[^\s$\\])\$(?![\w$])/g,(m,d,pre,t)=>d!=null?put(eqSpan(d.trim())):pre+put(eqSpan(t)));
   s=s.replace(/\\([\\`*_{}\[\]()#+\-.!|~=<>])/g,(_,c)=>put(esc(c)));
   s=esc(s);
   /* pár povolených HTML značek, které se v .md běžně píšou */
@@ -69,6 +72,13 @@ function mdToBlocks(text){
       for(i++;i<L.length&&!L[i].trim().startsWith(fence[0].repeat(fence.length));i++) code.push(L[i]);
       out.push({type:'p',html:code.map(c=>c?`<code>${esc(c)}</code>`:'').join('<br>')});
       continue;
+    }
+    /* rovnice na samostatném řádku: $$ … $$ (na jednom i více řádcích) */
+    { const tl=line.trim(), rest=tl.slice(2);
+      if(tl.startsWith('$$')&&!rest.includes('$$')){   /* víc řádků až po řádek končící $$ */
+        const acc=[rest]; let k=i+1; for(;k<L.length;k++){ acc.push(L[k]); if(L[k].trim().endsWith('$$')) break; }
+        if(k<L.length){ flush(); endList(); i=k; out.push({type:'eq',html:esc(acc.join('\n').replace(/\$\$\s*$/,'').trim())}); continue; }
+      } else if(tl.startsWith('$$')&&tl.endsWith('$$')&&tl.length>4&&!tl.slice(2,-2).includes('$$')){ flush(); endList(); out.push({type:'eq',html:esc(tl.slice(2,-2).trim())}); continue; }
     }
     if((m=line.match(RE_H))){ flush(); endList(); out.push({type:'h'+Math.min(3,m[1].length),html:mdInline(m[2])}); continue; }
     if(RE_HR.test(line)&&!para){ endList(); out.push({type:'divider',html:''}); continue; }
@@ -122,7 +132,7 @@ function pickMdFile(){
   });
 }
 function cleanBlock(x){
-  const b=newBlock(x.type,{html:x.type==='table'||x.type==='divider'?'':sanitize(x.html)});
+  const b=newBlock(x.type,{html:x.type==='table'||x.type==='divider'?'':x.type==='eq'?x.html:sanitize(x.html)});
   if(x.level) b.level=x.level;
   if(x.done) b.done=true;
   if(x.type==='callout'){ b.icon=x.icon; b.color=x.color; }
@@ -164,6 +174,7 @@ function htmlToMd(html,br){
     if(ch.nodeType!==1) return '';
     const tg=ch.tagName, inner=()=>walk(ch);
     if(tg==='BR') return br;
+    if(tg==='SPAN'&&ch.classList.contains('eq')) return '$'+ch.textContent+'$';
     if(tg==='B'||tg==='STRONG') return wrap('**',inner());
     if(tg==='I'||tg==='EM') return wrap('*',inner());
     if(tg==='S'||tg==='STRIKE') return wrap('~~',inner());
@@ -197,6 +208,7 @@ function pageToMd(pg){
       case 'quote': s='> '+htmlToMd(b.html,'  \n> '); break;
       case 'callout': s=`> [!${CALLOUT_BACK[b.icon]||'NOTE'}]\n> `+(b.icon&&!CALLOUT_BACK[b.icon]?b.icon+' ':'')+htmlToMd(b.html,'  \n> '); break;
       case 'divider': s='---'; break;
+      case 'eq': s='$$\n'+plain(b.html)+'\n$$'; break;
       case 'page': s=`↗ ${escMd(pTitle(S.pages[b.pageId]||null))}`; break;
       case 'image': s=`*[obrázek${b.name?': '+escMd(b.name):''}]*`+(b.caption?`  \n${htmlToMd(b.caption,' ')}`:''); break;
       case 'table': {

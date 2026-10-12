@@ -1,11 +1,11 @@
-/* Úkolníček – Barevný motiv (Výchozí / Papír / Les)
-   Motiv je v datech jako settings.theme ('paper' | 'forest'); u Výchozího klíč v datech vůbec není (ukládá se až po první změně).
+/* Úkolníček – Barevný motiv (Výchozí / Papír / Les / Mlha / Šípek / Levandule)
+   Motiv je v datech jako settings.theme ('paper' | 'forest' | 'mist' | 'rose' | 'lavender'); u Výchozího klíč v datech vůbec není (ukládá se až po první změně).
    Neznámá hodnota (třeba z novější verze) se chová jako Výchozí a v datech zůstane beze změny.
    Na <html> se motiv projeví atributem data-skin (barvy jsou v css/themes.css). Je nezávislý na režimu světlý/tmavý/auto,
    ten je jen v zařízení (localStorage 'uk-theme') a řeší ho applyTheme v views/settings.js. */
 import { S } from './state.js';
 
-const SKINS=[['default','Výchozí'],['paper','Papír'],['forest','Les']];
+const SKINS=[['default','Výchozí'],['paper','Papír'],['forest','Les'],['mist','Mlha'],['rose','Šípek'],['lavender','Levandule']];
 const skinOf=(st=S.settings)=>{ const t=st&&st.theme; return SKINS.some(s=>s[0]===t&&t!=='default')?t:'default'; };
 
 /* barva lišty prohlížeče = pozadí aktuálního vzhledu (motiv × režim), čte se přímo z CSS */

@@ -26,8 +26,8 @@ const EMOJI=['📘','📗','📙','📕','📓','📒','🎓','⚛️','⚙️',
 const CALLOUT_IC=['💡','📌','⚠️','🗓️','✅','❗','📎','🔴'];
 const TEXT_TYPES=['p','h1','h2','h3','bullet','num','todo','quote','callout'];
 const LIST_TYPES=['bullet','num','todo'];
-const TYPE_ICON={link:'🔗',p:'T',h1:'H1',h2:'H2',h3:'H3',bullet:'•',num:'1.',todo:'☐',quote:'❝',callout:'!',table:'▦',divider:'—',page:'↗',image:'▣',subj:'🎓',mdimport:'M↓'};
-const TYPE_LABEL={link:'Odkaz',p:'Text',h1:'Nadpis 1',h2:'Nadpis 2',h3:'Nadpis 3',bullet:'Odrážky',num:'Číslovaný seznam',todo:'Úkol',quote:'Citace',callout:'Zvýrazněný blok',table:'Tabulka',divider:'Oddělovač',page:'Podstránka',image:'Obrázek',subj:'Předmět',mdimport:'Import Markdownu'};
+const TYPE_ICON={link:'🔗',p:'T',h1:'H1',h2:'H2',h3:'H3',bullet:'•',num:'1.',todo:'☐',quote:'❝',callout:'!',table:'▦',divider:'—',page:'↗',image:'▣',subj:'🎓',mdimport:'M↓',eq:'∑'};
+const TYPE_LABEL={link:'Odkaz',p:'Text',h1:'Nadpis 1',h2:'Nadpis 2',h3:'Nadpis 3',bullet:'Odrážky',num:'Číslovaný seznam',todo:'Úkol',quote:'Citace',callout:'Zvýrazněný blok',table:'Tabulka',divider:'Oddělovač',page:'Podstránka',image:'Obrázek',subj:'Předmět',mdimport:'Import Markdownu',eq:'Rovnice'};
 const SLASH=[
   {k:'p',hint:'Obyčejný odstavec',kw:'text odstavec paragraph'},
   {k:'h1',hint:'Velký nadpis sekce',kw:'nadpis heading h1'},
@@ -42,6 +42,7 @@ const SLASH=[
   {k:'quote',hint:'Odsazený citát',kw:'citace quote'},
   {k:'divider',hint:'Vodorovná čára',kw:'oddelovac cara divider'},
   {k:'image',hint:'Ze souboru; v úkolu či odrážce se vloží do textu',kw:'obrazek image foto fotka picture screenshot'},
+  {k:'eq',hint:'LaTeX; v prázdném řádku na samostatný řádek, jinak do textu',kw:'rovnice vzorec latex tex math matematika equation jednotka velicina symbol zlomek'},
   {k:'link',hint:'Webová adresa s vlastním názvem',kw:'odkaz link url web adresa hypertext'},
   {k:'page',hint:'Nová stránka uvnitř této',kw:'podstranka stranka page'},
   {k:'mdimport',hint:'Vloží obsah souboru .md (nadpisy, seznamy, úkoly, tabulky)',kw:'markdown md import soubor nahrat obsidian'}

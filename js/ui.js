@@ -35,10 +35,17 @@ let toastT=null;
 function toast(msg,actLabel,act){
   let t=$('.toast'); if(t) t.remove(); clearTimeout(toastT);
   t=document.createElement('div'); t.className='toast'; t.setAttribute('role','status');
-  t.innerHTML=`<span>${esc(msg)}</span>${actLabel?`<button>${esc(actLabel)}</button>`:''}`;
+  t.innerHTML=`<span>${esc(msg)}</span>${actLabel?`<button class="t-act">${esc(actLabel)}</button>`:''}<button class="x" aria-label="Zavřít oznámení">×</button>`;
   document.body.appendChild(t);
-  if(act) t.querySelector('button').addEventListener('click',()=>{ act(); t.remove(); });
-  toastT=setTimeout(()=>t.remove(),act?7000:4000);
+  const hide=()=>{ clearTimeout(toastT); t.classList.add('gone'); setTimeout(()=>t.remove(),180); };
+  if(act) t.querySelector('.t-act').addEventListener('click',()=>{ act(); t.remove(); });
+  /* zavřít: křížkem, klepnutím na text nebo přejetím prstem dolů */
+  t.addEventListener('click',e=>{ if(!e.target.closest('.t-act')) hide(); });
+  let y0=null;
+  t.addEventListener('touchstart',e=>{ y0=e.touches[0].clientY; },{passive:true});
+  t.addEventListener('touchmove',e=>{ if(y0==null) return; const dy=e.touches[0].clientY-y0; if(dy>0) t.style.translate=`0 ${dy}px`; if(dy>40){ y0=null; hide(); } },{passive:true});
+  t.addEventListener('touchend',()=>{ y0=null; t.style.translate=''; });
+  toastT=setTimeout(hide,act?7000:4000);
 }
 
 /* posluchače a nastavení při startu (volá main.js ve stejném pořadí jako dřív) */

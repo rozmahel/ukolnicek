@@ -38,6 +38,7 @@ Mini-Notion / školní plánovač v čistém HTML, CSS a JS. Složka `~/Document
 - **Menu a přesměrování pohledů:** `js/sidebar.js`, `js/router.js`
 - **Editor (bloky, sbalování, lomítkové menu):** `js/editor/render.js`, `blocks.js`, `slash.js`, `menus.js`, dále `js/pages.js`
 - **Markdown import/export:** `js/editor/markdown.js`
+- **Rovnice (LaTeX):** `js/editor/math.js`, KaTeX v `lib/katex/` (načítá se líně)
 - **Výchozí nastavení:** `js/state.js`
 - **Ukládání, otisk dat, kontrola dat zvenku:** `js/store.js`
 - **Spojení verzí při kolizi:** `js/sync/merge.js`
@@ -46,6 +47,6 @@ Mini-Notion / školní plánovač v čistém HTML, CSS a JS. Složka `~/Document
 - **Základní styly a proměnné:** `css/base.css`
 
 ## Stav a známé věci
-- Aktuální verze: 3.3.0 (import .md přes `/markdown` a export stránky do .md tlačítkem u zámku, oboje v `js/editor/markdown.js`, test `tests/markdown.test.js`), předtím 3.2.0 (zápočet jako podmínka známky, výběr přes víc bloků v `js/editor/multisel.js`, přesouvání projektů tažením v `js/sidebar.js`, výběr celých bloků taky v `multisel.js`, nabídka @ a zpětné odkazy v `js/editor/mention.js`), předtím 3.1.1 (nastavení po kategoriích Obecné/Vzhled/Škola/Google Disk/Zálohy, posuvníky v barvách motivu), navazuje 3.1.0 (barevné motivy).
+- Aktuální verze: 3.4.0 (rovnice v `js/editor/math.js` s KaTeXem v `lib/katex/`, inline jako `span.eq` s TeX textem a vykreslením ve shadow DOM, blok typu `eq`; motivy Mlha/Šípek/Levandule s písmy Newsreader a Literata z Google Fonts; hledání skáče na text přes CSS Highlight API v `js/pages.js`; ⌘S nahraje na Disk; oznámení jdou zavřít; lišta formátu na telefonu pod výběrem; test `tests/rovnice.test.js`), předtím 3.3.0 (import .md přes `/markdown` a export stránky do .md tlačítkem u zámku, oboje v `js/editor/markdown.js`, test `tests/markdown.test.js`), předtím 3.2.0 (zápočet jako podmínka známky, výběr přes víc bloků v `js/editor/multisel.js`, přesouvání projektů tažením v `js/sidebar.js`, výběr celých bloků taky v `multisel.js`, nabídka @ a zpětné odkazy v `js/editor/mention.js`), předtím 3.1.1 (nastavení po kategoriích Obecné/Vzhled/Škola/Google Disk/Zálohy, posuvníky v barvách motivu), navazuje 3.1.0 (barevné motivy).
 - `tests/skola.test.js`, krok 11 selhává, protože chybí složka `_zaloha-v2.6.0`. Je to známé, **neřeš to a nezkoumej to**, dokud neřeknu.
 - Čtyři záměrně ztlumená místa pod kontrastem 4,5:1 (dny mimo měsíc a víkendová záhlaví v mini kalendáři, tlačítko Skrýt u úkolů) nech být.

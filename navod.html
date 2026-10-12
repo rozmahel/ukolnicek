@@ -46,6 +46,8 @@
         <li><kbd>[]</kbd> + mezera úkol, <kbd>-</kbd> + mezera odrážka, <kbd>#</kbd> + mezera nadpis</li>
         <li><kbd>⌘B</kbd> <kbd>⌘I</kbd> <kbd>⌘U</kbd> formát, <kbd>⌘E</kbd> zvýraznění</li>
         <li><kbd>⌘Z</kbd> zpět, <kbd>⇧⌘Z</kbd> znovu, <kbd>⌘K</kbd> hledat</li>
+        <li><kbd>⌘S</kbd> nahrát na Google Disk (v zařízení se ukládá samo)</li>
+        <li><kbd>$…$</kbd> rovnice v textu, <kbd>⌘⇧E</kbd> rovnice z označeného textu</li>
         <li><kbd>⌘⇧L</kbd> zámek</li>
       </ul>
     </div>
@@ -60,6 +62,12 @@
       <h3><span class="g-ic">📥</span>Markdown</h3>
       <p><b>Import:</b> napiš <kbd>/markdown</kbd> a vyber soubor <code>.md</code> (třeba z Obsidianu). Nadpisy, odrážky, číslované seznamy, úkoly <code>- [ ]</code>, citace, rámečky <code>&gt; [!NOTE]</code>, oddělovače, tabulky a tučné, kurzíva, kód, odkazy a <code>==zvýraznění==</code> se převedou na bloky. Stránka bez názvu ho dostane z prvního nadpisu <code>#</code> nebo ze jména souboru. Vrátíš to <kbd>⌘Z</kbd>.</p>
       <p><b>Export:</b> tlačítko ⤓ vedle zámku stáhne stránku jako <code>.md</code>. Podstránky jsou v něm jen jako název, obrázky jen jako popisek.</p>
+    </div>
+
+    <div class="g-card hl-purple">
+      <h3><span class="g-ic">∑</span>Rovnice</h3>
+      <p>Píšou se v LaTeXu. <kbd>/rovnice</kbd> v prázdném řádku vloží rovnici na samostatný řádek, uprostřed textu ji vloží do věty. Rychleji: napiš <code>$v_0$</code> a po druhém <code>$</code> se z toho stane rovnice. Nebo označ text a v liště klikni na <b>∑</b>.</p>
+      <p>Kliknutím na rovnici ji upravíš: <kbd>Enter</kbd> hotovo, <kbd>Shift+Enter</kbd> nový řádek, <kbd>Esc</kbd> zrušit, prázdná se smaže. Hodí se i na jednotky a veličiny: <code>5\,\text{m/s}</code>, <code>20^\circ\text{C}</code>, <code>\frac{a}{b}</code>. Import a export Markdownu zná <code>$…$</code> i <code>$$…$$</code>.</p>
     </div>
 
     <div class="g-card hl-orange">
@@ -113,7 +121,7 @@
 
     <div class="g-card hl-purple wide">
       <h3><span class="g-ic">⚙️</span>Nastavení</h3>
-      <p>Okno má pevnou výšku, posouvá se jen obsah vybrané kategorie. <b>Obecné:</b> název, mini kalendář v levém panelu s čísly týdnů v roce, počet skrytých bloků u sbaleného nadpisu. <b>Vzhled:</b> barevný motiv (Výchozí, Papír nebo Les; synchronizuje se přes Disk), světlý nebo tmavý režim a velikost textu 100–160 % (oboje jen pro dané zařízení). <b>Škola:</b> školní režim, Index, začátek výuky (číslo týdne a lichý/sudý), rozsah a výška hodin v rozvrhu, víkend, smazání školních dat. <b>Google Disk:</b> připojení, automatické stažení po otevření (jde vypnout pro dané zařízení). <b>Zálohy:</b> export a import souboru, místní zálohy.</p>
+      <p>Okno má pevnou výšku, posouvá se jen obsah vybrané kategorie. <b>Obecné:</b> název, mini kalendář v levém panelu s čísly týdnů v roce, počet skrytých bloků u sbaleného nadpisu. <b>Vzhled:</b> barevný motiv (Výchozí, Papír, Les, Mlha, Šípek nebo Levandule; synchronizuje se přes Disk), světlý nebo tmavý režim a velikost textu 100–160 % (oboje jen pro dané zařízení). <b>Škola:</b> školní režim, Index, začátek výuky (číslo týdne a lichý/sudý), rozsah a výška hodin v rozvrhu, víkend, smazání školních dat. <b>Google Disk:</b> připojení, automatické stažení po otevření (jde vypnout pro dané zařízení). <b>Zálohy:</b> export a import souboru, místní zálohy.</p>
     </div>
 
   </div>
@@ -122,6 +130,21 @@
 <section data-tab="novinky" data-title="Novinky">
 
   <article class="g-rel new">
+    <h3>Rovnice, nové motivy a drobnosti <span class="v">3.4.0</span> <time datetime="2026-10-12">12. 10. 2026</time></h3>
+    <ul>
+      <li><b>Rovnice v LaTeXu:</b> <kbd>/rovnice</kbd> (samostatný řádek nebo do textu), psaní <code>$…$</code>, ∑ v liště formátu a <kbd>⌘⇧E</kbd>. Klik na rovnici otevře úpravu s náhledem. Funguje i offline.</li>
+      <li><b>Tři nové motivy</b> s patkovými písmy: <b>Mlha</b> (modrošedá, Newsreader), <b>Šípek</b> (pudrová růžová, Literata) a <b>Levandule</b> (tlumená fialová, Newsreader a Literata).</li>
+      <li><b>Hledání</b> skočí přímo na nalezený text (i ve sbalené sekci) a na chvíli ho zvýrazní.</li>
+      <li><kbd>⌘S</kbd> nahraje data na Google Disk.</li>
+      <li>Vedle Nastavení už nebliká „Ukládám…“, ukáže se tam jen chyba, když se ukládat nedaří.</li>
+      <li>Oznámení dole jde zavřít křížkem, klepnutím nebo přejetím prstem dolů. Lišta s novou verzí má taky křížek.</li>
+      <li>Na telefonu je lišta formátu pod označeným textem, aby se nepřekrývala se systémovou nabídkou Kopírovat / Vyjmout.</li>
+      <li>Kontrola pravopisu prohlížeče a klávesnice v poznámkách (čeština podle jazyka stránky).</li>
+      <li>Index je střídmější: bez podnadpisu a vysvětlujících textů, počet zapsaných kreditů je vedle čísla.</li>
+    </ul>
+  </article>
+
+  <article class="g-rel">
     <h3>Import a export Markdownu <span class="v">3.3.0</span> <time datetime="2026-10-12">12. 10. 2026</time></h3>
     <ul>
       <li><b>Import .md:</b> <kbd>/markdown</kbd> → vybereš soubor a jeho obsah se vloží jako bloky (nadpisy, seznamy, úkoly, citace, rámečky, tabulky, formátování textu).</li>

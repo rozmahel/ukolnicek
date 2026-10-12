@@ -45,7 +45,7 @@ body.tree-drag,body.tree-drag *{cursor:grabbing!important;user-select:none}
 .side-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--line);padding:10px 6px 2px;margin-top:8px}
 .side-foot .nv{width:auto}
 #save-state{font-size:calc(12px*var(--fs));color:var(--muted);white-space:nowrap}
-#save-state.busy{color:var(--accent)}
+#save-state.err{color:var(--danger);font-weight:600}
 
 /* ---------- mini kalendář v levém panelu ---------- */
 .mc{margin-top:10px;font-variant-numeric:tabular-nums}

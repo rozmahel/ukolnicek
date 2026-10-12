@@ -58,8 +58,8 @@ function resHtml(su){
   return `<span class="ixc-sum">${pts==null?'– b':`<b>${fmtNum(pts)}</b>${mx?` / ${fmtNum(mx)}`:''} b`}</span>${gradeChip(su)}`;
 }
 function metaHtml(su){
-  const g=subjGrade(su), cr=subjCr(su), wait=!su.passed&&rawGrade(su);
-  return [cr?`${fmtNum(cr)} kr.`:'bez kreditů',esc(endOf(su.end)[1]),wait?'<span class="ixc-wait">známka čeká na zápočet</span>':'',g?`<span class="ixc-num" title="Slovně a číselně">${g[2]} · ${fmtNum(g[3])}</span>`:''].filter(Boolean).join('<span class="ixc-sep">·</span>');
+  const g=subjGrade(su), cr=subjCr(su);
+  return [cr?`${fmtNum(cr)} kr.`:'bez kreditů',esc(endOf(su.end)[1]),g?`<span class="ixc-num" title="Slovně a číselně">${g[2]} · ${fmtNum(g[3])}</span>`:''].filter(Boolean).join('<span class="ixc-sep">·</span>');
 }
 function ptField(id,name,val,max){
   const n=num(val), mx=num(max), bonus=n!=null&&mx!=null&&n>mx;
@@ -98,9 +98,9 @@ const inStats=su=>{ const sm=S.semesters[su.sem]; return !sm||!sm.noStats; };
 const statSubs=()=>Object.values(S.subjects).filter(inStats);
 function sumInner(subs){
   const earned=subs.filter(subjDone).reduce((a,su)=>a+subjCr(su),0), enrolled=subs.reduce((a,su)=>a+subjCr(su),0), avg=wavg(subs);
-  return `<div class="ix-tile"><span class="k">Získané kredity</span><b>${fmtNum(earned)}</b><small>ze ${fmtNum(enrolled)} zapsaných</small></div>
-      <div class="ix-tile"><span class="k">Splněné předměty</span><b>${subs.filter(subjDone).length}<span> / ${subs.length}</span></b><small>zápočet a známka A–E</small></div>
-      <div class="ix-tile"><span class="k">Vážený průměr</span><b>${avg!=null?fmtNum(avg):'–'}</b><small>ze splněných, váhou jsou kredity</small></div>`;
+  return `<div class="ix-tile"><span class="k">Získané kredity</span><b>${fmtNum(earned)}<span> ze ${fmtNum(enrolled)} zapsaných</span></b></div>
+      <div class="ix-tile"><span class="k">Splněné předměty</span><b>${subs.filter(subjDone).length}<span> / ${subs.length}</span></b></div>
+      <div class="ix-tile"><span class="k">Vážený průměr</span><b>${avg!=null?fmtNum(avg):'–'}</b></div>`;
 }
 function semHeadInner(sem,list){
   const got=list.filter(subjDone).reduce((a,su)=>a+subjCr(su),0), target=sem?(num(sem.target)||0):0, av=wavg(list);
@@ -121,8 +121,8 @@ function renderIndex(){
   const fsu=S.ixFocus&&S.subjects[S.ixFocus], peek=fsu&&S.semesters[fsu.sem]&&S.semesters[fsu.sem].hidden?fsu.sem:null;
   const shown=sems.filter(sm=>!sm.hidden||sm.id===peek), nHid=sems.filter(sm=>sm.hidden&&sm.id!==peek).length, stats=statSubs();
   $('#view').innerHTML=`<div class="view ix-view" style="max-width:920px">
-    <div class="v-head"><div><div class="eyebrow">Předměty, kredity a známky</div><h1 class="v-title">Index</h1></div>
-      <div class="v-tools">${sems.length?'<button class="icon-btn ix-cfg" data-act="ix-view" title="Které semestry ukazovat" aria-label="Zobrazení semestrů">'+ICONS.settings+'</button><button class="btn" data-act="sem-new">＋ Semestr</button><button class="btn pri" data-act="subj-new">＋ Předmět</button>':'<button class="btn pri" data-act="sem-new">＋ Semestr</button>'}</div></div>
+    <div class="v-head"><div><h1 class="v-title">Index</h1></div>
+      <div class="v-tools">${sems.length?'<button class="icon-btn ix-cfg" data-act="ix-view" title="Které semestry ukazovat" aria-label="Zobrazení semestrů">'+ICONS.settings+'</button><button class="btn" data-act="sem-new">＋ Semestr</button><button class="btn" data-act="subj-new">＋ Předmět</button>':'<button class="btn pri" data-act="sem-new">＋ Semestr</button>'}</div></div>
     ${subs.length?`<div class="ix-sum">${sumInner(stats)}</div>${stats.length<subs.length?`<p class="note ix-sumnote">Souhrn bez ${sems.filter(sm=>sm.noStats).map(sm=>esc(sm.name||'Semestr')).join(', ')}.</p>`:''}`
     :sems.length?`<div class="card"><div class="empty" style="padding:18px">Index je databáze tvých předmětů: kredity, body a známky. Předměty se zakládají jen tady. V rozvrhu je pak vybereš u hodiny a do poznámek je vložíš přes <b>/předmět</b>. <div class="m-actions" style="margin-top:10px"><button class="btn pri" data-act="subj-new">＋ První předmět</button></div></div></div>`
     :`<div class="card"><div class="empty" style="padding:18px">Index je databáze tvých předmětů: kredity, body a známky. <b>Začni semestrem</b>, předměty se pak zakládají do něj. V rozvrhu je vybereš u hodiny a do poznámek je vložíš přes <b>/předmět</b>. <div class="m-actions" style="margin-top:10px"><button class="btn pri" data-act="sem-new">＋ První semestr</button></div></div></div>`}

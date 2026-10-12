@@ -24,7 +24,7 @@ function renderPage(pg){
   while(p){ crumbs.unshift(p); p=S.pages[p.parent]; }
   const isEmpty=(pg.blocks||[]).length<=1&&isBlank((pg.blocks[0]||{}).html)&&!(pg.props||[]).length&&(!pg.blocks[0]||TEXT_TYPES.includes(pg.blocks[0].type));
   $('#view').innerHTML=`
-  <article class="doc ${pg.wide?'wide':''}" id="doc" data-page="${pg.id}">
+  <article class="doc ${pg.wide?'wide':''}" id="doc" data-page="${pg.id}" spellcheck="true">
     <div class="pagebar">
       <div class="crumbs">${crumbs.map(c=>`<button data-act="open" data-id="${c.id}">${esc(c.icon||'')} ${esc(pTitle(c))}</button><span>/</span>`).join('')}<span>${esc(pg.icon||'')} ${esc(pTitle(pg))}</span></div>
       <div class="pb-acts">${pg.icon?'':`<button class="ghost-btn" data-act="icon" data-popanchor>☺ Ikona</button>`}<button class="ghost-btn" data-act="wide">${pg.wide?'↤ Užší':'↔ Celá šířka'}</button>
@@ -78,6 +78,7 @@ function renderBlock(b,i,bl){
   else if(b.type==='table') inner=renderTable(b);
   else if(b.type==='image') inner=`<figure class="imgfig"><img class="bimg ${IMGURL.has(b.img)?'':'missing'}" src="${esc(imgSrc(b.img,b.name))}" alt="${esc(b.caption||'')}" draggable="false">${(b.caption||b.capOn)?`<figcaption class="cap" contenteditable="true" data-ph="Popisek obrázku">${esc(b.caption||'')}</figcaption>`:''}</figure>`;
   else if(b.type==='subj') inner=renderSubjHead(b);
+  else if(b.type==='eq'){ const tex=plain(b.html); inner=`<div class="eqb" data-tex="${esc(tex)}" role="button" tabindex="0" aria-label="Rovnice, klikni pro úpravu">${esc(tex)}</div>`; }
   else if(b.type==='page'){ const p=S.pages[b.pageId]; inner=`<button class="pagelink" data-act="open" data-id="${esc(b.pageId)}">${p?pIcon(p):'<span class="pl-ic">↗</span>'}<span class="pl-t">${esc(pTitle(p))}</span></button>`; }
   else{
     let mk='';

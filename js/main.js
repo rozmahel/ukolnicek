@@ -27,9 +27,10 @@ import { openSyncMenu, Sync } from './sync/sync.js';
 import { openLinkPop } from './editor/links.js';
 import { initImages, selectImage } from './editor/images.js';
 import { exportMd } from './editor/markdown.js';
+import { initMath, openEqEditor } from './editor/math.js';
 
 /* posluchače ostatních modulů; pořadí je stejné jako dřív v jednom souboru app.js (na pořadí registrace záleží) */
-initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings(); initImages(); initIndex(); initTreeDrag();
+initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings(); initImages(); initIndex(); initTreeDrag(); initMath();
 
 /* ================= global actions ================= */
 document.addEventListener('click',e=>{
@@ -46,6 +47,7 @@ document.addEventListener('click',e=>{
     openLinkPop(lk); return;
   }
   const im=e.target.closest&&e.target.closest('#doc .txt img.im, #doc .bimg'); if(im){ selectImage(im); return; }
+  const eq=e.target.closest&&e.target.closest('#doc .eq, #doc .eqb'); if(eq){ openEqEditor(eq); return; }
   const col=e.target.classList&&e.target.classList.contains('sg-col')?e.target:null;
   if(col){
     if(LOCK) return;   /* zamčeno: klik do prázdného místa nic nevytvoří */
@@ -131,6 +133,11 @@ document.addEventListener('keydown',e=>{
 },true);
 document.addEventListener('keydown',e=>{
   if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); openSearch(); return; }
+  /* ⌘S / Ctrl+S: nahrát na Disk (v zařízení se ukládá samo), místo ukládacího dialogu prohlížeče */
+  if((e.metaKey||e.ctrlKey)&&!e.altKey&&!e.shiftKey&&e.key.toLowerCase()==='s'){ e.preventDefault(); if(e.repeat) return;
+    if(!DriveSync.clientId()){ toast('V zařízení se ukládá samo. Google Disk nastavíš v Nastavení.'); return; }
+    Sync.upload(); return; }
+  if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('eqb')){ e.preventDefault(); openEqEditor(e.target); return; }
   if(e.key==='Escape'){ if(slash.open) return; if(S.pop){ closePop(); return; } if(S.modal){ closeModal(); return; } closeSide(); }
 });
 setInterval(()=>{ if(S.ready&&!S.modal&&(S.view.kind==='schedule'||S.view.kind==='today')&&!document.activeElement.closest?.('#view input')) { const st=$('#main').scrollTop; renderMain(); $('#main').scrollTop=st; } },60000);
@@ -159,7 +166,7 @@ else if('serviceWorker' in navigator&&location.protocol!=='file:'){
     pending=w;
     if(Sync.busy||Sync.checking){ setTimeout(()=>offer(w),1500); return; }   /* nepřerušit stahování z Disku */
     if(Date.now()-fresh<20000&&!S.modal&&!typing()) return apply(w);
-    const bar=$('#upd'); if(!bar) return; bar.hidden=false; $('#upd-btn').onclick=()=>apply(w);
+    const bar=$('#upd'); if(!bar) return; bar.hidden=false; $('#upd-btn').onclick=()=>apply(w); $('#upd-x').onclick=()=>{ bar.hidden=true; };
   };
   window.addEventListener('load',()=>{
     navigator.serviceWorker.register('sw.js').then(reg=>{

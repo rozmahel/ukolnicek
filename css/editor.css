@@ -91,6 +91,8 @@
 .blk.dragging{opacity:.35}
 .blk.flash>.row,.blk.flash .tbl{animation:flash 1.4s ease-out}
 @keyframes flash{0%{background:var(--sel)}100%{background:transparent}}
+/* nalezený text z hledání (CSS Highlight API, do obsahu bloku nesahá) */
+::highlight(uk-find){background-color:var(--hl-yellow-bg);color:var(--hl-yellow-fg)}
 .doc-tail{min-height:140px;cursor:text}
 
 /* ---------- obrázky ---------- */
@@ -227,3 +229,21 @@ a.mention.gone{color:var(--muted);background:var(--hover);text-decoration:line-t
 .bl-t{display:flex;align-items:center;gap:6px;font-weight:600;color:var(--fg2);font-size:calc(14px*var(--fs));margin-bottom:2px}
 .bl-it{display:block;width:100%;text-align:left;padding:4px 8px 4px 28px;border-radius:7px;color:var(--muted);font-size:calc(13.5px*var(--fs));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bl-it:hover{background:var(--hover);color:var(--fg)}
+
+/* ===== rovnice (LaTeX, js/editor/math.js) ===== */
+.eq{cursor:pointer;border-radius:4px;padding:0 1px;user-select:all}
+.eq:hover{background:var(--hover)}
+.b-eq .eqb{flex:1;min-width:0;padding:8px 10px;border-radius:8px;text-align:center;overflow-x:auto;overflow-y:hidden;cursor:pointer;color:var(--fg)}
+.b-eq .eqb:not([data-r]){font-family:var(--f-mono);font-size:.9em;color:var(--fg2)}
+.b-eq .eqb:hover,.b-eq .eqb:focus-visible{background:var(--hover);outline:none}
+.b-eq .eqb .katex-display{margin:0}
+.b-eq .eqb .ph{color:var(--muted);font-style:italic;font-size:.92em}
+.pop.eq-pop{width:min(380px,calc(100vw - 16px));max-width:none;max-height:none;display:grid;gap:6px;padding:6px 6px 2px}
+.eq-in{width:100%;resize:none;font:calc(14px*var(--fs))/1.45 var(--f-mono);padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);outline:none;min-height:42px}
+.eq-in:focus{border-color:var(--accent)}
+.eq-prev{min-height:34px;max-height:140px;overflow:auto;padding:6px 8px;border-radius:8px;background:var(--hover);color:var(--fg);text-align:center}
+.eq-prev .katex-display{margin:0}
+.eq-prev .ph{color:var(--muted);font-style:italic;font-size:.9em}
+.eq-pop .note{padding:0 4px;font-size:calc(12px*var(--fs))}
+.eq-pop .it-row{align-items:center;padding:2px 0 6px}
+.eq-pop .it-row .sp{flex:1}

@@ -11,6 +11,7 @@ import { go } from '../router.js';
 import { defaultEnd, hLevel, isHeading, renderPage, rerenderBlocks } from './render.js';
 import { setType, subjToH1, toSubject } from './blocks.js';
 import { closePop, openPop, toast } from '../ui.js';
+import { openEqEditor } from './math.js';
 
 /* ================= menus ================= */
 function openBlockMenu(anchor,pg,b){
@@ -33,6 +34,7 @@ function openBlockMenu(anchor,pg,b){
     h+=`<div class="pop-h">Ikona</div><div class="swatches">${CALLOUT_IC.map(ic=>`<button class="pop-item" style="width:auto;padding:4px 6px;font-size:17px" data-v="icon:${ic}">${ic}</button>`).join('')}</div>`;
     h+=`<div class="pop-h">Barva</div><div class="swatches">${COLORS.map(c=>`<button class="sw hl-${c} ${b.color===c?'on':''}" data-v="color:${c}" aria-label="${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}</div>`;
   }
+  if(b.type==='eq') h+=`<button class="pop-item" data-v="eq-edit"><span class="pi-ic">${TYPE_ICON.eq}</span>Upravit rovnici</button><button class="pop-item" data-v="eq-txt"><span class="pi-ic">T</span><span>Převést na text<small>Zdroj LaTeX jako obyčejný odstavec</small></span></button>`;
   if(b.type==='table') h+=`<div class="pop-h">Tabulka</div><button class="pop-item" data-v="hrow"><span class="pi-ic">${b.hrow?'✓':''}</span>První řádek jako záhlaví</button><button class="pop-item" data-v="hcol"><span class="pi-ic">${b.hcol?'✓':''}</span>První sloupec jako záhlaví</button>`;
   {
     const bl=pg.blocks, xi=bl.indexOf(b); let sec='';
@@ -61,6 +63,8 @@ function openBlockMenu(anchor,pg,b){
     if(v==='tosubj'||v==='subj-pick'){ openSubjPicker(anchor,su=>toSubject(pg,b,su),b.subj); return true; }
     if(v==='subj-ix'){ gotoSubject(b.subj); return; }
     if(v==='subj-h1'){ subjToH1(pg,b); return; }
+    if(v==='eq-edit'){ const el=$(`#blocks .blk[data-id="${b.id}"] .eqb`); if(el) setTimeout(()=>openEqEditor(el),0); return; }
+    if(v==='eq-txt'){ b.type='p'; savePage(pg); rerenderBlocks(); focusBlock(b.id,'end'); return; }
     if(v.startsWith('type:')){ setType(pg,b,v.slice(5)); }
     else if(v.startsWith('color:')) b.color=v.slice(6);
     else if(v.startsWith('icon:')) b.icon=v.slice(5);

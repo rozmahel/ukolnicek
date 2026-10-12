@@ -38,7 +38,7 @@ const events = { e1: { id: 'e1', title: 'ZJR', type: 'Přednáška', day: 0, sta
   const idbState = () => page.evaluate(async () => { const db = await window.Local.open(); return new Promise((res) => { const r = db.transaction('kv').objectStore('kv').get('state'); r.onsuccess = () => res(r.result); }); });
   const card = (code) => page.locator(`.ix-card:has(.ixc-nm b:text-is("${code}"))`);
   const cardText = async (code) => (await card(code).locator('.ixc-h').innerText()).replace(/\s+/g, ' ').trim();
-  const tiles = async () => (await page.$$eval('.ix-tile b', (b) => b.map((x) => x.textContent.replace(/\s+/g, ' ').trim()))).join(' | ');
+  const tiles = async () => (await page.$$eval('.ix-tile b', (b) => b.map((x) => (x.firstChild.textContent + (x.children[0] && /\//.test(x.children[0].textContent) ? x.children[0].textContent : '')).replace(/\s+/g, ' ').trim()))).join(' | ');
 
   // ---------- kompatibilita: data uložená verzí 2.6 (Index zapnutý) ----------
   console.log('1) data uložená verzí 2.6 → nová verze');
@@ -106,7 +106,7 @@ const events = { e1: { id: 'e1', title: 'ZJR', type: 'Přednáška', day: 0, sta
   const total = card('MPA-ZJR').locator('.ixc-in');
   ok(await total.count() === 1 && /Body celkem/.test(await card('MPA-ZJR').locator('.ixc-pts').innerText()), 'bez dílčích hodnocení je na kartě pole „Body celkem“');
   await total.click(); await page.keyboard.type('78');
-  ok(/78 b –/.test(await cardText('MPA-ZJR')) && /čeká na zápočet/.test(await card('MPA-ZJR').locator('.ixc-meta').innerText()), 'bez zápočtu není známka: ' + await cardText('MPA-ZJR'));
+  ok(/78 b –/.test(await cardText('MPA-ZJR')) && !/čeká na zápočet/.test(await card('MPA-ZJR').locator('.ixc-meta').innerText()), 'bez zápočtu není známka (bez textu „čeká na zápočet“, 3.4.0): ' + await cardText('MPA-ZJR'));
   ok(await page.evaluate(() => document.activeElement.classList.contains('ixc-in') && document.activeElement.value === '78'), 'kurzor zůstal v poli');
   await page.keyboard.type('x'); await sleep(50);
   ok(await total.evaluate((i) => i.classList.contains('bad')), 'neplatné číslo: červený rámeček');

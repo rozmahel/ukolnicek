@@ -1,6 +1,6 @@
 /* Úkolníček – Service Worker (offline režim)
    Při každé nové verzi aplikace zvyš VERSION, jinak si telefony nechají starou verzi. */
-const VERSION = 'ukolnicek-v3.3.0';
+const VERSION = 'ukolnicek-v3.4.0';
 const RUNTIME = 'ukolnicek-runtime';
 const ASSETS = [
   './',
@@ -29,6 +29,7 @@ const ASSETS = [
   './js/editor/keys.js',
   './js/editor/links.js',
   './js/editor/markdown.js',
+  './js/editor/math.js',
   './js/editor/menus.js',
   './js/editor/render.js',
   './js/editor/slash.js',
@@ -53,12 +54,35 @@ const ASSETS = [
   './js/views/subjects.js',
   './js/views/tasks.js',
   './js/views/today.js',
+  './lib/katex/katex.min.js',
+  './lib/katex/katex.min.css',
+  './lib/katex/fonts/KaTeX_AMS-Regular.woff2',
+  './lib/katex/fonts/KaTeX_Caligraphic-Bold.woff2',
+  './lib/katex/fonts/KaTeX_Caligraphic-Regular.woff2',
+  './lib/katex/fonts/KaTeX_Fraktur-Bold.woff2',
+  './lib/katex/fonts/KaTeX_Fraktur-Regular.woff2',
+  './lib/katex/fonts/KaTeX_Main-Bold.woff2',
+  './lib/katex/fonts/KaTeX_Main-BoldItalic.woff2',
+  './lib/katex/fonts/KaTeX_Main-Italic.woff2',
+  './lib/katex/fonts/KaTeX_Main-Regular.woff2',
+  './lib/katex/fonts/KaTeX_Math-BoldItalic.woff2',
+  './lib/katex/fonts/KaTeX_Math-Italic.woff2',
+  './lib/katex/fonts/KaTeX_SansSerif-Bold.woff2',
+  './lib/katex/fonts/KaTeX_SansSerif-Italic.woff2',
+  './lib/katex/fonts/KaTeX_SansSerif-Regular.woff2',
+  './lib/katex/fonts/KaTeX_Script-Regular.woff2',
+  './lib/katex/fonts/KaTeX_Size1-Regular.woff2',
+  './lib/katex/fonts/KaTeX_Size2-Regular.woff2',
+  './lib/katex/fonts/KaTeX_Size3-Regular.woff2',
+  './lib/katex/fonts/KaTeX_Size4-Regular.woff2',
+  './lib/katex/fonts/KaTeX_Typewriter-Regular.woff2',
   './navod.html',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
-  './icons/apple-touch-icon.png'
+  './icons/icon-maskable-192.png',
+  './icons/icon-180.png'
 ];
 
 self.addEventListener('install', (e) => {

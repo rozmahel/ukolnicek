@@ -55,14 +55,14 @@ const Store={
     }catch(e){ console.error(e); this.broken=true; setTimeout(()=>toast('Místní úložiště není dostupné (soukromé okno?). Změny se neuloží.'),300); }
     onDataReady(); Sync.init();
   },
-  queue(){ bumpRev(); META.changedAt=Date.now(); clearTimeout(this.t); this.t=setTimeout(()=>this.flush(),350); updateSaving(true); updateSyncUI(); },
+  queue(){ bumpRev(); META.changedAt=Date.now(); clearTimeout(this.t); this.t=setTimeout(()=>this.flush(),350); updateSyncUI(); },
   async flush(){
     clearTimeout(this.t); this.t=null;
     const d=dataForSave();                 /* jedna kopie dat pro otisk i uložení */
     META.curHash=hashData(d);
     if(this.broken){ updateSaving(); updateSyncUI(); return; }
-    try{ await Local.saveState(Object.assign(d,{meta:clone(META)})); }
-    catch(e){ toast(e&&e.name==='QuotaExceededError'?'Úložiště v zařízení je plné. Smaž nějaké obrázky nebo stránky.':'Uložení do zařízení selhalo. Zkus obnovit stránku.'); }
+    try{ await Local.saveState(Object.assign(d,{meta:clone(META)})); SAVE_ERR=false; }
+    catch(e){ SAVE_ERR=true; toast(e&&e.name==='QuotaExceededError'?'Úložiště v zařízení je plné. Smaž nějaké obrázky nebo stránky.':'Uložení do zařízení selhalo. Zkus obnovit stránku.'); }
     updateSaving(); updateSyncUI();
   },
   flushAll(){ if(this.t) this.flush(); }
@@ -97,7 +97,7 @@ function legacyHtml(h){
 /* Data zvenku (soubor, Disk, záloha, IndexedDB) se před použitím zkontrolují: ID a typy, které se vypisují do HTML,
    musí mít bezpečný tvar. Běžná data aplikace se tím nezmění (ani jejich otisk), opraví se jen podvržené nebo poškozené hodnoty. */
 const SAFE_ID=/^[A-Za-z0-9_-]{1,64}$/;
-const BLOCK_TYPES=new Set([...TEXT_TYPES,'table','divider','page','image','subj']);   /* nový typ bloku je potřeba přidat i sem */
+const BLOCK_TYPES=new Set([...TEXT_TYPES,'table','divider','page','image','subj','eq']);   /* nový typ bloku je potřeba přidat i sem */
 const LINE_TYPES=new Set(['p','bullet','todo']);
 function idFixer(){
   const map=new Map();
@@ -148,7 +148,9 @@ function normalizeImport(d){
   Object.entries(d.semesters||{}).forEach(([k,x])=>{ if(!x) return; const sm=clone(x); sm.id=fid(sm.id||k); ['hidden','noStats'].forEach(f=>{ if(sm[f]!=null&&sm[f]!==true) delete sm[f]; }); out.semesters[sm.id]=sm; });
   return out;
 }
-function updateSaving(busy){ const el=$('#save-state'); if(!el) return; el.textContent=busy?'Ukládám…':(Store.broken?'Neukládá se':'Uloženo'); el.className=busy?'busy':''; }
+/* vedle Nastavení se ukazuje jen chyba (úložiště nedostupné nebo uložení selhalo); běžné ukládání je tiché */
+let SAVE_ERR=false;
+function updateSaving(busy,err){ if(err!==undefined) SAVE_ERR=err; const el=$('#save-state'); if(!el) return; const bad=Store.broken||SAVE_ERR; el.textContent=bad?'⚠ Neukládá se':''; el.className=bad?'err':''; el.title=bad?'Změny se neukládají do tohoto zařízení':''; }
 
 function savePage(pg){ if(!pg) return; recordHistory(pg); pg.updated=Date.now(); Store.queue(); }
 function saveEvent(){ Store.queue(); }
