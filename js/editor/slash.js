@@ -10,6 +10,7 @@ import { insertSubjAt, insertTypeAt, setType } from './blocks.js';
 import { placePop } from '../ui.js';
 import { openLinkDialog } from './links.js';
 import { pickImageBlock, pickImageInline } from './images.js';
+import { importMd } from './markdown.js';
 
 /* ---- slash menu ---- */
 let slash={open:false};
@@ -57,6 +58,7 @@ function chooseSlash(it){
     openSubjPicker(el,su=>{ const i=pg.blocks.indexOf(b); if(i<0) return; insertSubjAt(pg,i,su,isBlank(b.html)); });
     return;
   }
+  if(it.k==='mdimport'){ savePage(pg); importMd(pg,b.id); return; }
   if(it.k==='image'){
     if(b.type==='p'&&isBlank(b.html)){ savePage(pg); pickImageBlock(pg.id,b.id,true); }
     else { const s=getSelection(); pickImageInline(el,s.rangeCount?s.getRangeAt(0).cloneRange():null); }

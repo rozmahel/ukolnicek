@@ -120,7 +120,7 @@ Kód je rozdělený do malých souborů podle oblastí. Prohlížeč je načte s
 | `js/school.js` | školní režim a předměty: výběr předmětu, propojení hodin s předměty, smazání školních dat |
 | `js/theme.js` | barevný motiv: čte `settings.theme`, nastavuje `data-skin` na `<html>` a barvu lišty prohlížeče |
 | `js/store.js` | ukládání do zařízení, otisk dat („neuloženo na Disk“), kontrola dat zvenku |
-| `js/editor/` | editor stránek: vykreslení, klávesy, `/` menu, lišty, menu bloků, odkazy, obrázky, zpět a znovu |
+| `js/editor/` | editor stránek: vykreslení, klávesy, `/` menu, lišty, menu bloků, odkazy, obrázky, zpět a znovu, výběr textu i celých bloků (`multisel.js`), nabídka @ a zpětné odkazy (`mention.js`), import a export Markdownu (`markdown.js`) |
 | `js/views/` | pohledy: Dnes, Index, Rozvrh, Úkoly, Hledání, Nastavení |
 | `js/sync/` | synchronizace s Google Diskem a spojení dvou verzí při kolizi |
 | `js/storage.js` | IndexedDB: data, obrázky, místní zálohy |
@@ -143,7 +143,7 @@ npx playwright install chromium
 
 Pak:
 
-- `npm test`: zkontroluje importy mezi moduly a spustí testy v prohlížeči bez okna (synchronizace s napodobeným Diskem, Úkoly, Index, školní režim, barevné motivy a další). Na Google se nic neposílá. Snímky obrazovky z testů jsou v `tests/shots/`. Test kompatibility se starou verzí potřebuje složku `_zaloha-v2.6.0`, bez ní poběží proti současné verzi. Test motivů porovnává Výchozí vzhled se složkou `_zaloha-v3.0.1` (bez ní se to porovnání přeskočí).
+- `npm test`: zkontroluje importy mezi moduly a spustí testy v prohlížeči bez okna (synchronizace s napodobeným Diskem, Úkoly, Index, školní režim, barevné motivy, výběr přes víc bloků a přesouvání projektů, import a export Markdownu a další). Na Google se nic neposílá. Snímky obrazovky z testů jsou v `tests/shots/`. Test kompatibility se starou verzí potřebuje složku `_zaloha-v2.6.0`, bez ní poběží proti současné verzi. Test motivů porovnává Výchozí vzhled se složkou `_zaloha-v3.0.1` (bez ní se to porovnání přeskočí).
 - `npm run fix-imports`: přepočítá řádky `import` a `export` ve všech modulech. Když přesuneš funkci do jiného souboru, stačí ho spustit. Nový modul přidej do seznamu `MODULES` v `tools/fix-imports.js` (určuje pořadí načítání).
 
 ### Vydání nové verze
@@ -162,7 +162,9 @@ Data jsou jeden JSON: `pages`, `events`, `settings`, a když jsou použité, i `
 - **Stránka:** `{id, title, icon, color, parent, order, props, blocks}`. Blok má `id`, `type` (`p`, `h1`–`h3`, `bullet`, `num`, `todo`, `quote`, `callout`, `table`, `divider`, `page`, `image`, `subj`) a `html`. Nadpis může mít `collapsed`, `until` (blok, po který se sbaluje) a `untilVis` (ten blok zůstane vidět).
 - **Blok předmětu** (`subj`): `subj` (ID předmětu), `html` (textová kopie názvu pro starší verze), volitelně `icon`, `it`, `un`, `st`, `hl` (emoji a formát nadpisu).
 - **Hodina v rozvrhu:** `{id, title, type, day, start, end, repeat, date, count, place, who, note, color, subj}`. Prázdné `color` u hodiny s předmětem znamená barvu podle předmětu.
-- **Předmět:** `{id, code, name, credits, sem, end, color, pts, parts:[{id, name, max, pts}], passed, note}`. **Semestr:** `{id, name, target, order}`, volitelně `noStats` (nepočítat do souhrnu) a `hidden` (neukazovat v seznamu Indexu).
+
+- **Odkaz v textu (@):** `<a class="mention" data-page="ID">` nebo `data-subj="ID"` uvnitř `html` bloku (i v buňce tabulky). Text je kopie názvu, při vykreslení se obnoví. Starší verze ho ukáží jako obyčejný text. Datum z @ je obyčejný text „12. 10.“.
+- **Předmět:** `{id, code, name, credits, sem, end, color, pts, parts:[{id, name, max, pts}], passed, note}`. `passed` (zápočet udělen) platí pro všechna ukončení a je podmínkou známky; u ukončení `z` se body nezadávají. **Semestr:** `{id, name, target, order}`, volitelně `noStats` (nepočítat do souhrnu) a `hidden` (neukazovat v seznamu Indexu).
 - `settings.school` je v datech jen tehdy, když je školní režim zapnutý.
 - `settings.theme` (`paper` nebo `forest`) je v datech jen tehdy, když si uživatel vybral jiný barevný motiv než Výchozí. Neznámá hodnota (třeba z novější verze) se bere jako Výchozí a v datech zůstane. Režim světlý / tmavý a velikost textu v datech nejsou, jsou jen v zařízení (`uk-theme`, `uk-fs`). Kopie motivu `uk-skin` v zařízení slouží jen k tomu, aby se motiv nastavil hned při startu, bez poblikání.
 - Data zvenku (import, Disk, záloha) se před použitím kontrolují, takže podvržený soubor nemůže v aplikaci spustit kód.

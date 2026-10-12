@@ -26,6 +26,7 @@ import { applyFontScale, applyTheme, initSettings, openSettings } from './views/
 import { openSyncMenu, Sync } from './sync/sync.js';
 import { openLinkPop } from './editor/links.js';
 import { initImages, selectImage } from './editor/images.js';
+import { exportMd } from './editor/markdown.js';
 
 /* posluchače ostatních modulů; pořadí je stejné jako dřív v jednom souboru app.js (na pořadí registrace záleží) */
 initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings(); initImages(); initIndex(); initTreeDrag();
@@ -60,6 +61,7 @@ document.addEventListener('click',e=>{
   if(LOCK&&['add-after','row-menu','col-menu','add-row','add-col','prop-add','prop-del','tpl'].includes(act)) return;
   switch(act){
     case 'lock': toggleLock(); break;
+    case 'mdexport': exportMd(pg); break;
     case 'mc-prev': S.calOffset--; renderSidebar(); break;
     case 'mc-next': S.calOffset++; renderSidebar(); break;
     case 'mc-now': S.calOffset=0; renderSidebar(); break;

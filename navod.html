@@ -56,6 +56,12 @@
       <p>Řádek a sloupec přidáš tlačítky, která se ukážou pod tabulkou po najetí myší. ⋮ a ⋯ na okraji je vloží jinam nebo smažou.</p>
     </div>
 
+    <div class="g-card hl-blue">
+      <h3><span class="g-ic">📥</span>Markdown</h3>
+      <p><b>Import:</b> napiš <kbd>/markdown</kbd> a vyber soubor <code>.md</code> (třeba z Obsidianu). Nadpisy, odrážky, číslované seznamy, úkoly <code>- [ ]</code>, citace, rámečky <code>&gt; [!NOTE]</code>, oddělovače, tabulky a tučné, kurzíva, kód, odkazy a <code>==zvýraznění==</code> se převedou na bloky. Stránka bez názvu ho dostane z prvního nadpisu <code>#</code> nebo ze jména souboru. Vrátíš to <kbd>⌘Z</kbd>.</p>
+      <p><b>Export:</b> tlačítko ⤓ vedle zámku stáhne stránku jako <code>.md</code>. Podstránky jsou v něm jen jako název, obrázky jen jako popisek.</p>
+    </div>
+
     <div class="g-card hl-orange">
       <h3><span class="g-ic">🔗</span>Odkazy</h3>
       <p>Napiš <kbd>/odkaz</kbd>, vlož adresu a pojmenuj ho. Nebo označ text a v liště nad ním klikni na 🔗.</p>
@@ -116,6 +122,14 @@
 <section data-tab="novinky" data-title="Novinky">
 
   <article class="g-rel new">
+    <h3>Import a export Markdownu <span class="v">3.3.0</span> <time datetime="2026-10-12">12. 10. 2026</time></h3>
+    <ul>
+      <li><b>Import .md:</b> <kbd>/markdown</kbd> → vybereš soubor a jeho obsah se vloží jako bloky (nadpisy, seznamy, úkoly, citace, rámečky, tabulky, formátování textu).</li>
+      <li><b>Export .md:</b> nové tlačítko vedle zámku nahoře stáhne celou stránku jako Markdown.</li>
+    </ul>
+  </article>
+
+  <article class="g-rel">
     <h3>Zápočet, výběr bloků, odkazy @, přesouvání projektů <span class="v">3.2.0</span> <time datetime="2026-10-10">10. 10. 2026</time></h3>
     <ul>
       <li><b>Zápočet u všech předmětů:</b> na kartě v Indexu je zaškrtávátko „Zápočet udělen“. Známka se ukáže a kredity započítají až se zápočtem, i když body stačí. Do té doby je u karty „známka čeká na zápočet“.</li>
