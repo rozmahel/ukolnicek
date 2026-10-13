@@ -74,6 +74,9 @@
 .caret:hover{background:var(--hover)}
 .hidden-count{font-size:calc(12.5px*var(--fs));color:var(--muted);margin:0 0 0 2px}
 .b-quote .txt{border-left:3px solid var(--fg);padding-left:14px;margin:4px 0}
+/* blok s kódem: neformátovaný text na mírně šedém podkladu; řádky se nezalamují (stromy složek zůstanou zarovnané), dlouhý řádek se posouvá do strany */
+.b-code .txt{font:400 .86em/1.55 var(--f-mono);font-variant-ligatures:none;background:var(--hl-gray-bg,var(--hover));color:var(--fg);border-radius:9px;padding:10px 14px;margin:4px 0;white-space:pre;word-break:normal;overflow-x:auto;tab-size:2}
+.b-code .txt:empty::before{font-family:var(--f-body)}
 .b-callout>.row{background:var(--c-bg);border-radius:9px;padding:10px 12px 10px 8px;margin:6px 0;gap:8px}
 .callout-ic{width:28px;font-size:calc(18px*var(--fs));margin-top:1px;border-radius:6px}
 .callout-ic:hover{background:color-mix(in srgb,var(--c-fg) 12%,transparent)}

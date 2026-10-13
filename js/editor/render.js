@@ -8,6 +8,7 @@ import { curPage, pIcon, pTitle } from '../pages.js';
 import { isSchool, subjBlockText, subjLabel } from '../school.js';
 import { imgSrc, isBlank, sanitize } from '../sanitize.js';
 import { hideImgSel, imgSel } from './images.js';
+import { codeNorm } from './code.js';
 import { backlinksHtml } from './mention.js';
 
 /* ================= page editor ================= */
@@ -87,7 +88,7 @@ function renderBlock(b,i,bl){
     else if(b.type==='todo') mk=`<button class="mk check ${b.done?'on':''}" data-act="check" role="checkbox" aria-checked="${!!b.done}" aria-label="Hotovo"></button>`;
     else if(isHeading(b.type)) mk=`<button class="mk caret ${b.collapsed?'closed':''}" data-act="collapse" aria-label="${b.collapsed?'Rozbalit sekci':'Sbalit sekci'}"></button>`;
     else if(b.type==='callout') mk=`<button class="mk callout-ic" data-act="blk-menu" data-popanchor aria-label="Změnit ikonu a barvu">${esc(b.icon||'💡')}</button>`;
-    inner=`<div class="row">${mk}<div class="txt t-${b.type} ${b.type==='todo'&&b.done?'done':''}" contenteditable="true" data-ph="${PH[b.type]||''}">${sanitize(b.html)}</div></div>`;
+    inner=`<div class="row">${mk}<div class="txt t-${b.type} ${b.type==='todo'&&b.done?'done':''}" contenteditable="true" data-ph="${PH[b.type]||''}">${b.type==='code'?codeNorm(b.html):sanitize(b.html)}</div></div>`;
   }
   const extra=b.type==='image'?` al-${b.align||'center'}`:b.type==='subj'?` hl-${esc((S.subjects[b.subj]||{}).color||'gray')}`:'';
   return `<div class="blk b-${b.type} ${b.type==='callout'?'hl-'+(b.color||'purple'):''}${extra}" data-id="${b.id}" style="--lv:${b.type==='image'?0:lv}${b.type==='image'?`;--w:${+b.w||480}px`:''}">

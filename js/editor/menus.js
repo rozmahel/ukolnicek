@@ -65,7 +65,7 @@ function openBlockMenu(anchor,pg,b){
     if(v==='subj-h1'){ subjToH1(pg,b); return; }
     if(v==='eq-edit'){ const el=$(`#blocks .blk[data-id="${b.id}"] .eqb`); if(el) setTimeout(()=>openEqEditor(el),0); return; }
     if(v==='eq-txt'){ b.type='p'; savePage(pg); rerenderBlocks(); focusBlock(b.id,'end'); return; }
-    if(v.startsWith('type:')){ setType(pg,b,v.slice(5)); }
+    if(v.startsWith('type:')){ setType(pg,b,v.slice(5),true); }
     else if(v.startsWith('color:')) b.color=v.slice(6);
     else if(v.startsWith('icon:')) b.icon=v.slice(5);
     else if(v.startsWith('until:')){ const hb=pg.blocks.find(q=>q.id===v.slice(6)); if(hb){ hb.until=b.id; delete hb.untilVis; } }

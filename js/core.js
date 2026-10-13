@@ -24,10 +24,10 @@ const TYPES=['Přednáška','Cvičení','Laboratoř','Zkouška','Jiné'];
 const TYPE_SHORT={'Přednáška':'Přednáška','Cvičení':'Cvičení','Laboratoř':'Lab','Zkouška':'Zkouška','Jiné':''};
 const EMOJI=['📘','📗','📙','📕','📓','📒','🎓','⚛️','⚙️','☢️','🔬','🧪','🧮','📐','⚡','🔋','🧲','🌡️','💧','🏭','💡','📡','🖥️','🗓️','📅','📌','📝','🗂️','📊','🧠','🎯','✅','🔥','⭐','🧭','🏃','☕','🎒'];
 const CALLOUT_IC=['💡','📌','⚠️','🗓️','✅','❗','📎','🔴'];
-const TEXT_TYPES=['p','h1','h2','h3','bullet','num','todo','quote','callout'];
+const TEXT_TYPES=['p','h1','h2','h3','bullet','num','todo','quote','callout','code'];
 const LIST_TYPES=['bullet','num','todo'];
-const TYPE_ICON={link:'🔗',p:'T',h1:'H1',h2:'H2',h3:'H3',bullet:'•',num:'1.',todo:'☐',quote:'❝',callout:'!',table:'▦',divider:'—',page:'↗',image:'▣',subj:'🎓',mdimport:'M↓',eq:'∑'};
-const TYPE_LABEL={link:'Odkaz',p:'Text',h1:'Nadpis 1',h2:'Nadpis 2',h3:'Nadpis 3',bullet:'Odrážky',num:'Číslovaný seznam',todo:'Úkol',quote:'Citace',callout:'Zvýrazněný blok',table:'Tabulka',divider:'Oddělovač',page:'Podstránka',image:'Obrázek',subj:'Předmět',mdimport:'Import Markdownu',eq:'Rovnice'};
+const TYPE_ICON={link:'🔗',p:'T',h1:'H1',h2:'H2',h3:'H3',bullet:'•',num:'1.',todo:'☐',quote:'❝',callout:'!',code:'</>',table:'▦',divider:'—',page:'↗',image:'▣',subj:'🎓',mdimport:'M↓',eq:'∑'};
+const TYPE_LABEL={link:'Odkaz',p:'Text',h1:'Nadpis 1',h2:'Nadpis 2',h3:'Nadpis 3',bullet:'Odrážky',num:'Číslovaný seznam',todo:'Úkol',quote:'Citace',callout:'Zvýrazněný blok',code:'Kód',table:'Tabulka',divider:'Oddělovač',page:'Podstránka',image:'Obrázek',subj:'Předmět',mdimport:'Import Markdownu',eq:'Rovnice'};
 const SLASH=[
   {k:'p',hint:'Obyčejný odstavec',kw:'text odstavec paragraph'},
   {k:'h1',hint:'Velký nadpis sekce',kw:'nadpis heading h1'},
@@ -40,6 +40,7 @@ const SLASH=[
   {k:'table',hint:'Řádky a sloupce, v buňkách odrážky i úkoly',kw:'tabulka table mrizka'},
   {k:'callout',hint:'Barevný rámeček s ikonou',kw:'zvyrazneny callout upozorneni info poznamka'},
   {k:'quote',hint:'Odsazený citát',kw:'citace quote'},
+  {k:'code',hint:'Neformátovaný text na víc řádků, třeba struktura složek',kw:'kod code blok slozky struktura strom prikaz terminal monospace'},
   {k:'divider',hint:'Vodorovná čára',kw:'oddelovac cara divider'},
   {k:'image',hint:'Ze souboru; v úkolu či odrážce se vloží do textu',kw:'obrazek image foto fotka picture screenshot'},
   {k:'eq',hint:'LaTeX; v prázdném řádku na samostatný řádek, jinak do textu',kw:'rovnice vzorec latex tex math matematika equation jednotka velicina symbol zlomek'},
@@ -47,7 +48,7 @@ const SLASH=[
   {k:'page',hint:'Nová stránka uvnitř této',kw:'podstranka stranka page'},
   {k:'mdimport',hint:'Vloží obsah souboru .md (nadpisy, seznamy, úkoly, tabulky)',kw:'markdown md import soubor nahrat obsidian'}
 ];
-const PH={p:'Piš, nebo stiskni / pro příkazy',h1:'Nadpis 1',h2:'Nadpis 2',h3:'Nadpis 3',bullet:'Odrážka',num:'Položka',todo:'Úkol',quote:'Citace',callout:'Poznámka'};
+const PH={p:'Piš, nebo stiskni / pro příkazy',h1:'Nadpis 1',h2:'Nadpis 2',h3:'Nadpis 3',bullet:'Odrážka',num:'Položka',todo:'Úkol',quote:'Citace',callout:'Poznámka',code:'Vlož nebo napiš kód'};
 
 const ICONS={
   today:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',

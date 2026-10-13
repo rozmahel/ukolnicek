@@ -8,6 +8,7 @@ import { focusBlock, focusLine } from './caret.js';
 import { renderSidebar } from '../sidebar.js';
 import { go } from '../router.js';
 import { isHeading, renderPage, rerenderBlocks } from './render.js';
+import { codeNorm } from './code.js';
 
 /* ---- templates ---- */
 function applyTemplate(pg,k){
@@ -33,10 +34,25 @@ function applyTemplate(pg,k){
 }
 
 /* ---- conversions ---- */
-function setType(pg,b,k){
-  if(!TEXT_TYPES.includes(k)) return;
+/* Číslovaný seznam vzniklý zkratkou „1. “: zapamatuje se, co uživatel napsal. Když ho vrátí na text (Backspace na začátku,
+   nebo „Převést na → Text“), „1. “ zůstane v textu a zkratka se v tomhle bloku už číslovaný seznam znovu nevyrobí.
+   Jen v paměti stránky, do dat se nic nezapisuje. */
+const typedNum=new Map(), numOff=new Set();
+const rememberTypedNum=(id,s)=>typedNum.set(id,s.replace(/[\s ]+$/,'')+' ');
+const numShortcutOff=id=>numOff.has(id);
+/* vrací počet znaků „1. “ vrácených do textu (kam dát kurzor) */
+function setType(pg,b,k,backToText){
+  if(!TEXT_TYPES.includes(k)) return 0;
+  let kept=0;
+  if(backToText&&b.type==='num'&&k==='p'){
+    numOff.add(b.id);
+    const pre=typedNum.get(b.id); typedNum.delete(b.id);
+    if(pre){ b.html=esc(pre)+(b.html||''); kept=pre.length; }
+  }
   b.type=k; if(k!=='todo') delete b.done; if(!isHeading(k)) delete b.collapsed;
   if(k==='callout'){ b.color=b.color||'purple'; b.icon=b.icon||'💡'; }
+  if(k==='code') b.html=codeNorm(b.html);   /* v kódu není žádné formátování, odkazy ani rovnice */
+  return kept;
 }
 function insertTypeAt(pg,bi,k,replace){
   const b=pg.blocks[bi];
@@ -76,4 +92,4 @@ function toSubject(pg,b,su){ b.type='subj'; b.subj=su.id; b.html=esc(subjLabel(s
 /* blok předmětu → obyčejný nadpis H1 s názvem předmětu */
 function subjToH1(pg,b){ subjAsH1(b); savePage(pg); rerenderBlocks(); focusBlock(b.id,'end'); }
 
-export { applyTemplate, insertSubjAt, insertTypeAt, setType, subjToH1, toSubject };
+export { applyTemplate, insertSubjAt, insertTypeAt, numShortcutOff, rememberTypedNum, setType, subjToH1, toSubject };

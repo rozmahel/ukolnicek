@@ -9,6 +9,7 @@ import { focusBlock } from './caret.js';
 import { renderSidebar } from '../sidebar.js';
 import { renderPage } from './render.js';
 import { toast } from '../ui.js';
+import { codeHtml, htmlToCode } from './code.js';
 
 /* ================= import: text .md → bloky ================= */
 /* GitHub/Obsidian rámečky > [!NOTE] → zvýrazněný blok */
@@ -70,7 +71,7 @@ function mdToBlocks(text){
     if((m=line.match(RE_FENCE))){
       flush(); endList(); const fence=m[1], code=[];
       for(i++;i<L.length&&!L[i].trim().startsWith(fence[0].repeat(fence.length));i++) code.push(L[i]);
-      out.push({type:'p',html:code.map(c=>c?`<code>${esc(c)}</code>`:'').join('<br>')});
+      out.push({type:'code',html:codeHtml(code.join('\n'))});
       continue;
     }
     /* rovnice na samostatném řádku: $$ … $$ (na jednom i více řádcích) */
@@ -132,7 +133,7 @@ function pickMdFile(){
   });
 }
 function cleanBlock(x){
-  const b=newBlock(x.type,{html:x.type==='table'||x.type==='divider'?'':x.type==='eq'?x.html:sanitize(x.html)});
+  const b=newBlock(x.type,{html:x.type==='table'||x.type==='divider'?'':x.type==='eq'||x.type==='code'?x.html:sanitize(x.html)});
   if(x.level) b.level=x.level;
   if(x.done) b.done=true;
   if(x.type==='callout'){ b.icon=x.icon; b.color=x.color; }
@@ -209,6 +210,7 @@ function pageToMd(pg){
       case 'callout': s=`> [!${CALLOUT_BACK[b.icon]||'NOTE'}]\n> `+(b.icon&&!CALLOUT_BACK[b.icon]?b.icon+' ':'')+htmlToMd(b.html,'  \n> '); break;
       case 'divider': s='---'; break;
       case 'eq': s='$$\n'+plain(b.html)+'\n$$'; break;
+      case 'code': { const c=htmlToCode(b.html); const f=c.includes('```')?'~~~~':'```'; s=f+'\n'+c+'\n'+f; break; }
       case 'page': s=`↗ ${escMd(pTitle(S.pages[b.pageId]||null))}`; break;
       case 'image': s=`*[obrázek${b.name?': '+escMd(b.name):''}]*`+(b.caption?`  \n${htmlToMd(b.caption,' ')}`:''); break;
       case 'table': {

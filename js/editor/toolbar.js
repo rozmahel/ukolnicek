@@ -33,7 +33,7 @@ function updateFmt(){
   const s=getSelection();
   if(!s.rangeCount||s.isCollapsed){ hideFmt(); return; }
   const n=s.anchorNode; const el=n&&(n.nodeType===1?n:n.parentElement); const host=el&&el.closest('.txt');
-  if(!host||!host.closest('#doc')||!host.contains(s.focusNode)){ hideFmt(); return; }
+  if(!host||!host.closest('#doc')||host.closest('.b-code')||!host.contains(s.focusNode)){ hideFmt(); return; }
   const rc=s.getRangeAt(0).getBoundingClientRect(); if(!rc.width&&!rc.height){ hideFmt(); return; }
   fmt.hidden=false; hideCellbar();
   const w=fmt.offsetWidth,h=fmt.offsetHeight;

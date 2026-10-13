@@ -13,6 +13,7 @@ import { blockKeys, lineKeys } from './keys.js';
 import { applyMark, hideCellbar, showCellbar } from './toolbar.js';
 import { toast } from '../ui.js';
 import { handleImageFiles, pickImageBlock, rangeFromPoint } from './images.js';
+import { codeHtml, domText, insertCode } from './code.js';
 import { dollarInput, eqFromSelection } from './math.js';
 import { mentionInput, mentionKey } from './mention.js';
 import { blockEsc, initMultiSel } from './multisel.js';
@@ -49,6 +50,7 @@ export function initEvents(){
     if(t.innerHTML==='<br>') t.innerHTML='';
     const x=ctxOf(t); if(!x) return;
     const typed=e.inputType==='insertText';
+    if(!x.line&&x.b.type==='code'){ x.b.html=codeHtml(domText(t)); savePage(pg); return; }   /* v kódu se nic nezkracuje: žádné /, @, $ ani zkratky */
     if(typed&&e.data==='$') dollarInput(t);
     if(x.line){ x.line.html=t.innerHTML; if(typed&&mdLine(x,t)) return; mentionInput(e,t); savePage(pg); return; }
     x.b.html=t.innerHTML;
@@ -71,6 +73,7 @@ export function initEvents(){
     if(blockEsc(e,t)) return;
     if((e.metaKey||e.ctrlKey)&&!e.altKey){
       const k=e.key.toLowerCase();
+      if(t.closest('.b-code')&&(k==='b'||k==='i'||k==='u'||k==='e')){ e.preventDefault(); return; }   /* v kódu se nic nezvýrazňuje */
       if(k==='b'||k==='i'||k==='u'){ e.preventDefault(); document.execCommand({b:'bold',i:'italic',u:'underline'}[k]); return; }
       if(k==='e'&&e.shiftKey){ e.preventDefault(); eqFromSelection(); return; }
       if(k==='e'){ e.preventDefault(); applyMark('hl-purple'); return; }
@@ -81,6 +84,11 @@ export function initEvents(){
   viewEl.addEventListener('paste',e=>{
     const t=e.target.closest&&e.target.closest('.txt, #page-title, .pk, .pv, .cap'); if(!t) return;
     e.preventDefault();
+    if(t.classList.contains('txt')&&t.closest('.b-code')&&!t.closest('td')){   /* do kódu se vloží čistý text včetně řádků a odsazení */
+      const raw=(e.clipboardData.getData('text/plain')||'').replace(/\r\n?/g,'\n').replace(/\n$/,'');
+      if(raw) insertCode(t,raw);
+      return;
+    }
     const imgs=[...(e.clipboardData.files||[])].filter(f=>f.type.startsWith('image/'));
     if(imgs.length&&t.classList.contains('txt')){ const s=getSelection(); handleImageFiles(imgs,t,s.rangeCount?s.getRangeAt(0).cloneRange():null); return; }
     const text=(e.clipboardData.getData('text/plain')||'').replace(/\r/g,'');

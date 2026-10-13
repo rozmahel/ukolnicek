@@ -14,6 +14,7 @@ import { isHeading, rerenderBlocks, sectionEnd } from './render.js';
 import { setType } from './blocks.js';
 import { openPop, toast } from '../ui.js';
 import { rangeFromPoint } from './images.js';
+import { fragText, htmlToCode } from './code.js';
 
 let xs=null;      /* rozběhnutý tah: {host, node, off, on} */
 let active=false; /* bloky jsou přepnuté na needitovatelné */
@@ -68,6 +69,7 @@ function toClipboard(items){
     if(b.type==='subj'){ close(); const su=S.subjects&&S.subjects[b.subj], s=su?subjLabel(su):plain(b.html).trim(); txt.push('# '+s); html.push(`<h1>${esc(s)}</h1>`); return; }
     if(b.type==='page'){ close(); const s=pTitle(S.pages[b.pageId]); txt.push(ind+s); html.push(`<p>${esc(s)}</p>`); return; }
     if(!TEXT_TYPES.includes(b.type)) return;   /* oddělovač, obrázek */
+    if(b.type==='code'){ close(); const c=part?fragText(part.cloneContents()):htmlToCode(b.html); txt.push(c); html.push(`<pre>${esc(c)}</pre>`); return; }
     /* část textu (výběr textem), nebo celý blok (výběr bloků) */
     const s=part?part.toString():plain(b.html||''), h=part?fragHtml(part):sanitize(b.html||'');
     if(b.type==='bullet'||b.type==='num'){
