@@ -146,7 +146,7 @@ npx playwright install chromium
 
 Pak:
 
-- `npm test`: zkontroluje importy mezi moduly a spustí testy v prohlížeči bez okna (synchronizace s napodobeným Diskem včetně obrázků, Úkoly, Index, školní režim, barevné motivy, výběr přes víc bloků a přesouvání projektů, import a export Markdownu, rovnice, blok s kódem a „1.“ jako text, hledání a ⌘S a další). Na Google se nic neposílá. Snímky obrazovky z testů jsou v `tests/shots/`. Test kompatibility se starou verzí potřebuje složku `_zaloha-v2.6.0`, bez ní poběží proti současné verzi. Test motivů porovnává Výchozí vzhled se složkou `_zaloha-v3.0.1` (bez ní se to porovnání přeskočí).
+- `npm test`: zkontroluje importy mezi moduly a spustí testy v prohlížeči bez okna (synchronizace s napodobeným Diskem včetně obrázků, Úkoly, Index, školní režim, barevné motivy, výběr přes víc bloků a přesouvání projektů, import a export Markdownu, rovnice, blok s kódem a „1.“ jako text, hledání a ⌘S, archiv a sbalené úkoly a další). Na Google se nic neposílá. Snímky obrazovky z testů jsou v `tests/shots/`. Test kompatibility se starou verzí potřebuje složku `_zaloha-v2.6.0`, bez ní poběží proti současné verzi. Test motivů porovnává Výchozí vzhled se složkou `_zaloha-v3.0.1` (bez ní se to porovnání přeskočí).
 - `npm run fix-imports`: přepočítá řádky `import` a `export` ve všech modulech. Když přesuneš funkci do jiného souboru, stačí ho spustit. Nový modul přidej do seznamu `MODULES` v `tools/fix-imports.js` (určuje pořadí načítání).
 
 ### Vydání nové verze
@@ -162,7 +162,7 @@ Nová verze se v zařízeních nasadí sama, při spuštění nebo návratu do a
 
 Data jsou jeden JSON: `pages`, `events`, `settings`, a když jsou použité, i `subjects` a `semesters`.
 
-- **Stránka:** `{id, title, icon, color, parent, order, props, blocks}`. Blok má `id`, `type` (`p`, `h1`–`h3`, `bullet`, `num`, `todo`, `quote`, `callout`, `code`, `table`, `divider`, `page`, `image`, `subj`, `eq`) a `html`. Nadpis může mít `collapsed`, `until` (blok, po který se sbaluje) a `untilVis` (ten blok zůstane vidět).
+- **Stránka:** `{id, title, icon, color, parent, order, props, blocks}`, volitelně `archived` (čas archivace v ms; jen u archivované stránky, její podstránky příznak nemají a archivované jsou s ní). Blok má `id`, `type` (`p`, `h1`–`h3`, `bullet`, `num`, `todo`, `quote`, `callout`, `code`, `table`, `divider`, `page`, `image`, `subj`, `eq`) a `html`. Nadpis může mít `collapsed`, `until` (blok, po který se sbaluje) a `untilVis` (ten blok zůstane vidět).
 - **Blok předmětu** (`subj`): `subj` (ID předmětu), `html` (textová kopie názvu pro starší verze), volitelně `icon`, `it`, `un`, `st`, `hl` (emoji a formát nadpisu).
 - **Kód** (`code`): `html` je prostý text, řádky oddělené `<br>` (prázdný poslední řádek má `<br>` navíc), znaky `< > &` escapované, žádné značky formátu. Starší verze ho ukážou jako odstavec. Číslovaný seznam vrácený na text si pamatuje jen stránka v paměti (`blocks.js`), do dat se nic nezapisuje.
 - **Rovnice na řádku** (`eq`): `html` je zdroj LaTeX jako escapovaný text (žádné HTML z KaTeXu). Starší verze z něj udělají odstavec s textem rovnice.

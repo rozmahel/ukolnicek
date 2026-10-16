@@ -4,7 +4,7 @@ import { S } from '../state.js';
 import { applyLock } from '../lock.js';
 import { IMGURL } from '../store.js';
 import { hist, updateUndoBtns } from './history.js';
-import { curPage, pIcon, pTitle } from '../pages.js';
+import { curPage, isArchived, pIcon, pTitle } from '../pages.js';
 import { isSchool, subjBlockText, subjLabel } from '../school.js';
 import { imgSrc, isBlank, sanitize } from '../sanitize.js';
 import { hideImgSel, imgSel } from './images.js';
@@ -36,6 +36,7 @@ function renderPage(pg){
         <button class="icon-btn lock-btn" id="lock-btn" data-act="lock"></button>
       </div>
     </div>
+    ${isArchived(pg)?`<div class="arch-note">Stránka je v archivu. Nezobrazuje se v projektech, Úkolech ani Dnes. <button class="linkbtn" data-act="unarchive" data-id="${pg.id}">Obnovit z archivu</button></div>`:''}
     <div class="doc-head">
       <div class="title-row">${pg.icon?`<button class="page-icon" data-act="icon" data-popanchor aria-label="Změnit ikonu">${esc(pg.icon)}</button>`:''}<h1 class="page-title" id="page-title" contenteditable="true" spellcheck="false" data-ph="Bez názvu">${esc(pg.title)}</h1></div>
       <div class="props" id="props">${renderProps(pg)}</div>
@@ -59,12 +60,17 @@ function sectionEnd(bl,i){
   if(b.until){ const k=bl.findIndex(x=>x.id===b.until); if(k>i) end=b.untilVis?k:k+1; }
   return end;
 }
-function renderBlocks(pg){
-  const bl=pg.blocks||[]; const hidden=new Array(bl.length).fill(false); const counts={};
+/* které bloky jsou schované ve sbalených sekcích (používají to i Úkoly a Dnes) */
+function hiddenMask(bl,counts){
+  const hidden=new Array(bl.length).fill(false);
   for(let i=0;i<bl.length;i++){
     if(hidden[i]||!hLevel(bl[i].type)||!bl[i].collapsed) continue;
-    const e=sectionEnd(bl,i); let n=0; for(let j=i+1;j<e;j++){ if(!hidden[j]){ hidden[j]=true; n++; } } counts[bl[i].id]=n;
+    const e=sectionEnd(bl,i); let n=0; for(let j=i+1;j<e;j++){ if(!hidden[j]){ hidden[j]=true; n++; } } if(counts) counts[bl[i].id]=n;
   }
+  return hidden;
+}
+function renderBlocks(pg){
+  const bl=pg.blocks||[]; const counts={}; const hidden=hiddenMask(bl,counts);
   let out='';
   bl.forEach((b,i)=>{
     if(hidden[i]) return;
@@ -134,4 +140,4 @@ function ctxOf(el){
   return {pg,b,bi,blkEl};
 }
 
-export { ctxOf, defaultEnd, hLevel, isHeading, renderPage, rerenderBlocks, rerenderProps, sectionEnd };
+export { ctxOf, defaultEnd, hiddenMask, hLevel, isHeading, renderPage, rerenderBlocks, rerenderProps, sectionEnd };

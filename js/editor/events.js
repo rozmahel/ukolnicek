@@ -26,7 +26,9 @@ let dragId=null;
 
 const hasFiles=e=>e.dataTransfer&&[...(e.dataTransfer.types||[])].includes('Files');
 
-function endDrag(){ dragId=null; $$('.drop-before,.drop-after,.dragging').forEach(x=>x.classList.remove('drop-before','drop-after','dragging')); }
+let dragImg=false;   /* táhne se blokový obrázek: vpravo vedle textu ho jde nechat obtékat */
+const FLOAT_NO=['h1','subj','image','table'];   /* H1 a předmět ruší obtékání (clear), tam obrázek vedle nejde */
+function endDrag(){ dragId=null; dragImg=false; $$('.drop-before,.drop-after,.drop-float,.dragging').forEach(x=>x.classList.remove('drop-before','drop-after','drop-float','dragging')); }
 
 /* posluchače a nastavení při startu (volá main.js ve stejném pořadí jako dřív) */
 export function initEvents(){
@@ -137,16 +139,22 @@ export function initEvents(){
   viewEl.addEventListener('dragstart',e=>{
     const h=e.target.closest&&e.target.closest('.g-drag'); if(!h){ return; }
     if(LOCK){ e.preventDefault(); return; }
-    const blk=h.closest('.blk'); dragId=blk.dataset.id;
+    const blk=h.closest('.blk'); dragId=blk.dataset.id; dragImg=blk.classList.contains('b-image');
     e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain','');
-    try{ e.dataTransfer.setDragImage(blk,16,12); }catch(_){}
+    /* náhled táhne se přesně z místa, kde je kurzor (u obrázku jen samotný obrázek, ne celá šířka bloku) */
+    const gi=(dragImg&&blk.querySelector('.imgfig'))||blk, gr=gi.getBoundingClientRect();
+    const ox=Math.max(0,Math.min(gr.width,e.clientX-gr.left)), oy=Math.max(0,Math.min(gr.height,e.clientY-gr.top));
+    try{ e.dataTransfer.setDragImage(gi,ox,oy); }catch(_){}
     requestAnimationFrame(()=>blk.classList.add('dragging'));
   });
   viewEl.addEventListener('dragover',e=>{
     if(!dragId&&hasFiles(e)&&$('#doc')){ e.preventDefault(); e.dataTransfer.dropEffect='copy'; return; }
     if(!dragId) return; const blk=e.target.closest('#blocks .blk'); if(!blk) return;
-    e.preventDefault(); $$('.drop-before,.drop-after').forEach(x=>x.classList.remove('drop-before','drop-after'));
-    const rc=blk.getBoundingClientRect(); blk.classList.add(e.clientY<rc.top+rc.height/2?'drop-before':'drop-after');
+    e.preventDefault(); $$('.drop-before,.drop-after,.drop-float').forEach(x=>x.classList.remove('drop-before','drop-after','drop-float'));
+    const rc=blk.getBoundingClientRect();
+    /* obrázek nad pravou částí textového bloku: nabídnout „nechat vpravo“ (obtékání) */
+    if(dragImg&&blk.dataset.id!==dragId&&!FLOAT_NO.some(t=>blk.classList.contains('b-'+t))&&e.clientX>rc.left+rc.width*.62){ blk.classList.add('drop-float'); return; }
+    blk.classList.add(e.clientY<rc.top+rc.height/2?'drop-before':'drop-after');
   });
   viewEl.addEventListener('drop',e=>{
     if(!dragId&&hasFiles(e)&&$('#doc')){
@@ -161,8 +169,15 @@ export function initEvents(){
       pickImageBlock(pg.id,after,false,files[0]); return;
     }
     if(!dragId) return; e.preventDefault();
-    const tgt=$('.drop-before,.drop-after'); const pg=curPage();
-    if(tgt&&pg&&tgt.dataset.id!==dragId){
+    const tgt=$('.drop-before,.drop-after,.drop-float'); const pg=curPage();
+    if(tgt&&pg&&tgt.dataset.id!==dragId&&tgt.classList.contains('drop-float')){
+      /* obrázek se dá těsně před blok a obteče se vpravo; příliš široký se zmenší, aby vedle zbylo místo na text */
+      const from=pg.blocks.findIndex(b=>b.id===dragId); const [im]=pg.blocks.splice(from,1);
+      const to=pg.blocks.findIndex(b=>b.id===tgt.dataset.id); pg.blocks.splice(to,0,im);
+      const cw=($('#blocks')||{clientWidth:700}).clientWidth||700;
+      im.align='right'; if((+im.w||480)>cw*.5) im.w=Math.round(cw*.42);
+      savePage(pg);
+    } else if(tgt&&pg&&tgt.dataset.id!==dragId){
       const after=tgt.classList.contains('drop-after');
       const from=pg.blocks.findIndex(b=>b.id===dragId); const [blk]=pg.blocks.splice(from,1);
       let to=pg.blocks.findIndex(b=>b.id===tgt.dataset.id); if(after) to++;

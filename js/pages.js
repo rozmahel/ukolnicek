@@ -9,8 +9,32 @@ import { toast } from './ui.js';
 
 /* ================= pages helpers ================= */
 const curPage=()=>S.view.kind==='page'?S.pages[S.view.pageId]:null;
-const kids=pid=>Object.values(S.pages).filter(p=>(p.parent||null)===(pid||null)).sort((a,b)=>(a.order||0)-(b.order||0)||String(a.title).localeCompare(b.title));
-function descendants(id){ let out=[]; kids(id).forEach(k=>{ out.push(k.id); out=out.concat(descendants(k.id)); }); return out; }
+const byOrder=(a,b)=>(a.order||0)-(b.order||0)||String(a.title).localeCompare(b.title);
+/* podstránky v levém panelu: archivované stránky (s příznakem archived) se v běžném stromu nezobrazují */
+const kidsAll=pid=>Object.values(S.pages).filter(p=>(p.parent||null)===(pid||null)).sort(byOrder);
+const kids=pid=>kidsAll(pid).filter(p=>!p.archived);
+function descendants(id){ let out=[]; kidsAll(id).forEach(k=>{ out.push(k.id); out=out.concat(descendants(k.id)); }); return out; }
+/* stránka je v archivu, když má příznak ona nebo některá nadřazená stránka */
+function isArchived(p){ for(let n=0;p&&n<50;n++){ if(p.archived) return true; p=S.pages[p.parent]; } return false; }
+/* kořeny archivu: stránky s příznakem, nejnověji archivované nahoře */
+const archRoots=()=>Object.values(S.pages).filter(p=>p.archived).sort((a,b)=>(b.archived||0)-(a.archived||0)||byOrder(a,b));
+function archivePage(id){
+  const pg=S.pages[id]; if(!pg||pg.archived) return;
+  pg.archived=Date.now(); savePage(pg,0);
+  const inView=S.view.kind==='page'&&(S.view.pageId===id||descendants(id).includes(S.view.pageId));
+  if(inView&&!S.archMode) go({kind:'today'}); else { renderSidebar(); renderMain(); }
+  toast(`„${pTitle(pg)}“ přesunuto do archivu`,'Vrátit',()=>{ delete pg.archived; savePage(pg,0); renderSidebar(); renderMain(); });
+}
+function unarchivePage(id){
+  const pg=S.pages[id]; if(!pg) return;
+  delete pg.archived;
+  /* podstránka archivovaného projektu (nebo stránka bez rodiče) se vrací na nejvyšší úroveň */
+  if(pg.parent&&(!S.pages[pg.parent]||isArchived(S.pages[pg.parent]))){ pg.parent=null; const sib=kids(null).filter(x=>x!==pg); pg.order=(sib.length?Math.max(...sib.map(s=>s.order||0)):0)+1; }
+  savePage(pg,0);
+  if(S.archMode&&!archRoots().length) S.archMode=false;
+  renderSidebar(); renderMain();
+  toast(`„${pTitle(pg)}“ obnoveno z archivu`);
+}
 function flatPages(pid=null,depth=0,out=[]){ kids(pid).forEach(p=>{ out.push({p,depth}); flatPages(p.id,depth+1,out); }); return out; }
 const pTitle=p=>p?(p.title||'Bez názvu'):'Smazaná stránka';
 const pIcon=p=>p&&p.icon?`<span class="ti-ic">${esc(p.icon)}</span>`:`<span class="ti-ic"><span class="ti-dot hl-${esc((p&&p.color)||'gray')}"></span></span>`;
@@ -68,4 +92,4 @@ function revealBlock(pageId,blockId,openSelf,query){
   setTimeout(()=>{ const el=$(`#blocks .blk[data-id="${blockId}"]`); if(el){ el.scrollIntoView({block:openSelf?'start':'center'}); if(query) markFound(el,query); else el.classList.add('flash'); } },30);
 }
 
-export { createPage, curPage, deletePage, emptyCell, flatPages, kids, newBlock, newTable, pIcon, pTitle, revealBlock };
+export { archivePage, archRoots, createPage, curPage, deletePage, emptyCell, flatPages, isArchived, kids, kidsAll, newBlock, newTable, pIcon, pTitle, revealBlock, unarchivePage };

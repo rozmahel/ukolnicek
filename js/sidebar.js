@@ -4,7 +4,7 @@ import { MONTHS_NOM, S } from './state.js';
 import { LOCK } from './lock.js';
 import { savePage, updateSaving } from './store.js';
 import { isoWeek, mondayOf, parseD, weekInfo, weekNo, weeksBetween, ymd } from './dates.js';
-import { curPage, kids, pIcon, pTitle } from './pages.js';
+import { archRoots, curPage, kids, kidsAll, pIcon, pTitle } from './pages.js';
 import { isIndex, isSchool } from './school.js';
 import { renderPage } from './editor/render.js';
 import { shownTasks } from './views/tasks.js';
@@ -16,15 +16,29 @@ function renderSidebar(){
   const open=shownTasks().filter(t=>!t.done).length;
   const v=S.view;
   const nav=(k,label,extra='')=>`<button class="nv ${v.kind===k?'on':''}" data-act="nav" data-v="${k}">${ICONS[k]}<span>${label}</span>${extra}</button>`;
-  const tree=(pid,d)=>kids(pid).map(p=>{
-    const ch=kids(p.id).length, open=S.expanded[p.id]!==false;
+  const arch=S.archMode;
+  /* v archivu: kořeny = archivované stránky, pod nimi všechny jejich podstránky */
+  const tree=(pid,d,list)=>(list||(arch?kidsAll:kids)(pid)).map(p=>{
+    const ch=(arch?kidsAll:kids)(p.id).length, open=S.expanded[p.id]!==false;
     return `<div class="ti ${v.kind==='page'&&v.pageId===p.id?'on':''}" style="--d:${d}">
       <button class="ti-tog ${ch?'':'none'} ${open?'open':''}" data-act="tog" data-id="${p.id}" aria-label="${open?'Sbalit':'Rozbalit'}"></button>
       <button class="ti-main" data-act="open" data-id="${p.id}">${pIcon(p)}<span class="ti-t">${esc(pTitle(p))}</span></button>
-      <span class="ti-acts"><button class="icon-btn" data-act="page-menu" data-id="${p.id}" aria-label="Možnosti" data-popanchor>⋯</button><button class="icon-btn" data-act="new-sub" data-id="${p.id}" aria-label="Přidat podstránku">+</button></span>
+      <span class="ti-acts"><button class="icon-btn" data-act="page-menu" data-id="${p.id}" aria-label="Možnosti" data-popanchor>⋯</button>${arch?'':`<button class="icon-btn" data-act="new-sub" data-id="${p.id}" aria-label="Přidat podstránku">+</button>`}</span>
     </div>${ch&&open?tree(p.id,d+1):''}`;
   }).join('');
   const school=isSchool();
+  if(arch){
+    const roots=archRoots();
+    side.innerHTML=`
+    <div class="ws"><div class="ws-name">${esc(S.settings.name||'Úkolníček')}</div></div>
+    <nav class="nav"><button class="nv arch-back" data-act="arch-back">${ICONS.back}<span>Zpět</span></button></nav>
+    <div class="sec-h"><span>${ICONS.archive}Archiv</span><span class="sec-n">${roots.length||''}</span></div>
+    <div class="tree arch-tree">${roots.length?tree(null,0,roots):`<div class="tree-empty">Archiv je prázdný.<br>Stránku sem přesuneš v jejím menu ⋯ → Archivovat.</div>`}</div>
+    <div class="syncbar" id="sync-box"></div>
+    <div class="side-foot"><button class="nv" data-act="settings">${ICONS.settings}<span>Nastavení</span></button><span id="save-state"></span></div>`;
+    updateSaving(); updateSyncUI(); return;
+  }
+  const archN=archRoots().length;
   side.innerHTML=`
     <div class="ws"><div class="ws-name">${esc(S.settings.name||'Úkolníček')}</div>
       ${!S.ready||!school?'':wk?`<div class="ws-week"><b>${wk.n}.</b> týden výuky · ${wk.parity}</div>`:`<button class="linkbtn" data-act="settings">Nastav začátek semestru</button>`}
@@ -34,9 +48,10 @@ function renderSidebar(){
       ${school?(isIndex()?nav('index','Index'):'')+nav('schedule','Rozvrh'):''}
       ${nav('tasks','Úkoly',open?`<span class="badge">${open}</span>`:'')}
       <button class="nv" data-act="search">${ICONS.search}<span>Hledat</span><kbd>⌘K</kbd></button>
+      <button class="nv" data-act="arch">${ICONS.archive}<span>Archiv</span>${archN?`<span class="badge">${archN}</span>`:''}</button>
     </nav>
     <div class="sec-h"><span>Projekty</span><button class="icon-btn" data-act="new-page" aria-label="Nový projekt">+</button></div>
-    <div class="tree">${Object.keys(S.pages).length?tree(null,0):`<div class="tree-empty">Zatím žádné projekty.<br><button class="linkbtn" data-act="new-page">Vytvořit první projekt</button></div>`}</div>
+    <div class="tree">${kids(null).length?tree(null,0):`<div class="tree-empty">Zatím žádné projekty.<br><button class="linkbtn" data-act="new-page">Vytvořit první projekt</button></div>`}</div>
     <div class="syncbar" id="sync-box"></div>
     <div class="side-foot"><button class="nv" data-act="settings">${ICONS.settings}<span>Nastavení</span></button><span id="save-state"></span></div>`;
   updateSaving(); updateSyncUI();
@@ -82,7 +97,7 @@ function tdTarget(x,y,drag){
 function initTreeDrag(){
   const side=$('#side');
   side.addEventListener('pointerdown',e=>{
-    td=null; if(LOCK||e.button!==0||e.pointerType!=='mouse') return;
+    td=null; if(LOCK||S.archMode||e.button!==0||e.pointerType!=='mouse') return;
     const it=e.target.closest('.ti'); if(!it||e.target.closest('.ti-acts,.ti-tog')) return;
     td={id:$('.ti-main',it).dataset.id,it,x:e.clientX,y:e.clientY,on:false};
   });

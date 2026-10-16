@@ -2,7 +2,7 @@
 import { $, lsSet } from './core.js';
 import { S } from './state.js';
 import { Store } from './store.js';
-import { pTitle } from './pages.js';
+import { isArchived, pTitle } from './pages.js';
 import { isIndex, isSchool } from './school.js';
 import { closeSide, renderSidebar } from './sidebar.js';
 import { renderPage } from './editor/render.js';
@@ -18,6 +18,7 @@ import { hideImgSel } from './editor/images.js';
 function go(view){
   Store.flushAll();
   S.view=view; lsSet('uk-view',view);
+  if(view.kind==='page'&&isArchived(S.pages[view.pageId])) S.archMode=true;   /* archivovaná stránka (třeba z hledání): panel ukáže archiv */
   closeSide(); closePop(); hideFmt(); hideCellbar(); hideImgSel();
   renderSidebar(); renderMain();
   $('#main').scrollTop=0;

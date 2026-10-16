@@ -3,11 +3,12 @@ import { $, esc, ICONS, plain, plural } from '../core.js';
 import { S } from '../state.js';
 import { DATA_REV, savePage, saveSettings } from '../store.js';
 import { dueChip, parseDue } from '../dates.js';
-import { flatPages, pIcon, pTitle } from '../pages.js';
+import { flatPages, isArchived, pIcon, pTitle } from '../pages.js';
 import { subjBlockText } from '../school.js';
 import { sanitize } from '../sanitize.js';
 import { renderSidebar } from '../sidebar.js';
 import { renderMain } from '../router.js';
+import { hiddenMask } from '../editor/render.js';
 import { openPop } from '../ui.js';
 
 /* ================= tasks ================= */
@@ -26,12 +27,15 @@ function allTasks(){
   if(taskCache&&taskRev===DATA_REV) return taskCache;
   const out=[], order=pageOrder();
   /* úkol patří pod nejbližší nadpis H1 nebo blok předmětu nad sebou (bez nich pod H2) */
-  Object.values(S.pages).sort((a,b)=>order.get(a.id)-order.get(b.id)).forEach(pg=>{ let h1='',h2='',secId='',subj=''; const root=rootOf(pg);
-    (pg.blocks||[]).forEach(b=>{
+  /* archivované stránky a úkoly ve sbalených sekcích se nepočítají */
+  Object.values(S.pages).filter(pg=>!isArchived(pg)).sort((a,b)=>order.get(a.id)-order.get(b.id)).forEach(pg=>{ let h1='',h2='',secId='',subj=''; const root=rootOf(pg);
+    const hid=hiddenMask(pg.blocks||[]);
+    (pg.blocks||[]).forEach((b,bi)=>{
     if(b.type==='h1'){ h1=plain(b.html).replace(/\s+/g,' ').trim(); h2=''; subj=''; secId=h1?b.id:''; return; }
     if(b.type==='subj'){ h1=subjBlockText(b); h2=''; subj=b.subj||''; secId=b.id; return; }
     if(b.type==='h2'&&!h1){ h2=plain(b.html).replace(/\s+/g,' ').trim(); secId=h2?b.id:''; return; }
     const sec=h1||h2;
+    if(hid[bi]) return;
     if(b.type==='todo') out.push({key:`${pg.id}|${b.id}`,pg,root,b,html:b.html,done:!!b.done,sec,secId,subj});
     else if(b.type==='table') (b.rows||[]).forEach((row,r)=>(row.cells||[]).forEach((cell,c)=>(cell.lines||[]).forEach((ln,l)=>{ if(ln.t==='todo') out.push({key:`${pg.id}|${b.id}|${r}|${c}|${l}`,pg,root,b,ln,html:ln.html,done:!!ln.done,inTable:true,sec,secId,subj}); })));
   }); });

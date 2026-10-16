@@ -3,7 +3,7 @@ import { $, $$, CALLOUT_IC, clamp, clone, COLOR_CZ, COLORS, EMOJI, esc, plain, r
 import { S } from '../state.js';
 import { LOCK } from '../lock.js';
 import { savePage } from '../store.js';
-import { createPage, curPage, deletePage, emptyCell, kids } from '../pages.js';
+import { archivePage, createPage, curPage, deletePage, emptyCell, isArchived, kids, unarchivePage } from '../pages.js';
 import { gotoSubject, isIndex, openSubjPicker, subjBlockText, subjLabel } from '../school.js';
 import { focusBlock } from './caret.js';
 import { renderSidebar } from '../sidebar.js';
@@ -141,7 +141,13 @@ function openIconPop(anchor,pg){
   });
 }
 function openPageMenu(anchor,pg){
-  const h=`<button class="pop-item" data-v="sub"><span class="pi-ic">+</span>Přidat podstránku</button><button class="pop-item" data-v="up"><span class="pi-ic">↑</span>Posunout nahoru</button><button class="pop-item" data-v="down"><span class="pi-ic">↓</span>Posunout dolů</button>${pg.parent?'<button class="pop-item" data-v="top"><span class="pi-ic">⇤</span>Přesunout na nejvyšší úroveň</button>':''}<button class="pop-item" data-v="dup"><span class="pi-ic">⧉</span>Duplikovat</button><div class="pop-sep"></div><button class="pop-item danger" data-v="del"><span class="pi-ic">×</span>Smazat</button>`;
+  /* stránka v archivu: jen obnovit nebo smazat */
+  if(isArchived(pg)){
+    const h=`<button class="pop-item" data-v="unarch"><span class="pi-ic">↺</span>Obnovit z archivu</button><div class="pop-sep"></div><button class="pop-item danger" data-v="del"><span class="pi-ic">×</span>Smazat</button>`;
+    openPop(anchor,h,v=>{ if(v==='unarch') unarchivePage(pg.id); if(v==='del') deletePage(pg.id); });
+    return;
+  }
+  const h=`<button class="pop-item" data-v="sub"><span class="pi-ic">+</span>Přidat podstránku</button><button class="pop-item" data-v="up"><span class="pi-ic">↑</span>Posunout nahoru</button><button class="pop-item" data-v="down"><span class="pi-ic">↓</span>Posunout dolů</button>${pg.parent?'<button class="pop-item" data-v="top"><span class="pi-ic">⇤</span>Přesunout na nejvyšší úroveň</button>':''}<button class="pop-item" data-v="dup"><span class="pi-ic">⧉</span>Duplikovat</button><button class="pop-item" data-v="arch"><span class="pi-ic">▤</span>Archivovat</button><div class="pop-sep"></div><button class="pop-item danger" data-v="del"><span class="pi-ic">×</span>Smazat</button>`;
   openPop(anchor,h,v=>{
     if(v==='sub'){ const c=createPage(pg.id); renderSidebar(); go({kind:'page',pageId:c.id}); setTimeout(()=>$('#page-title')&&$('#page-title').focus(),30); return; }
     if(v==='up'||v==='down'){
@@ -154,6 +160,7 @@ function openPageMenu(anchor,pg){
       const c=clone(pg); c.id=rid(); c.title=(pg.title||'Bez názvu')+' (kopie)'; c.order=(pg.order||0)+.5;
       const ids=new Map(); c.blocks.forEach(b=>{ const n=rid(); ids.set(b.id,n); b.id=n; }); c.blocks.forEach(b=>{ if(b.until) b.until=ids.get(b.until)||undefined; if(!b.until){ delete b.until; delete b.untilVis; } }); S.pages[c.id]=c; savePage(c,0); renderSidebar(); go({kind:'page',pageId:c.id}); return;
     }
+    if(v==='arch'){ archivePage(pg.id); return; }
     if(v==='del') deletePage(pg.id);
   });
 }

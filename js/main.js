@@ -5,7 +5,7 @@ import { applyLock, LOCK, toggleLock } from './lock.js';
 import { initStore, isDirty, META, savePage, saveSettings, Store } from './store.js';
 import { redo, undo } from './editor/history.js';
 import { fmtTime, fromMin, parseD, weeksBetween, ymd } from './dates.js';
-import { createPage, curPage, emptyCell, newBlock, pTitle, revealBlock } from './pages.js';
+import { createPage, curPage, emptyCell, newBlock, pTitle, revealBlock, unarchivePage } from './pages.js';
 import { gotoSubject, isSchool } from './school.js';
 import { isBlank } from './sanitize.js';
 import { focusBlock, focusEl, focusLine } from './editor/caret.js';
@@ -73,6 +73,9 @@ document.addEventListener('click',e=>{
     case 'nav': go({kind:a.dataset.v}); break;
     case 'menu': $('#side').classList.contains('open')?closeSide():openSide(); break;
     case 'search': closeSide(); openSearch(); break;
+    case 'arch': S.archMode=true; renderSidebar(); break;
+    case 'arch-back': S.archMode=false; renderSidebar(); break;
+    case 'unarchive': unarchivePage(a.dataset.id); break;
     case 'settings': closeSide(); openSettings(); break;
     case 'open': go({kind:'page',pageId:a.dataset.id}); break;
     case 'tog': S.expanded[a.dataset.id]=S.expanded[a.dataset.id]===false; lsSet('uk-exp',S.expanded); renderSidebar(); break;
@@ -92,7 +95,7 @@ document.addEventListener('click',e=>{
     case 'prop-del': if(pg){ pg.props.splice(+a.dataset.i,1); savePage(pg); rerenderProps(); } break;
     case 'check': { const x=ctxOf(a); if(!x) break; x.b.done=!x.b.done; a.classList.toggle('on',x.b.done); a.setAttribute('aria-checked',x.b.done); a.parentElement.querySelector('.txt').classList.toggle('done',x.b.done); savePage(x.pg,300); renderSidebar(); break; }
     case 'lcheck': { const x=ctxOf(a); if(!x||!x.line) break; x.line.done=!x.line.done; a.classList.toggle('on',x.line.done); a.closest('.ln').classList.toggle('done',x.line.done); savePage(x.pg,300); renderSidebar(); break; }
-    case 'collapse': { const x=ctxOf(a); if(!x) break; x.b.collapsed=!x.b.collapsed; savePage(x.pg); rerenderBlocks(); break; }
+    case 'collapse': { const x=ctxOf(a); if(!x) break; x.b.collapsed=!x.b.collapsed; savePage(x.pg); rerenderBlocks(); renderSidebar(); break; }
     case 'add-after': { const x=ctxOf(a); if(!x) break; const nb=newBlock('p',{level:x.b.level||0}); x.pg.blocks.splice(x.bi+1,0,nb); savePage(x.pg); rerenderBlocks(); const el=$(`#blocks .blk[data-id="${nb.id}"] .txt`); focusEl(el,0); openSlash(el,nb.id,0,'plus'); break; }
     case 'blk-menu': { const x=ctxOf(a); if(x) openBlockMenu(a,x.pg,x.b); break; }
     case 'subj-blk': { const x=ctxOf(a); if(x&&x.b.type==='subj') openSubjBlockMenu(a,x.pg,x.b); break; }

@@ -1,7 +1,7 @@
 /* Úkolníček – Hledání (⌘K) */
 import { $, clamp, esc, norm, plain } from '../core.js';
 import { S } from '../state.js';
-import { pIcon, pTitle, revealBlock } from '../pages.js';
+import { isArchived, pIcon, pTitle, revealBlock } from '../pages.js';
 import { subjBlockText } from '../school.js';
 import { go } from '../router.js';
 import { closeModal, openModal } from '../ui.js';
@@ -24,10 +24,11 @@ function openSearch(){
         }
         if(!score){ const txt=(p.props||[]).map(x=>x.k+' '+x.v).join(' '); const i=norm(txt).indexOf(q); if(i>=0){ score=2; snip=txt.slice(Math.max(0,i-30),i+60); } }
       }
-      return {p,score,snip,bid,q};
+      if(score&&isArchived(p)) score-=.5;   /* archiv až za běžnými stránkami */
+      return {p,score,snip,bid,q,arch:isArchived(p)};
     }).filter(r=>r.score).sort((a,b)=>b.score-a.score).slice(0,12);
     idx=clamp(idx,0,Math.max(0,res.length-1));
-    $('#qres',m).innerHTML=res.length?res.map((r,i)=>`<button class="q-item ${i===idx?'act':''}" data-i="${i}">${pIcon(r.p)}<span>${esc(pTitle(r.p))}${r.snip?`<small>…${esc(r.snip)}…</small>`:''}</span></button>`).join(''):`<div class="empty" style="padding:14px">Nic nenalezeno.</div>`;
+    $('#qres',m).innerHTML=res.length?res.map((r,i)=>`<button class="q-item ${i===idx?'act':''}" data-i="${i}">${pIcon(r.p)}<span>${esc(pTitle(r.p))}${r.arch?' <em class="q-arch">archiv</em>':''}${r.snip?`<small>…${esc(r.snip)}…</small>`:''}</span></button>`).join(''):`<div class="empty" style="padding:14px">Nic nenalezeno.</div>`;
   };
   draw();
   $('#q',m).addEventListener('input',()=>{ idx=0; draw(); });

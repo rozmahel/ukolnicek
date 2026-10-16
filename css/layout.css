@@ -42,6 +42,11 @@
 .ti.drop-after::after{bottom:-1px}
 body.tree-drag,body.tree-drag *{cursor:grabbing!important;user-select:none}
 .tree-empty{padding:6px 10px;color:var(--muted);font-size:calc(13.5px*var(--fs))}
+/* archiv v levém panelu */
+.sec-h>span:first-child{display:flex;align-items:center;gap:6px}
+.sec-h svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sec-h .sec-n{font:500 calc(11.5px*var(--fs)) var(--f-mono);letter-spacing:0}
+.nv.arch-back{color:var(--fg);font-weight:600}
 .side-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--line);padding:10px 6px 2px;margin-top:8px}
 .side-foot .nv{width:auto}
 #save-state{font-size:calc(12px*var(--fs));color:var(--muted);white-space:nowrap}

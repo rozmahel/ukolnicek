@@ -120,6 +120,19 @@ function applyImgAlign(al){
   if(imgSel.kind==='block'){ const blk=imgSel.img.closest('.blk'); blk.classList.remove('al-left','al-center','al-right'); blk.classList.add('al-'+al); imgSel.x.b.align=al; savePage(imgSel.x.pg); }
   else { imgSel.img.className='im al-'+al; imgSel.host.dispatchEvent(new Event('input',{bubbles:true})); }
 }
+/* stažení obrázku do zařízení (původní název souboru, přípona podle skutečného formátu) */
+const EXT={'image/png':'png','image/jpeg':'jpg','image/gif':'gif','image/webp':'webp'};
+async function downloadImage(id,name){
+  const url=IMGURL.get(id); if(!url) return toast('Obrázek v tomhle zařízení ještě není. Nejdřív ho stáhni z Disku (↓).');
+  try{
+    const blob=await (await fetch(url)).blob(), ext=EXT[blob.type];
+    let fn=String(name||'obrázek').replace(/[\\/:*?"<>|]+/g,'_').trim()||'obrázek';
+    if(ext&&!new RegExp('\\.'+(ext==='jpg'?'jpe?g':ext)+'$','i').test(fn)) fn=fn.replace(/\.(png|jpe?g|gif|webp|heic|heif)$/i,'')+'.'+ext;
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fn;
+    document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1500);
+  }catch(e){ toast('Obrázek se nepodařilo stáhnout.'); }
+}
+const imgIdName=sel=>sel.kind==='block'?[sel.x.b.img,sel.x.b.name]:[sel.img.getAttribute('data-img'),sel.img.getAttribute('data-name')];
 function openImgTools(){
   const al=imgAlign(), kind=imgSel.kind, cw=imgContainerW(), cur=imgSel.img.getBoundingClientRect().width;
   const sizes=[['25','Malý',.25],['50','Střední',.5],['75','Velký',.75],['100','Celá šířka',1]];
@@ -128,12 +141,13 @@ function openImgTools(){
     <p class="note" style="padding:0 8px 4px">${kind==='block'?'Vlevo a vpravo: text dalších bloků obteče obrázek.':'Vlevo a vpravo: text obteče obrázek.'}</p>
     <div class="pop-h">Velikost</div><div class="it-row">${sizes.map(([k,l,f])=>`<button class="${Math.abs(cur-cw*f)<8?'on':''}" data-v="sz:${f}">${l}</button>`).join('')}</div>
     <p class="note" style="padding:0 8px 4px">Nebo táhni za roh obrázku.</p>
-    <div class="pop-sep"></div><div class="it-row">${kind==='block'?`<button data-v="cap">${imgSel.x.b.caption||imgSel.x.b.capOn?'Upravit popisek':'Přidat popisek'}</button>`:''}<button data-v="open">Zvětšit</button>${LOCK?'':'<button class="danger" data-v="del">Smazat</button>'}</div>`;
+    <div class="pop-sep"></div><div class="it-row">${kind==='block'?`<button data-v="cap">${imgSel.x.b.caption||imgSel.x.b.capOn?'Upravit popisek':'Přidat popisek'}</button>`:''}<button data-v="open">Zvětšit</button><button data-v="dl">Stáhnout</button>${LOCK?'':'<button class="danger" data-v="del">Smazat</button>'}</div>`;
   openPop(imgSel.img,h,(v,btn,p)=>{
     if(!imgSel) return;
     if(v.startsWith('al:')){ applyImgAlign(v.slice(3)); $$('[data-v^="al:"]',p).forEach(b=>b.classList.toggle('on',b===btn)); requestAnimationFrame(()=>{ placeFrame(); placePop(p,imgSel.img.getBoundingClientRect()); }); return true; }
     if(v.startsWith('sz:')){ applyImgWidth(imgContainerW()*parseFloat(v.slice(3)),true); $$('[data-v^="sz:"]',p).forEach(b=>b.classList.toggle('on',b===btn)); requestAnimationFrame(()=>{ placeFrame(); placePop(p,imgSel.img.getBoundingClientRect()); }); return true; }
-    if(v==='open'){ const src=imgSel.img.src; const cap=kind==='block'?imgSel.x.b.caption:''; hideImgSel(); const mm=openModal('',`<div class="m-head"><span></span><button class="icon-btn" data-close aria-label="Zavřít">×</button></div><div class="lb"><img id="lb-img" alt="">${cap?`<p>${esc(cap)}</p>`:''}</div>`,'lbm'); $('#lb-img',mm).src=src; return; }
+    if(v==='dl'){ const [id,name]=imgIdName(imgSel); downloadImage(id,name); return true; }
+    if(v==='open'){ const src=imgSel.img.src; const cap=kind==='block'?imgSel.x.b.caption:''; const [dlId,dlName]=imgIdName(imgSel); hideImgSel(); const mm=openModal('',`<div class="m-head"><span></span><span class="lb-acts"><button class="btn" data-lbdl>Stáhnout</button><button class="icon-btn" data-close aria-label="Zavřít">×</button></span></div><div class="lb"><img id="lb-img" alt="">${cap?`<p>${esc(cap)}</p>`:''}</div>`,'lbm'); $('#lb-img',mm).src=src; $('[data-lbdl]',mm).addEventListener('click',()=>downloadImage(dlId,dlName)); return; }
     if(v==='cap'){ const {x}=imgSel; x.b.capOn=true; savePage(x.pg); hideImgSel(); rerenderBlocks(); const c=$(`#blocks .blk[data-id="${x.b.id}"] .cap`); focusEl(c,'end'); return; }
     if(v==='del'&&!LOCK){
       if(kind==='block'){ const {x}=imgSel; const bi=x.pg.blocks.indexOf(x.b); if(bi<0) return; x.pg.blocks.splice(bi,1); savePage(x.pg); hideImgSel(); rerenderBlocks(); toast('Obrázek smazán','Vrátit',()=>{ x.pg.blocks.splice(Math.min(bi,x.pg.blocks.length),0,x.b); savePage(x.pg); rerenderBlocks(); }); }

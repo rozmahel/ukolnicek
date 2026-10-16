@@ -77,7 +77,8 @@
 /* blok s kódem: neformátovaný text na mírně šedém podkladu; řádky se nezalamují (stromy složek zůstanou zarovnané), dlouhý řádek se posouvá do strany */
 .b-code .txt{font:400 .86em/1.55 var(--f-mono);font-variant-ligatures:none;background:var(--hl-gray-bg,var(--hover));color:var(--fg);border-radius:9px;padding:10px 14px;margin:4px 0;white-space:pre;word-break:normal;overflow-x:auto;tab-size:2}
 .b-code .txt:empty::before{font-family:var(--f-body)}
-.b-callout>.row{background:var(--c-bg);border-radius:9px;padding:10px 12px 10px 8px;margin:6px 0;gap:8px}
+.b-callout>.row{background:var(--c-bg);border-radius:9px;padding:6px 12px 6px 8px;margin:6px 0;gap:8px}
+.b-callout>.gut{top:50%;transform:translateY(-50%)}
 .callout-ic{width:28px;font-size:calc(18px*var(--fs));margin-top:1px;border-radius:6px}
 .callout-ic:hover{background:color-mix(in srgb,var(--c-fg) 12%,transparent)}
 /* oddělovač má výšku řádku textu a čára je přesně uprostřed */
@@ -92,11 +93,17 @@
 .blk.drop-before::before{top:-2px}
 .blk.drop-after::after{bottom:-2px}
 .blk.dragging{opacity:.35}
+/* tažený obrázek nad pravou částí textu: puštěním zůstane vpravo a text ho obteče */
+.blk.drop-float::after{content:"Nechat vpravo · text obteče";position:absolute;top:0;right:0;bottom:0;width:38%;min-height:30px;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 6px;border:2px dashed var(--accent);border-radius:8px;background:var(--accent-soft);color:var(--accent);font-size:calc(12px*var(--fs));font-weight:600;pointer-events:none;z-index:3}
 .blk.flash>.row,.blk.flash .tbl{animation:flash 1.4s ease-out}
 @keyframes flash{0%{background:var(--sel)}100%{background:transparent}}
 /* nalezený text z hledání (CSS Highlight API, do obsahu bloku nesahá) */
 ::highlight(uk-find){background-color:var(--hl-yellow-bg);color:var(--hl-yellow-fg)}
 .doc-tail{min-height:140px;cursor:text}
+
+/* stránka v archivu */
+.arch-note{margin:0 0 14px;padding:8px 12px;border-radius:9px;background:var(--hover);color:var(--fg2);font-size:calc(13.5px*var(--fs))}
+.arch-note .linkbtn{margin-left:4px}
 
 /* ---------- obrázky ---------- */
 .blocks::after{content:"";display:block;clear:both}
@@ -129,6 +136,7 @@ img.broken{min-width:80px;min-height:48px;outline:1px dashed var(--faint)}
 .it-row button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
 .it-row button.danger{color:var(--danger)}
 .modal.lbm{width:min(1100px,100%)}
+.lb-acts{display:flex;align-items:center;gap:6px}
 .lb{padding:8px 18px 18px;display:grid;gap:8px}
 .lb img{display:block;max-width:100%;max-height:76vh;margin:0 auto;border-radius:10px}
 .lb p{margin:0;text-align:center;color:var(--muted);font-size:calc(14px*var(--fs))}
