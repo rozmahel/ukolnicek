@@ -1,6 +1,6 @@
 /* Úkolníček – Service Worker (offline režim)
    Při každé nové verzi aplikace zvyš VERSION, jinak si telefony nechají starou verzi. */
-const VERSION = 'ukolnicek-v3.5.0';
+const VERSION = 'ukolnicek-v3.6.0';
 const RUNTIME = 'ukolnicek-runtime';
 const ASSETS = [
   './',
@@ -48,6 +48,7 @@ const ASSETS = [
   './js/theme.js',
   './js/sync/merge.js',
   './js/sync/sync.js',
+  './js/sync/images.js',
   './js/ui.js',
   './js/views/schedule.js',
   './js/views/search.js',

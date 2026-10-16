@@ -84,6 +84,7 @@ document.addEventListener('click',e=>{
     case 'sync-menu': openSyncMenu(a); break;
     case 'sync-up': Sync.upload(); break;
     case 'sync-down': Sync.download(); break;
+    case 'img-sync': openSettings('drive'); break;
     case 'undo': undo(); break;
     case 'redo': redo(); break;
     case 'wide': if(pg){ pg.wide=!pg.wide; savePage(pg,0); renderPage(pg); } break;

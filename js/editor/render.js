@@ -77,7 +77,7 @@ function renderBlock(b,i,bl){
   const lv=b.level||0; let inner;
   if(b.type==='divider') inner='<div class="divider"><hr></div>';
   else if(b.type==='table') inner=renderTable(b);
-  else if(b.type==='image') inner=`<figure class="imgfig"><img class="bimg ${IMGURL.has(b.img)?'':'missing'}" src="${esc(imgSrc(b.img,b.name))}" alt="${esc(b.caption||'')}" draggable="false">${(b.caption||b.capOn)?`<figcaption class="cap" contenteditable="true" data-ph="Popisek obrázku">${esc(b.caption||'')}</figcaption>`:''}</figure>`;
+  else if(b.type==='image') inner=`<figure class="imgfig"><img class="bimg ${IMGURL.has(b.img)?'':'missing'}" data-bimg="${esc(b.img||'')}" src="${esc(imgSrc(b.img,b.name))}" alt="${esc(b.caption||'')}" draggable="false">${(b.caption||b.capOn)?`<figcaption class="cap" contenteditable="true" data-ph="Popisek obrázku">${esc(b.caption||'')}</figcaption>`:''}</figure>`;
   else if(b.type==='subj') inner=renderSubjHead(b);
   else if(b.type==='eq'){ const tex=plain(b.html); inner=`<div class="eqb" data-tex="${esc(tex)}" role="button" tabindex="0" aria-label="Rovnice, klikni pro úpravu">${esc(tex)}</div>`; }
   else if(b.type==='page'){ const p=S.pages[b.pageId]; inner=`<button class="pagelink" data-act="open" data-id="${esc(b.pageId)}">${p?pIcon(p):'<span class="pl-ic">↗</span>'}<span class="pl-t">${esc(pTitle(p))}</span></button>`; }

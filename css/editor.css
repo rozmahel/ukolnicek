@@ -107,6 +107,8 @@
 .b-image.al-center .imgfig{width:min(var(--w),100%);margin-inline:auto}
 .b-image.al-left{float:left;width:min(var(--w),100%);margin-right:22px}
 .b-image.al-right{float:right;width:min(var(--w),100%);margin-left:22px}
+/* obtékaný obrázek nad následujícími bloky, jinak je jejich rámeček (position:relative) překryje a nejde na něj kliknout */
+.b-image.al-left,.b-image.al-right{z-index:1}
 .bimg{display:block;width:100%;height:auto;border-radius:8px;cursor:pointer;background:var(--hover)}
 .b-image>.gut{left:6px;top:14px;z-index:2;background:var(--panel);border-radius:7px;box-shadow:var(--shadow)}
 .b-image.al-center>.gut{left:calc(50% - min(var(--w),100%)/2 + 6px)}

@@ -18,7 +18,7 @@ Podrobný návod je přímo v aplikaci: **Nastavení → Návod a novinky** (sou
 - Všechno se ukládá **v prohlížeči zařízení** (IndexedDB). Aplikace funguje i bez internetu.
 - Každé zařízení a každý prohlížeč má vlastní data. Mezi zařízeními je přeneseš přes Google Disk, nebo exportem a importem souboru (viz níže).
 - Na Google Disk se data ukládají do **skryté složky aplikace**. Nikdo jiný k nim nemá přístup a Úkolníček nevidí ostatní soubory na tvém Disku.
-- Obrázky zůstávají jen v zařízení, kde jsi je vložil. Do zálohy jde jen jejich název, na jiném zařízení se místo nich ukáže rámeček s názvem.
+- Obrázky jsou na Disku zvlášť, každý jako samostatný soubor `ukimg_<ID>` ve stejné skryté složce. Text je zná jen podle ID. Dokud obrázek v zařízení není, ukáže se místo něj rámeček s názvem.
 - Safari na iPhonu umí smazat data webu, který se 7 dní nepoužívá a **není přidaný na plochu**. Přidej si proto Úkolníček na plochu, nebo pravidelně zálohuj.
 
 ---
@@ -80,7 +80,9 @@ Client ID není tajný klíč, bezpečnost hlídá seznam povolených adres a te
   - **šedý přeškrtnutý**: Disk není připojený,
   - **žlutý**: přihlášení vypršelo, obnoví ho první klepnutí do aplikace,
   - **zelený**: připojeno,
-  - **oranžová tečka**: máš změny, které ještě nejsou na Disku.
+  - **oranžová tečka**: máš změny, které ještě nejsou na Disku,
+  - **žlutý vykřičník** vedle mráčku: obrázky čekají na nahrání, chybí v tomto zařízení nebo čekají na smazání z Disku (klik otevře Nastavení → Google Disk).
+- **Obrázky:** ↑ nahraje nejdřív nové obrázky (jen ty, které na Disku nejsou) a pak text. ↓ i automatické stažení po otevření doplní obrázky, které v zařízení chybí. Když se přenos přeruší, příště se pokračuje dalším obrázkem a text se nahraje i tak. Na mobilních datech se před stažením víc než 5 MB zeptá (automatické stažení počká). Obrázek, na který nahraný text už neodkazuje, se z Disku smaže, ale jen pokud tam byl už před poslední verzí textu, kterou zařízení vidělo, takže se nesmaže čerstvý obrázek z jiného zařízení. V zařízení se obrázky nemažou nikdy. Přenos obrázků přes ↑/↓ jde vypnout (Nastavení → Google Disk → Obrázky, jen pro toto zařízení), tlačítka pro samotné obrázky tam fungují vždy.
 
 ### Co se děje při stažení, a jak se vrátit
 - Před každým stažením z Disku (i automatickým), obnovením nebo importem se uloží **místní záloha**. Najdeš je v **Nastavení → Zálohy → Místní zálohy**, kde je jedním klikem obnovíš.
@@ -96,7 +98,7 @@ Client ID není tajný klíč, bezpečnost hlídá seznam povolených adres a te
 1. Otevři aplikaci a přidej si ji na plochu.
 2. S Diskem: **Nastavení → Google Disk**, vlož Client ID, přihlas se. Nejnovější záloha se stáhne sama.
 3. Bez Disku: na původním zařízení **Exportovat do souboru**, na novém **Importovat ze souboru…**.
-4. Obrázky se nepřenášejí. Na novém zařízení je případně vlož znovu.
+4. Obrázky přenese jen Disk (stáhnou se samy po textu). Export do souboru obsahuje jen text.
 
 ### Smazání dat
 - Jen školní data (předměty, semestry, rozvrh): **Nastavení → Škola → Smazat školní data**. Poznámky a úkoly zůstanou.
@@ -114,17 +116,18 @@ Kód je rozdělený do malých souborů podle oblastí. Prohlížeč je načte s
 | Soubor / složka | K čemu je |
 |---|---|
 | `index.html` | kostra stránky, načte styly a `js/main.js` |
-| `css/` | vzhled po oblastech (na pořadí v `index.html` záleží); `themes.css` jsou barevné motivy Papír a Les, Výchozí je v `base.css` |
+| `css/` | vzhled po oblastech (na pořadí v `index.html` záleží); `themes.css` jsou barevné motivy Papír, Les, Mlha, Šípek a Levandule, Výchozí je v `base.css` |
 | `js/main.js` | start aplikace, globální kliknutí a klávesy, Service Worker |
 | `js/core.js`, `state.js`, `dates.js`, `ui.js`, `router.js`, `sidebar.js`, `pages.js`, `sanitize.js`, `lock.js` | základ: pomůcky, stav v paměti, data a časy, dialogy a oznámení, přepínání pohledů, levý panel, stránky, čištění HTML, zámek |
 | `js/school.js` | školní režim a předměty: výběr předmětu, propojení hodin s předměty, smazání školních dat |
 | `js/theme.js` | barevný motiv: čte `settings.theme`, nastavuje `data-skin` na `<html>` a barvu lišty prohlížeče |
 | `js/store.js` | ukládání do zařízení, otisk dat („neuloženo na Disk“), kontrola dat zvenku |
-| `js/editor/` | editor stránek: vykreslení, klávesy, `/` menu, lišty, menu bloků, odkazy, obrázky, zpět a znovu, výběr textu i celých bloků (`multisel.js`), nabídka @ a zpětné odkazy (`mention.js`), import a export Markdownu (`markdown.js`) |
+| `js/editor/` | editor stránek: vykreslení, klávesy, `/` menu, lišty, menu bloků, odkazy, obrázky, zpět a znovu, výběr textu i celých bloků (`multisel.js`), nabídka @ a zpětné odkazy (`mention.js`), import a export Markdownu (`markdown.js`), rovnice v LaTeXu (`math.js`), blok s kódem (`code.js`) |
 | `js/views/` | pohledy: Dnes, Index, Rozvrh, Úkoly, Hledání, Nastavení |
-| `js/sync/` | synchronizace s Google Diskem a spojení dvou verzí při kolizi |
+| `js/sync/` | synchronizace s Google Diskem (`sync.js`), obrázky na Disku (`images.js`) a spojení dvou verzí při kolizi (`merge.js`) |
 | `js/storage.js` | IndexedDB: data, obrázky, místní zálohy |
 | `js/driveSync.js` | přihlášení Google a práce se soubory na Disku |
+| `lib/katex/` | KaTeX 0.16.22 (MIT) pro vykreslení rovnic: skript, styl a písma `.woff2`; načte se až když je na stránce rovnice, offline ho drží `sw.js` |
 | `navod.html` | návod a novinky (zobrazují se v Nastavení) |
 | `sw.js` | Service Worker: offline režim a nasazení nové verze |
 | `manifest.webmanifest`, `icons/` | instalace na plochu |
@@ -143,7 +146,7 @@ npx playwright install chromium
 
 Pak:
 
-- `npm test`: zkontroluje importy mezi moduly a spustí testy v prohlížeči bez okna (synchronizace s napodobeným Diskem, Úkoly, Index, školní režim, barevné motivy, výběr přes víc bloků a přesouvání projektů, import a export Markdownu a další). Na Google se nic neposílá. Snímky obrazovky z testů jsou v `tests/shots/`. Test kompatibility se starou verzí potřebuje složku `_zaloha-v2.6.0`, bez ní poběží proti současné verzi. Test motivů porovnává Výchozí vzhled se složkou `_zaloha-v3.0.1` (bez ní se to porovnání přeskočí).
+- `npm test`: zkontroluje importy mezi moduly a spustí testy v prohlížeči bez okna (synchronizace s napodobeným Diskem včetně obrázků, Úkoly, Index, školní režim, barevné motivy, výběr přes víc bloků a přesouvání projektů, import a export Markdownu, rovnice, blok s kódem a „1.“ jako text, hledání a ⌘S a další). Na Google se nic neposílá. Snímky obrazovky z testů jsou v `tests/shots/`. Test kompatibility se starou verzí potřebuje složku `_zaloha-v2.6.0`, bez ní poběží proti současné verzi. Test motivů porovnává Výchozí vzhled se složkou `_zaloha-v3.0.1` (bez ní se to porovnání přeskočí).
 - `npm run fix-imports`: přepočítá řádky `import` a `export` ve všech modulech. Když přesuneš funkci do jiného souboru, stačí ho spustit. Nový modul přidej do seznamu `MODULES` v `tools/fix-imports.js` (určuje pořadí načítání).
 
 ### Vydání nové verze
@@ -159,14 +162,17 @@ Nová verze se v zařízeních nasadí sama, při spuštění nebo návratu do a
 
 Data jsou jeden JSON: `pages`, `events`, `settings`, a když jsou použité, i `subjects` a `semesters`.
 
-- **Stránka:** `{id, title, icon, color, parent, order, props, blocks}`. Blok má `id`, `type` (`p`, `h1`–`h3`, `bullet`, `num`, `todo`, `quote`, `callout`, `table`, `divider`, `page`, `image`, `subj`) a `html`. Nadpis může mít `collapsed`, `until` (blok, po který se sbaluje) a `untilVis` (ten blok zůstane vidět).
+- **Stránka:** `{id, title, icon, color, parent, order, props, blocks}`. Blok má `id`, `type` (`p`, `h1`–`h3`, `bullet`, `num`, `todo`, `quote`, `callout`, `code`, `table`, `divider`, `page`, `image`, `subj`, `eq`) a `html`. Nadpis může mít `collapsed`, `until` (blok, po který se sbaluje) a `untilVis` (ten blok zůstane vidět).
 - **Blok předmětu** (`subj`): `subj` (ID předmětu), `html` (textová kopie názvu pro starší verze), volitelně `icon`, `it`, `un`, `st`, `hl` (emoji a formát nadpisu).
+- **Kód** (`code`): `html` je prostý text, řádky oddělené `<br>` (prázdný poslední řádek má `<br>` navíc), znaky `< > &` escapované, žádné značky formátu. Starší verze ho ukážou jako odstavec. Číslovaný seznam vrácený na text si pamatuje jen stránka v paměti (`blocks.js`), do dat se nic nezapisuje.
+- **Rovnice na řádku** (`eq`): `html` je zdroj LaTeX jako escapovaný text (žádné HTML z KaTeXu). Starší verze z něj udělají odstavec s textem rovnice.
 - **Hodina v rozvrhu:** `{id, title, type, day, start, end, repeat, date, count, place, who, note, color, subj}`. Prázdné `color` u hodiny s předmětem znamená barvu podle předmětu.
 
+- **Rovnice v textu:** `<span class="eq" contenteditable="false">TeX</span>` uvnitř `html` (i v buňce tabulky). Uvnitř je jen zdroj LaTeX, vykreslení je ve shadow DOM a do dat se nedostane. Starší verze ukáží TeX jako text.
 - **Odkaz v textu (@):** `<a class="mention" data-page="ID">` nebo `data-subj="ID"` uvnitř `html` bloku (i v buňce tabulky). Text je kopie názvu, při vykreslení se obnoví. Starší verze ho ukáží jako obyčejný text. Datum z @ je obyčejný text „12. 10.“.
 - **Předmět:** `{id, code, name, credits, sem, end, color, pts, parts:[{id, name, max, pts}], passed, note}`. `passed` (zápočet udělen) platí pro všechna ukončení a je podmínkou známky; u ukončení `z` se body nezadávají. **Semestr:** `{id, name, target, order}`, volitelně `noStats` (nepočítat do souhrnu) a `hidden` (neukazovat v seznamu Indexu).
 - `settings.school` je v datech jen tehdy, když je školní režim zapnutý.
-- `settings.theme` (`paper` nebo `forest`) je v datech jen tehdy, když si uživatel vybral jiný barevný motiv než Výchozí. Neznámá hodnota (třeba z novější verze) se bere jako Výchozí a v datech zůstane. Režim světlý / tmavý a velikost textu v datech nejsou, jsou jen v zařízení (`uk-theme`, `uk-fs`). Kopie motivu `uk-skin` v zařízení slouží jen k tomu, aby se motiv nastavil hned při startu, bez poblikání.
+- `settings.theme` (`paper`, `forest`, `mist`, `rose` nebo `lavender`) je v datech jen tehdy, když si uživatel vybral jiný barevný motiv než Výchozí. Neznámá hodnota (třeba z novější verze) se bere jako Výchozí a v datech zůstane. Režim světlý / tmavý a velikost textu v datech nejsou, jsou jen v zařízení (`uk-theme`, `uk-fs`). Kopie motivu `uk-skin` v zařízení slouží jen k tomu, aby se motiv nastavil hned při startu, bez poblikání.
 - Data zvenku (import, Disk, záloha) se před použitím kontrolují, takže podvržený soubor nemůže v aplikaci spustit kód.
 - Otisk dat (oranžová tečka) nepočítá sbalení nadpisů ani časy úprav. Nové klíče se do dat přidávají jen při použití, takže starší zálohy se načtou beze změny.
 

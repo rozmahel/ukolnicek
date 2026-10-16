@@ -2,11 +2,13 @@
    - přihlášení přes Google Identity Services (token platí zhruba 1 hodinu)
    - data leží ve skryté složce aplikace (appDataFolder), soubory ukolnicek_RRRR-MM-DDTHH-MM-SS.json
    - nahrání = nový soubor, drží se posledních 10; stažení = vybraná verze
+   - obrázky jako samostatné soubory ukimg_<ID> (listImages, uploadImage, downloadImage)
    - latest() = lehký dotaz jen na nejnovější soubor (název a čas na serveru Googlu), pro kontrolu při spuštění */
 (function () {
   'use strict';
   const SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
   const PREFIX = 'ukolnicek_';
+  const IMG_PREFIX = 'ukimg_';   /* obrázky; nesmí obsahovat PREFIX, jinak by se pletly se zálohami */
   const API = 'https://www.googleapis.com/drive/v3/files';
   const UPLOAD = 'https://www.googleapis.com/upload/drive/v3/files';
   const K = { cid: 'uk-drive-client-id', tok: 'uk-drive-token', consent: 'uk-drive-consented', hint: 'uk-drive-account' };
@@ -159,6 +161,53 @@
     async download(id, opt) {
       const r = await this.api(`${API}/${encodeURIComponent(id)}?alt=media`, opt);
       try { return await r.json(); } catch (e) { throw { code: e && e.name === 'SyntaxError' ? 'bad_file' : 'network' }; }
+    },
+
+    /* ---------- obrázky: každý jako samostatný soubor ukimg_<ID> ---------- */
+    async listImages() {
+      const out = [];
+      let tok = '';
+      do {
+        const q = encodeURIComponent(`name contains '${IMG_PREFIX}' and trashed = false`);
+        const url = `${API}?spaces=appDataFolder&q=${q}&pageSize=1000&fields=${encodeURIComponent('nextPageToken,files(id,name,createdTime,size)')}${tok ? '&pageToken=' + encodeURIComponent(tok) : ''}`;
+        const j = await (await this.api(url, { timeout: 20000 })).json();
+        (j.files || []).forEach((f) => { if (f.name.indexOf(IMG_PREFIX) === 0) out.push(f); });
+        tok = j.nextPageToken || '';
+      } while (tok);
+      return out;
+    },
+
+    imgId(f) { return f.name.slice(IMG_PREFIX.length); },
+
+    /* do 5 MB jedním požadavkem (multipart), větší přes „resumable“ (Disk multipart nad 5 MB nebere) */
+    async uploadImage(id, blob) {
+      const type = blob.type || 'application/octet-stream';
+      const meta = { name: IMG_PREFIX + id, parents: ['appDataFolder'], mimeType: type };
+      const fields = '&fields=' + encodeURIComponent('id,name,createdTime,size');
+      if (blob.size <= 5e6) {
+        const b = 'uk' + Math.random().toString(36).slice(2);
+        const body = new Blob([
+          `--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${b}\r\nContent-Type: ${type}\r\n\r\n`,
+          blob,
+          `\r\n--${b}--`
+        ]);
+        const r = await this.api(`${UPLOAD}?uploadType=multipart${fields}`, { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + b }, body });
+        return await r.json();
+      }
+      const r0 = await this.api(`${UPLOAD}?uploadType=resumable${fields}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': type },
+        body: JSON.stringify(meta)
+      });
+      const loc = r0.headers.get('Location');
+      if (!loc) throw { code: 'network' };
+      const r = await this.api(loc, { method: 'PUT', headers: { 'Content-Type': type }, body: blob });
+      return await r.json();
+    },
+
+    async downloadImage(fileId) {
+      const r = await this.api(`${API}/${encodeURIComponent(fileId)}?alt=media`);
+      try { return await r.blob(); } catch (e) { throw { code: 'network' }; }
     },
 
     async remove(id) {

@@ -1,5 +1,5 @@
 /* Úkolníček – Menu bloku, tabulky, ikony stránky a stránky v levém panelu */
-import { $, $$, CALLOUT_IC, clone, COLOR_CZ, COLORS, EMOJI, esc, plain, rid, TEXT_TYPES, TYPE_ICON, TYPE_LABEL } from '../core.js';
+import { $, $$, CALLOUT_IC, clamp, clone, COLOR_CZ, COLORS, EMOJI, esc, plain, rid, TEXT_TYPES, TYPE_ICON, TYPE_LABEL } from '../core.js';
 import { S } from '../state.js';
 import { LOCK } from '../lock.js';
 import { savePage } from '../store.js';
@@ -57,7 +57,7 @@ function openBlockMenu(anchor,pg,b){
     if(isHeading(b.type)&&b.until){ sec+=`<button class="pop-item" data-v="until-x:${b.id}"><span class="pi-ic">↺</span><span>Sbalovat automaticky<small>Až po další nadpis stejné úrovně</small></span></button>`; }
     if(sec) h+=`${h?'<div class="pop-sep"></div>':''}<div class="pop-h">Sbalování sekce</div>`+sec;
   }
-  h+=`${h?'<div class="pop-sep"></div>':''}<button class="pop-item" data-v="up"><span class="pi-ic">↑</span>Posunout nahoru</button><button class="pop-item" data-v="down"><span class="pi-ic">↓</span>Posunout dolů</button><button class="pop-item" data-v="dup"><span class="pi-ic">⧉</span>Duplikovat</button><button class="pop-item danger" data-v="del"><span class="pi-ic">×</span>Smazat</button>`;
+  h+=`${h?'<div class="pop-sep"></div>':''}<button class="pop-item" data-v="up"><span class="pi-ic">↑</span>Posunout nahoru</button><button class="pop-item" data-v="down"><span class="pi-ic">↓</span>Posunout dolů</button>${b.type!=='image'?`<button class="pop-item" data-v="left"${(b.level||0)>0?'':' disabled'}><span class="pi-ic">←</span>Posunout doleva</button><button class="pop-item" data-v="right"${(b.level||0)<4?'':' disabled'}><span class="pi-ic">→</span>Posunout doprava</button>`:''}<button class="pop-item" data-v="dup"><span class="pi-ic">⧉</span>Duplikovat</button><button class="pop-item danger" data-v="del"><span class="pi-ic">×</span>Smazat</button>`;
   openPop(anchor,h,v=>{
     const bi=pg.blocks.indexOf(b); if(bi<0) return;
     if(v==='tosubj'||v==='subj-pick'){ openSubjPicker(anchor,su=>toSubject(pg,b,su),b.subj); return true; }
@@ -75,6 +75,7 @@ function openBlockMenu(anchor,pg,b){
     else if(v==='hcol') b.hcol=!b.hcol;
     else if(v==='up'&&bi>0){ pg.blocks.splice(bi,1); pg.blocks.splice(bi-1,0,b); }
     else if(v==='down'&&bi<pg.blocks.length-1){ pg.blocks.splice(bi,1); pg.blocks.splice(bi+1,0,b); }
+    else if(v==='left'||v==='right'){ if(b.type==='image') return; b.level=clamp((b.level||0)+(v==='left'?-1:1),0,4); }
     else if(v==='dup'){ const c=clone(b); c.id=rid(); pg.blocks.splice(bi+1,0,c); }
     else if(v==='del'){
       pg.blocks.splice(bi,1); savePage(pg); rerenderBlocks();

@@ -8,6 +8,7 @@ import { renderSidebar } from './sidebar.js';
 import { renderMain } from './router.js';
 import { closePop, toast } from './ui.js';
 import { Sync, updateSyncUI } from './sync/sync.js';
+import { ImgSync } from './sync/images.js';
 import { hideImgSel } from './editor/images.js';
 
 /* ================= storage (IndexedDB, see storage.js) ================= */
@@ -51,7 +52,7 @@ const Store={
       if(st){ const d=normalizeImport(st); S.pages=d.pages||{}; S.events=d.events||{}; S.subjects=d.subjects||{}; S.semesters=d.semesters||{}; S.settings=Object.assign(defaultSettings(),d.settings||{}); Object.assign(META,st.meta||{}); }
       const imgs=await Local.allImages(); imgs.forEach(r=>{ try{ IMGURL.set(r.id,URL.createObjectURL(r.blob)); }catch(_){} });
       Local.persist();
-      bumpRev(); META.curHash=dataHash();
+      bumpRev(); META.curHash=dataHash(); ImgSync.refresh();
     }catch(e){ console.error(e); this.broken=true; setTimeout(()=>toast('Místní úložiště není dostupné (soukromé okno?). Změny se neuloží.'),300); }
     onDataReady(); Sync.init();
   },
@@ -59,7 +60,7 @@ const Store={
   async flush(){
     clearTimeout(this.t); this.t=null;
     const d=dataForSave();                 /* jedna kopie dat pro otisk i uložení */
-    META.curHash=hashData(d);
+    META.curHash=hashData(d); ImgSync.refresh(d);
     if(this.broken){ updateSaving(); updateSyncUI(); return; }
     try{ await Local.saveState(Object.assign(d,{meta:clone(META)})); SAVE_ERR=false; }
     catch(e){ SAVE_ERR=true; toast(e&&e.name==='QuotaExceededError'?'Úložiště v zařízení je plné. Smaž nějaké obrázky nebo stránky.':'Uložení do zařízení selhalo. Zkus obnovit stránku.'); }

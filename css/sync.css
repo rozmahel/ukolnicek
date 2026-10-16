@@ -19,7 +19,10 @@
 .sync-lbl.cl-off{color:var(--muted)}
 .sync-lbl.cl-ok{color:var(--fg2)}
 .sync-lbl small{display:block;font-size:calc(11.5px*var(--fs));color:var(--hl-orange-fg)}
-.tb-sync{margin-left:auto}
+.tb-sync{margin-left:auto;display:flex;align-items:center}
+/* žlutý vykřičník u mráčku: obrázky čekají na nahrání / chybí v zařízení / čekají na smazání z Disku */
+.img-warn{flex:none;width:18px;height:18px;margin-left:-8px;margin-right:2px;border-radius:50%;display:grid;place-items:center;font-size:calc(12px*var(--fs));font-weight:800;line-height:1;color:var(--hl-yellow-fg);background:var(--hl-yellow-bg);border:1px solid color-mix(in srgb,var(--hl-yellow-fg) 35%,transparent)}
+.img-warn:hover{background:color-mix(in srgb,var(--hl-yellow-fg) 22%,var(--hl-yellow-bg))}
 .tb-sync .cloud.dirty::after{border-color:var(--bg)}
 .drive-state{display:flex;align-items:center;gap:8px;font-size:calc(14px*var(--fs));font-weight:500;padding:8px 10px;border-radius:9px;background:var(--side)}
 .drive-state span{color:var(--fg)}

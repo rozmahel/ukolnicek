@@ -1,7 +1,7 @@
 /* Úkolníček – místní úložiště v prohlížeči (IndexedDB)
    kv/state      … stránky, rozvrh, nastavení a stav synchronizace
    kv/base       … verze naposledy společná s Diskem (pro „Ponechat obě“ při kolizi)
-   images        … obrázky (Blob) podle ID; do JSONu na Disk jde jen ID a název
+   images        … obrázky (Blob) podle ID; do JSONu na Disk jde jen ID a název, obrázek sám jako soubor ukimg_<ID>
    backups       … posledních 5 místních záloh (vznikají před stažením z Disku a před obnovením) */
 (function () {
   'use strict';
@@ -64,6 +64,17 @@
       const s = await store('images', 'readwrite');
       await wrap(s.put({ id, blob, name: name || '', type: blob.type, size: blob.size, created: Date.now() }));
       return id;
+    },
+
+    async getImage(id) {
+      const s = await store('images', 'readonly');
+      return (await wrap(s.get(id))) || null;
+    },
+
+    /* obrázek stažený z Disku: uloží se pod stejným ID, jaké má v textu */
+    async putImageRec(rec) {
+      const s = await store('images', 'readwrite');
+      await wrap(s.put(rec));
     },
 
     async allImages() {

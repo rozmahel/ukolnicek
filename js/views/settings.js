@@ -12,10 +12,11 @@ import { renderMain } from '../router.js';
 import { closeModal, openModal, toast } from '../ui.js';
 import { HOUR_SCALES } from './schedule.js';
 import { autoPull, cloudSvg, Sync, updateSyncUI } from '../sync/sync.js';
+import { ImgSync, withImgs } from '../sync/images.js';
 import { placeFrame } from '../editor/images.js';
 
 /* ================= settings ================= */
-const APP_VERSION='3.5.0';
+const APP_VERSION='3.6.0';
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
 const FS_STEPS=[1,1.15,1.3,1.45,1.6];
 function applyTheme(){
@@ -31,6 +32,12 @@ function applyFontScale(){
 
 /* ---- nastavení po kategoriích ---- */
 const SET_TABS=[['general','Obecné','⚙️'],['look','Vzhled','🎨'],['school','Škola','🎓'],['sync','Google Disk','☁️'],['backup','Zálohy','🗂️'],['help','Návod a novinky','📖']];
+/* stav obrázků podle dat a poslední kontroly Disku */
+function imgState(){
+  ImgSync.refresh(); const n=ImgSync.refs.size, s=ImgSync.summary();
+  if(!n&&!ImgSync.orphans) return 'V poznámkách zatím nejsou žádné obrázky.';
+  return (n?`V poznámkách ${n===1?'je':n<5?'jsou':'je'} ${n} ${plural(n,'obrázek','obrázky','obrázků')}. `:'')+(s?s.charAt(0).toUpperCase()+s.slice(1)+' (podle poslední kontroly Disku).':'Všechny jsou na Disku i v tomto zařízení.');
+}
 async function openSettings(focus){
   const st=S.settings, cid=DriveSync.clientId(), ds=DriveSync.state();
   let backups=[]; try{ backups=await Local.listBackups(); }catch(_){}
@@ -88,7 +95,12 @@ async function openSettings(focus){
           ${ds==='ok'?`<button type="button" class="btn" id="st-up">↑ Nahrát na Disk</button><button type="button" class="btn" id="st-down">↓ Stáhnout z Disku…</button><span class="sp"></span><button type="button" class="btn danger" id="st-disc">Odpojit</button>`
             :`<button type="button" class="btn pri" id="st-conn">${ds==='expired'?'Připojit znovu':'Přihlásit k Disku'}</button>`}
         </div>
-        <p class="note">↑ uloží aktuální stav jako novou zálohu (drží se posledních 10), ↓ nahradí data v tomto zařízení vybranou verzí. Obrázky se nezálohují, na jiném zařízení se ukážou jako rámeček s názvem.</p>
+        <p class="note">↑ uloží aktuální stav jako novou zálohu (drží se posledních 10), ↓ nahradí data v tomto zařízení vybranou verzí.</p>
+        <h3 class="set-h">Obrázky</h3>
+        <p class="note">${imgState()}</p>
+        ${ds==='ok'?`<div class="m-actions"><button type="button" class="btn" id="st-img-up">↑ Nahrát obrázky</button><button type="button" class="btn" id="st-img-down">↓ Stáhnout obrázky</button></div>`:''}
+        <label class="chk"><input type="checkbox" id="st-imgs" ${withImgs()?'checked':''}> Šipky ↑ a ↓ přenáší i obrázky</label>
+        <p class="note" style="margin-top:-8px;padding-left:26px">Každý obrázek je na Disku jako samostatný soubor a nahrávají se jen nové. Když se přenos přeruší, příště se pokračuje. Obrázek, který tu ještě není, se ukáže jako rámeček s názvem. Na mobilních datech se před stažením víc než 5 MB zeptá. Žlutý vykřičník u mráčku znamená, že obrázky čekají na nahrání, chybí tady nebo čekají na smazání z Disku. Platí jen pro toto zařízení.</p>
         <h3 class="set-h">Stahování z Disku</h3>
         <label class="chk"><input type="checkbox" id="st-auto" ${autoPull()?'checked':''}> Po otevření aplikace stáhnout novější verzi z Disku</label>
         <p class="note" style="margin-top:-8px;padding-left:26px">Stáhne se sama, jen když tady nemáš změny, které na Disku nejsou. Když se změnilo obojí, Úkolníček se zeptá. Před každým stažením se uloží místní záloha. Platí jen pro toto zařízení.</p>
@@ -155,6 +167,9 @@ async function openSettings(focus){
   $('#st-cid',m).addEventListener('change',saveCid);
   $('#st-acc',m).addEventListener('change',e=>{ DriveSync.setAccount(e.target.value); });
   $('#st-dll',m).addEventListener('change',e=>{ lsSet('uk-dl-latest',e.target.checked); updateSyncUI(); });
+  $('#st-imgs',m).addEventListener('change',e=>{ lsSet('uk-img-sync',e.target.checked); });
+  const iu=$('#st-img-up',m); if(iu) iu.addEventListener('click',()=>{ closeModal(); Sync.uploadImgs(); });
+  const idn=$('#st-img-down',m); if(idn) idn.addEventListener('click',()=>{ closeModal(); Sync.downloadImgs(); });
   $('#st-auto',m).addEventListener('change',e=>{ lsSet('uk-auto-pull',e.target.checked); if(e.target.checked){ Sync.lastCheck=0; Sync.check('setting'); } else Sync.disarm(); });
   $('#st-news',m).addEventListener('click',e=>{ e.preventDefault(); openGuide('novinky'); });
   const conn=$('#st-conn',m); if(conn) conn.addEventListener('click',async()=>{
