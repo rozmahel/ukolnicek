@@ -1,6 +1,6 @@
 /* Úkolníček – Service Worker (offline režim)
    Při každé nové verzi aplikace zvyš VERSION, jinak si telefony nechají starou verzi. */
-const VERSION = 'ukolnicek-v3.7.0';
+const VERSION = 'ukolnicek-v3.9.2';
 const RUNTIME = 'ukolnicek-runtime';
 const ASSETS = [
   './',
@@ -11,6 +11,7 @@ const ASSETS = [
   './css/controls.css',
   './css/editor.css',
   './css/views.css',
+  './css/today.css',
   './css/schedule.css',
   './css/index.css',
   './css/settings.css',
@@ -56,6 +57,7 @@ const ASSETS = [
   './js/views/subjects.js',
   './js/views/tasks.js',
   './js/views/today.js',
+  './js/views/dashWidgets.js',
   './lib/katex/katex.min.js',
   './lib/katex/katex.min.css',
   './lib/katex/fonts/KaTeX_AMS-Regular.woff2',

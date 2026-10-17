@@ -228,4 +228,4 @@ export function initSchedule(){
   }
 }
 
-export { evRow, HOUR_SCALES, openEventLocked, openEventModal, renderSchedule, weekDates };
+export { evColor, evRow, evTitle, HOUR_SCALES, openEventLocked, openEventModal, renderSchedule, weekDates };

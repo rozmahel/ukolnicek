@@ -21,6 +21,7 @@ import { openBlockMenu, openIconPop, openPageMenu, openSubjBlockMenu, openTableM
 import { initSchedule, openEventLocked, openEventModal, weekDates } from './views/schedule.js';
 import { initIndex, ixAction, openIndexView, openSemModal, openSubjectModal } from './views/subjects.js';
 import { openTaskProjects, setTaskHidden, taskByKey, toggleTask } from './views/tasks.js';
+import { openWidgetAdd, openWidgetMenu, openWidgetOpts } from './views/today.js';
 import { openSearch } from './views/search.js';
 import { applyFontScale, applyTheme, initSettings, openSettings } from './views/settings.js';
 import { openSyncMenu, Sync } from './sync/sync.js';
@@ -28,6 +29,7 @@ import { openLinkPop } from './editor/links.js';
 import { initImages, selectImage } from './editor/images.js';
 import { exportMd } from './editor/markdown.js';
 import { initMath, openEqEditor } from './editor/math.js';
+import { quickAdd, wgUi } from './views/dashWidgets.js';
 
 /* posluchače ostatních modulů; pořadí je stejné jako dřív v jednom souboru app.js (na pořadí registrace záleží) */
 initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings(); initImages(); initIndex(); initTreeDrag(); initMath();
@@ -121,6 +123,13 @@ document.addEventListener('click',e=>{
     case 'sem-new': openSemModal(null); break;
     case 'sem-edit': { const sm=S.semesters[a.dataset.id]; if(sm) openSemModal(sm); break; }
     case 't-projs': openTaskProjects(a); break;
+    case 'wg-add': openWidgetAdd(a); break;
+    case 'wg-menu': openWidgetMenu(a); break;
+    case 'wg-opts': openWidgetOpts(a); break;
+    case 'wg-ui': wgUi(a); break;
+    case 'wg-qadd': quickAdd(a.dataset.w); break;
+    case 'wg-subj': gotoSubject(a.dataset.id); break;
+    case 'wg-goto': revealBlock(a.dataset.p,a.dataset.b,false); break;
     case 't-showall': if(S.settings.taskHidden){ delete S.settings.taskHidden; saveSettings(); renderSidebar(); renderMain(); } break;
     case 't-hide': { const r=S.pages[a.dataset.id]; if(!r) break; setTaskHidden(r.id,true);
       toast(`„${pTitle(r)}“ je v Úkolech skrytý.`,'Vrátit',()=>setTaskHidden(r.id,false)); break; }
@@ -144,7 +153,7 @@ document.addEventListener('keydown',e=>{
   if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('eqb')){ e.preventDefault(); openEqEditor(e.target); return; }
   if(e.key==='Escape'){ if(slash.open) return; if(S.pop){ closePop(); return; } if(S.modal){ closeModal(); return; } closeSide(); }
 });
-setInterval(()=>{ if(S.ready&&!S.modal&&(S.view.kind==='schedule'||S.view.kind==='today')&&!document.activeElement.closest?.('#view input')) { const st=$('#main').scrollTop; renderMain(); $('#main').scrollTop=st; } },60000);
+setInterval(()=>{ if(S.ready&&!S.modal&&(S.view.kind==='schedule'||S.view.kind==='today')&&!document.body.classList.contains('dash-dragging')&&!document.activeElement.closest?.('#view input')) { const st=$('#main').scrollTop; renderMain(); $('#main').scrollTop=st; } },60000);
 
 /* ================= boot ================= */
 applyTheme(); applyFontScale();

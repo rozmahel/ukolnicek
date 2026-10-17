@@ -298,4 +298,4 @@ export function initIndex(){
   });
 }
 
-export { ixAction, openIndexView, openSemModal, openSubjectModal, renderIndex };
+export { fmtNum, gradeChip, GRADES, ixAction, openIndexView, openSemModal, openSubjectModal, renderIndex, subjCr, subjDone, subjMax, subjPoints, wavg };
