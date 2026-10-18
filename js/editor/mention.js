@@ -150,4 +150,4 @@ function backlinksHtml(pg){
     +'</section>';
 }
 
-export { backlinksHtml, mentionInput, mentionKey, mentionLabel, mentionsOf };
+export { backlinksHtml, mentionInput, mentionKey, mentionLabel };

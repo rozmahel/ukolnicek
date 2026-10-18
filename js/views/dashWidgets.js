@@ -1,11 +1,12 @@
-/* Úkolníček – Dnes: další widgety (Týden, Kalendář, Rychlý úkol, Dnes v poznámkách, Stránky, Studium, Stránka).
+/* Úkolníček – Dnes: další widgety (Týden, Kalendář, Rychlý úkol, Studium, Stránka, Vzhled, Zálohy).
    Každý widget je funkce (velikost s/m/l, kontext ctxNow z today.js, id widgetu, nastavení o) → {title, sub, btn, body}.
    Stav, který se neukládá (vybraný den, posun měsíce/týdne), drží DW_UI podle id widgetu. */
-import { $, DAYS, DAYS_FULL, esc, plain, plural, TEXT_TYPES } from '../core.js';
+import { $, DAYS, DAYS_FULL, esc, lsGet, lsSet, plain, plural } from '../core.js';
 import { S } from '../state.js';
-import { DATA_REV, isDirty, META, savePage } from '../store.js';
-import { eventsOnDate, fmtTime, mondayOf, parseDue, shortDate, toMin, ymd } from '../dates.js';
-import { flatPages, isArchived, newBlock, pIcon, pTitle } from '../pages.js';
+import { applySkin, skinOf, SKINS } from '../theme.js';
+import { DATA_REV, isDirty, META, savePage, saveSettings } from '../store.js';
+import { eventsOnDate, fmtTime, mondayOf, shortDate, toMin, ymd } from '../dates.js';
+import { isArchived, newBlock, pIcon, pTitle } from '../pages.js';
 import { isSchool, semList, subjBlockText, subjLabel, subjsOf } from '../school.js';
 import { sanitize } from '../sanitize.js';
 import { renderSidebar } from '../sidebar.js';
@@ -15,6 +16,8 @@ import { toast } from '../ui.js';
 import { evColor, evTitle } from './schedule.js';
 import { fmtNum, gradeChip, GRADES, subjCr, subjDone, subjMax, subjPoints, wavg } from './subjects.js';
 import { allTasks, taskRow } from './tasks.js';
+import { applyFontScale, applyTheme, exportData, FS_STEPS, importFile, openSettings } from './settings.js';
+import { Sync } from '../sync/sync.js';
 
 const DW_UI={};
 const DW_MONTHS=['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
@@ -33,7 +36,7 @@ const dwTasksOn=d=>dwTaskMap().get(ymd(d))||[];
 const dwCount=(n,a,b,c)=>`${n} ${plural(n,a,b,c)}`;
 function dwSummary(d){
   const e=dwEvs(d).length, t=dwTasksOn(d).length, p=[];
-  if(e) p.push(dwCount(e,'hodina','hodiny','hodin')); if(t) p.push(dwCount(t,'termín','termíny','termínů'));
+  if(e) p.push(dwCount(e,'hodina','hodiny','hodin')); if(t) p.push(dwCount(t,'úkol','úkoly','úkolů'));
   return p.join(' · ')||'volno';
 }
 /* krátký řádek hodiny (týden, kalendář) */
@@ -45,10 +48,18 @@ function dwDayList(d){
 const dwBtn=(id,k,v,lbl,aria)=>`<button class="navbtn dw-nav" data-act="wg-ui" data-w="${esc(id)}" data-k="${k}" data-v="${v}" aria-label="${aria}">${lbl}</button>`;
 
 /* ================= Týden ================= */
+const DW_IC_EV='<svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+const DW_IC_T='<svg viewBox="0 0 24 24" fill="none" stroke="var(--hl-orange-fg)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 12l3 3 5-6"/></svg>';
+function dwTile(d,lbl,on){
+  const e=dwEvs(d).length, t=dwTasksOn(d).length;
+  const ln=(ic,n,a,b,c)=>`<span class="wk-ln">${ic}<b>${n}</b> ${plural(n,a,b,c)}</span>`;
+  return `<div class="wk-tile ${on?'on':''}"><span class="wk-dd"><span>${lbl}</span><b>${d.getDate()}</b></span><span class="wk-ls">${e?ln(DW_IC_EV,e,'hodina','hodiny','hodin'):''}${t?ln(DW_IC_T,t,'úkol','úkoly','úkolů'):''}${e||t?'':'<span class="wk-nil">volno</span>'}</span></div>`;
+}
 function wWeek(s,c,id){
   const u=dwUi(id), mon=dwAdd(mondayOf(c.now),7*(u.wk||0)), days=[0,1,2,3,4,5,6].map(i=>dwAdd(mon,i)), today=ymd(c.now);
+  /* malý: dvě dlaždice, dnes a zítra (počet hodin a úkolů) */
   if(s==='s'){ const t=dwAdd(c.now,1);
-    return {title:'Týden',body:`<div class="wk-sum"><div><b>Dnes</b><span>${dwSummary(c.now)}</span></div><div><b>Zítra</b><span>${dwSummary(t)}</span></div></div>`}; }
+    return {title:'Týden',body:`<div class="wk-tiles">${dwTile(c.now,'Dnes',true)}${dwTile(t,DAYS[(t.getDay()+6)%7],false)}</div>`}; }
   const nav=`<div class="dw-navs">${dwBtn(id,'wk',-1,'‹','Předchozí týden')}${u.wk?dwBtn(id,'wk',0,'•','Tento týden'):''}${dwBtn(id,'wk',1,'›','Další týden')}</div>`;
   const title=u.wk?`Týden ${shortDate(days[0])} – ${shortDate(days[6])}`:'Tento týden';
   if(s==='m'){
@@ -82,7 +93,7 @@ function wCal(s,c,id){
   const sd=new Date(sel+'T12:00');
   if(s==='s') return {title,btn:nav,body:grid+`<div class="cal-sum"><b>${DAYS[(sd.getDay()+6)%7]} ${shortDate(sd)}</b> ${dwSummary(sd)}</div>`};
   if(s==='m') return {title,btn:nav,body:`<div class="cal-mw">${grid}${dwDayList(sd)}</div>`};
-  return {title,btn:nav,body:grid+dwDayList(sd)};
+  return {title,btn:nav,body:grid};
 }
 
 /* ================= Rychlý úkol ================= */
@@ -90,14 +101,11 @@ const dwPageOk=pid=>{ const p=pid&&S.pages[pid]; return p&&!isArchived(p)?p:null
 function dwPickMsg(id,what){ return `<div class="empty">${what}<div style="margin-top:8px"><button class="btn" data-act="wg-opts" data-w="${esc(id)}">Vybrat stránku</button></div></div>`; }
 function wQuick(s,c,id,o){
   const pg=dwPageOk(o&&o.page);
-  if(!pg) return {title:'Rychlý úkol',body:dwPickMsg(id,'Vyber stránku, kam se mají úkoly ukládat.')};
-  const inp=`<div class="qk"><input class="qk-in" data-w="${esc(id)}" data-p="${pg.id}" placeholder="Nový úkol… (Enter)" aria-label="Nový úkol do stránky ${esc(pTitle(pg))}" enterkeyhint="done"><button class="btn pri qk-add" data-act="wg-qadd" data-w="${esc(id)}" aria-label="Přidat úkol">＋</button></div>`;
+  /* obě velikosti jsou poloviční, bez nadpisu */
+  if(!pg) return {body:`<div class="qk-pick"><button class="btn" data-act="wg-opts" data-w="${esc(id)}">Vybrat stránku pro úkoly</button></div>`};
+  const inp=`<div class="qk"><input class="qk-in" data-w="${esc(id)}" data-p="${pg.id}" placeholder="Nový úkol…" aria-label="Nový úkol do stránky ${esc(pTitle(pg))}" enterkeyhint="done"><button class="btn pri qk-add" data-act="wg-qadd" data-w="${esc(id)}" aria-label="Přidat úkol">＋</button></div>`;
   const where=`<button class="qk-pg" data-act="open" data-id="${pg.id}">${pIcon(pg)}<span>${esc(pTitle(pg))}</span></button>`;
-  if(s==='s') return {title:'Rychlý úkol',body:inp+`<div class="qk-note">do ${where}</div>`};
-  const note=`<div class="qk-note">Uloží se do ${where}. Datum jako <span class="mono">5.10.</span> udělá termín.</div>`;
-  if(s==='m') return {title:'Rychlý úkol',body:inp+note};
-  const open=allTasks().filter(t=>t.pg.id===pg.id&&!t.done).slice(-5).reverse();
-  return {title:'Rychlý úkol',body:inp+note+(open.length?`<div class="wg-grp">Nesplněné na stránce<span>${allTasks().filter(t=>t.pg.id===pg.id&&!t.done).length}</span></div>${open.map(t=>taskRow(t,false)).join('')}`:'')};
+  return {body:inp+`<div class="qk-note">do ${where}</div>`};
 }
 function quickAdd(id){
   const inp=$(`.wg[data-wg="${id}"] .qk-in`); if(!inp) return;
@@ -115,50 +123,11 @@ document.addEventListener('keydown',e=>{
   e.preventDefault(); quickAdd(e.target.dataset.w);
 });
 
-/* ================= Dnes v poznámkách ================= */
-const DW_DATE_RE=/(?:^|[^\d.,])(\d{1,2})\.\s?(\d{1,2})(?![\d\p{L}])\.?(?:\s?(\d{4}))?/gu;
-let dwMen=null, dwMenRev=-1;
-function dwMentions(){
-  if(dwMen&&dwMenRev===DATA_REV) return dwMen;
-  dwMen=new Map();
-  const put=(k,x)=>{ if(!dwMen.has(k)) dwMen.set(k,[]); const l=dwMen.get(k); if(!l.some(y=>y.b===x.b&&y.txt===x.txt)) l.push(x); };
-  const scan=(pg,b,html,todo,done)=>{ const txt=plain(html).replace(/\s+/g,' ').trim(); if(!txt) return;
-    for(const m of txt.matchAll(DW_DATE_RE)){ const d=parseDue(m[0]); if(d) put(ymd(d),{pg,b,txt,todo,done}); } };
-  flatPages().forEach(({p:pg})=>{ const bl=pg.blocks||[], hid=hiddenMask(bl);
-    bl.forEach((b,i)=>{ if(hid[i]) return;
-      if(TEXT_TYPES.includes(b.type)) scan(pg,b,b.html,b.type==='todo',!!b.done);
-      else if(b.type==='table') (b.rows||[]).forEach(r=>(r.cells||[]).forEach(cl=>(cl.lines||[]).forEach(ln=>scan(pg,b,ln.html,ln.t==='todo',!!ln.done)))); }); });
-  dwMenRev=DATA_REV; return dwMen;
-}
-const dwMenRow=x=>`<button class="mn-row ${x.done?'done':''}" data-act="wg-goto" data-p="${x.pg.id}" data-b="${x.b.id}"><span class="mn-ic" aria-hidden="true">${x.todo?(x.done?'☑':'☐'):'¶'}</span><span class="mn-t">${esc(x.txt.length>160?x.txt.slice(0,157)+'…':x.txt)}</span><small>${esc(pTitle(x.pg))}${x.b.type==='table'?' · v tabulce':''}</small></button>`;
-function wMentions(s,c){
-  const M=dwMentions(), t=dwAdd(c.now,1), lt=M.get(ymd(c.now))||[], lz=M.get(ymd(t))||[];
-  const empty=`<div class="empty">Dnešní datum (<span class="mono">${shortDate(c.now)}</span>) zatím v poznámkách není.</div>`;
-  if(s==='s') return {title:'V poznámkách',body:lt.length?`<div class="wg-stat" style="padding:0 16px"><b>${lt.length}</b> ${plural(lt.length,'zmínka','zmínky','zmínek')} dneška</div>${dwMenRow(lt[0])}`:empty};
-  if(s==='m') return {title:'Dnes v poznámkách',sub:`Kde je v textu ${shortDate(c.now)}`,body:lt.length?lt.map(dwMenRow).join(''):empty};
-  return {title:'Dnes v poznámkách',sub:`Kde je v textu ${shortDate(c.now)} nebo ${shortDate(t)}`,
-    body:`<div class="wg-grp">Dnes<span>${lt.length}</span></div>${lt.length?lt.map(dwMenRow).join(''):'<div class="empty">Nic.</div>'}<div class="wg-grp">Zítra<span>${lz.length}</span></div>${lz.length?lz.map(dwMenRow).join(''):'<div class="empty">Nic.</div>'}`};
-}
-
-/* ================= Stránky (připnuté a naposledy upravené) ================= */
+/* ================= společné: jak dávno ================= */
 function dwAgo(ts){
   if(!ts) return ''; const m=Math.round((Date.now()-ts)/6e4);
   if(m<1) return 'právě teď'; if(m<60) return `před ${m} min`; if(m<24*60) return `před ${Math.round(m/60)} h`;
   return fmtTime(ts);
-}
-function dwParentPath(p){ const par=p.parent&&S.pages[p.parent]; return par?pTitle(par):''; }
-const dwPgRow=(p,meta)=>`<button class="pg-row" data-act="open" data-id="${p.id}">${pIcon(p)}<span class="pg-t">${esc(pTitle(p))}</span>${meta?`<small>${esc(meta)}</small>`:''}</button>`;
-function wRecent(s,c,id,o){
-  const pins=((o&&o.pins)||[]).map(dwPageOk).filter(Boolean);
-  const pinSet=new Set(pins.map(p=>p.id));
-  const rec=flatPages().map(x=>x.p).filter(p=>!pinSet.has(p.id)).sort((a,b)=>(b.updated||0)-(a.updated||0));
-  if(!pins.length&&!rec.length) return {title:'Stránky',body:'<div class="empty">Zatím žádné stránky.</div>'};
-  const pinH=pins.length?`<div class="wg-grp">Připnuté<span>${pins.length}</span></div>${pins.map(p=>dwPgRow(p,dwParentPath(p))).join('')}`:'';
-  const recH=n=>`<div class="wg-grp">Naposledy upravené</div>${rec.slice(0,n).map(p=>dwPgRow(p,dwAgo(p.updated))).join('')}`;
-  const pinBtn=`<button class="btn" data-act="wg-opts" data-w="${esc(id)}">Připnout</button>`;
-  if(s==='s') return {title:'Stránky',body:[...pins,...rec].slice(0,4).map(p=>dwPgRow(p,'')).join('')};
-  if(s==='m') return {title:'Stránky',btn:pins.length?'':pinBtn,body:pinH+recH(5)};
-  return {title:'Stránky',btn:pinBtn,body:`<div class="pg-cols"><div>${pinH||'<div class="wg-grp">Připnuté</div><div class="empty">Stránky připneš tlačítkem Připnout.</div>'}</div><div>${recH(8)}</div></div>`};
 }
 
 /* ================= Studium (Index) ================= */
@@ -216,15 +185,65 @@ function wPage(s,c,id,o){
   const ts=allTasks().filter(t=>t.pg.id===pg.id), dn=ts.filter(t=>t.done).length;
   const btn=`<button class="btn" data-act="open" data-id="${pg.id}">Otevřít</button>`;
   if(s==='s') return {title:`${pg.icon?pg.icon+' ':''}${pTitle(pg)}`,body:`<button class="st-sum" data-act="open" data-id="${pg.id}">${ts.length?`<div class="wg-stat"><b>${ts.length-dn}</b> ${plural(ts.length-dn,'úkol zbývá','úkoly zbývají','úkolů zbývá')}</div><span class="bar"><i style="width:${Math.round(dn/ts.length*100)}%"></i></span><div class="wg-sub">${dn} z ${ts.length} hotovo</div>`:`<div class="wg-sub">Upraveno ${esc(dwAgo(pg.updated)||'–')}</div>`}</button>`};
-  return {title:`${pg.icon?pg.icon+' ':''}${pTitle(pg)}`,sub:pg.updated?`Upraveno ${esc(dwAgo(pg.updated))}`:'',btn,body:`<div class="pv">${dwPreview(pg,s==='m'?10:40)}</div>`};
+  return {title:`${pg.icon?pg.icon+' ':''}${pTitle(pg)}`,sub:pg.updated?`Upraveno ${esc(dwAgo(pg.updated))}`:'',btn,body:`<div class="pv">${dwPreview(pg,40)}</div>`};
 }
 
-/* ================= Disk (řádek pro hodiny) ================= */
-function diskLine(){
-  const D=window.DriveSync; if(!D||!D.clientId()) return '';
-  const ts=Math.max(META.lastUpload||0,META.lastDownload||0,META.syncedAt||0);
-  return `<div class="clk-w clk-disk">☁ ${ts?`Synchronizováno ${esc(dwAgo(ts))}`:'Zatím nesynchronizováno'}${isDirty()?' · <b>změny čekají na nahrání</b>':''}</div>`;
+/* ================= Vzhled: motiv, den/noc, velikost textu ================= */
+const LK_MODES=[['auto','Auto'],['light','☀︎ Den'],['dark','☾ Noc']];
+const LK_SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+const LK_MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>';
+const lkSeg=(k,list,cur)=>`<div class="seg lk-seg">${list.map(([v,l])=>`<button class="${String(v)===String(cur)?'on':''}" data-act="wg-do" data-v="${k}:${v}" aria-pressed="${String(v)===String(cur)}">${l}</button>`).join('')}</div>`;
+function wLook(s){
+  const skin=skinOf(), mode=lsGet('uk-theme','auto'), f=+lsGet('uk-fs',1), fs=FS_STEPS.includes(f)?f:1;
+  const skins=`<div class="lk-skins">${SKINS.map(([id,nm])=>`<button class="lk-skin ${id===skin?'on':''}" data-act="wg-do" data-v="skin:${id}" title="${nm}" aria-label="Motiv ${nm}" aria-pressed="${id===skin}"><span class="skin-sw" data-sk="${id}" aria-hidden="true"><b>Aa</b><i></i><i></i><i></i></span></button>`).join('')}</div>`;
+  const modeH=lkSeg('mode',LK_MODES,mode);
+  /* malý (poloviční): jen světlý a tmavý režim; při „Auto“ svítí ten, který je právě vidět */
+  if(s==='s'){ const cur=mode==='light'||mode==='dark'?mode:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+    const b=(v,ic,l)=>`<button class="lk-md ${cur===v?'on':''}" data-act="wg-do" data-v="mode:${v}" aria-pressed="${cur===v}">${ic}<span>${l}</span></button>`;
+    return {body:`<div class="lk-two" role="group" aria-label="Světlý nebo tmavý režim">${b('light',LK_SUN,'Světlý')}${b('dark',LK_MOON,'Tmavý')}</div>`}; }
+  if(s==='m') return {title:'Vzhled',body:`<div class="lk">${skins}${modeH}</div>`};
+  return {title:'Vzhled',body:`<div class="lk lk-l">${skins}<div class="lk-row"><span>Režim</span>${modeH}</div><div class="lk-row"><span>Text</span>${lkSeg('fs',FS_STEPS.map(v=>[v,Math.round(v*100)+' %']),fs)}</div></div>`};
 }
+
+/* ================= Zálohy: export, import, Disk ================= */
+let dzFiles=null, dzAt=0, dzBusy=false;
+function dzLoad(){
+  if(dzBusy) return; dzBusy=true;
+  window.DriveSync.list().then(f=>{ dzFiles=f||[]; }).catch(()=>{ dzFiles=dzFiles||[]; })
+    .finally(()=>{ dzAt=Date.now(); dzBusy=false; if(S.view.kind==='today') renderMain(); });
+}
+function wData(s){
+  const D=window.DriveSync, ds=D&&D.clientId()?D.state():'off';
+  const st=ds==='off'?'Disk nepřipojen':ds==='expired'?'Přihlášení k Disku vypršelo':META.lastUpload?`Nahráno ${esc(dwAgo(META.lastUpload))}`:'Zatím nenahráno';
+  const stat=`<div class="dz-st ${ds==='ok'?'':'off'}">☁ ${st}${ds==='ok'&&isDirty()?' · <b>změny čekají</b>':''}</div>`;
+  const file=`<div class="dz-row"><button class="btn" data-act="wg-do" data-v="exp">Export</button><label class="btn">Import<input type="file" class="dz-imp" accept=".json,application/json" hidden></label></div>`;
+  /* malý (poloviční): stav Disku a pod ním Export a Import napůl */
+  if(s==='s') return {body:`<div class="dz dz-s">${stat}<div class="dz-two"><button class="btn" data-act="wg-do" data-v="exp">Export</button><label class="btn">Import<input type="file" class="dz-imp" accept=".json,application/json" hidden></label></div></div>`};
+  const drive=`<div class="dz-row">${ds==='ok'?'<button class="btn" data-act="wg-do" data-v="up">↑ Nahrát</button><button class="btn" data-act="wg-do" data-v="dl">Zálohy na Disku</button>':'<button class="btn" data-act="wg-do" data-v="drive">Připojit Disk</button>'}</div>`;
+  const main=`<div class="dz">${stat}${drive}${file}</div>`;
+  if(s==='m') return {title:'Zálohy',body:main};
+  let list='';
+  if(ds==='ok'){
+    if(!dzBusy&&(!dzAt||Date.now()-dzAt>6e5||(META.lastUpload||0)>dzAt)) dzLoad();
+    list=dzFiles==null?'<div class="empty">Načítám…</div>':dzFiles.length?dzFiles.slice(0,6).map(f=>`<button class="dz-v" data-act="wg-do" data-v="dl"><span>${esc(fmtTime(Date.parse(f.createdTime)))}</span><small>${f.size?Math.max(1,Math.round(f.size/1024))+' kB':''}</small></button>`).join(''):'<div class="empty">Na Disku nic není.</div>';
+  }
+  return {title:'Zálohy',body:`<div class="dz-cols">${main}<div class="dz-list"><div class="wg-grp">Na Disku</div>${list||'<div class="empty">Disk nepřipojen.</div>'}</div></div>`};
+}
+/* tlačítka ve Vzhledu a Zálohách */
+function wgDo(a){
+  const [k,v]=String(a.dataset.v).split(':');
+  if(k==='skin'){ if(skinOf()===v) return; if(v==='default') delete S.settings.theme; else S.settings.theme=v; saveSettings(); applySkin(); renderMain(); }
+  else if(k==='mode'){ lsSet('uk-theme',v); applyTheme(); renderMain(); }
+  else if(k==='fs'){ lsSet('uk-fs',+v); applyFontScale(); renderMain(); }
+  else if(k==='exp') exportData();
+  else if(k==='up') Sync.upload();
+  else if(k==='dl') Sync.openDownload();
+  else if(k==='drive') openSettings('drive');
+}
+document.addEventListener('change',e=>{
+  const t=e.target; if(!t.classList||!t.classList.contains('dz-imp')) return;
+  const f=t.files&&t.files[0]; t.value=''; if(f) importFile(f);
+});
 
 /* klik na ‹ › a dny v Týdnu a Kalendáři (stav se neukládá) */
 function wgUi(a){
@@ -234,4 +253,4 @@ function wgUi(a){
   renderMain();
 }
 
-export { diskLine, quickAdd, wCal, wgUi, wMentions, wPage, wQuick, wRecent, wStudy, wWeek };
+export { quickAdd, wCal, wData, wgDo, wgUi, wLook, wPage, wQuick, wStudy, wWeek };

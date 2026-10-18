@@ -19,8 +19,8 @@ import { initToolbar } from './editor/toolbar.js';
 import { closeModal, closePop, initUi, openModal, toast } from './ui.js';
 import { openBlockMenu, openIconPop, openPageMenu, openSubjBlockMenu, openTableMenu } from './editor/menus.js';
 import { initSchedule, openEventLocked, openEventModal, weekDates } from './views/schedule.js';
-import { initIndex, ixAction, openIndexView, openSemModal, openSubjectModal } from './views/subjects.js';
-import { openTaskProjects, setTaskHidden, taskByKey, toggleTask } from './views/tasks.js';
+import { initIndex, openIndexView, openSemModal, openSubjectModal } from './views/subjects.js';
+import { openTaskMore, openTaskProjects, setTaskHidden, taskByKey, toggleTask } from './views/tasks.js';
 import { openWidgetAdd, openWidgetMenu, openWidgetOpts } from './views/today.js';
 import { openSearch } from './views/search.js';
 import { applyFontScale, applyTheme, initSettings, openSettings } from './views/settings.js';
@@ -29,7 +29,7 @@ import { openLinkPop } from './editor/links.js';
 import { initImages, selectImage } from './editor/images.js';
 import { exportMd } from './editor/markdown.js';
 import { initMath, openEqEditor } from './editor/math.js';
-import { quickAdd, wgUi } from './views/dashWidgets.js';
+import { quickAdd, wgDo, wgUi } from './views/dashWidgets.js';
 
 /* posluchače ostatních modulů; pořadí je stejné jako dřív v jednom souboru app.js (na pořadí registrace záleží) */
 initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings(); initImages(); initIndex(); initTreeDrag(); initMath();
@@ -118,20 +118,21 @@ document.addEventListener('click',e=>{
     case 'goto-blk': revealBlock(a.dataset.p,a.dataset.b,false); break;
     case 'subj': { const su=S.subjects[a.dataset.id]; if(su) openSubjectModal(su); break; }
     case 'subj-new': openSubjectModal(null,a.dataset.sem?{sem:a.dataset.sem}:null); break;
-    case 'ix-notes': case 'ix-ment': case 'ix-evs': case 'ix-tasks': case 'ix-link': ixAction(act,a); break;
     case 'ix-view': openIndexView(); break;
     case 'sem-new': openSemModal(null); break;
     case 'sem-edit': { const sm=S.semesters[a.dataset.id]; if(sm) openSemModal(sm); break; }
     case 't-projs': openTaskProjects(a); break;
+    case 't-more': openTaskMore(a); break;
     case 'wg-add': openWidgetAdd(a); break;
     case 'wg-menu': openWidgetMenu(a); break;
     case 'wg-opts': openWidgetOpts(a); break;
     case 'wg-ui': wgUi(a); break;
+    case 'wg-do': wgDo(a); break;
     case 'wg-qadd': quickAdd(a.dataset.w); break;
     case 'wg-subj': gotoSubject(a.dataset.id); break;
-    case 'wg-goto': revealBlock(a.dataset.p,a.dataset.b,false); break;
     case 't-showall': if(S.settings.taskHidden){ delete S.settings.taskHidden; saveSettings(); renderSidebar(); renderMain(); } break;
-    case 't-hide': { const r=S.pages[a.dataset.id]; if(!r) break; setTaskHidden(r.id,true);
+    case 't-hide': { if(a.dataset.id==='_due'){ setTaskHidden('_due',true); toast('Sekce „S termínem“ je skrytá, úkoly jsou v projektech.','Vrátit',()=>setTaskHidden('_due',false)); break; }
+      const r=S.pages[a.dataset.id]; if(!r) break; setTaskHidden(r.id,true);
       toast(`„${pTitle(r)}“ je v Úkolech skrytý.`,'Vrátit',()=>setTaskHidden(r.id,false)); break; }
   }
 });

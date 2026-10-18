@@ -16,7 +16,7 @@ import { ImgSync, withImgs } from '../sync/images.js';
 import { placeFrame } from '../editor/images.js';
 
 /* ================= settings ================= */
-const APP_VERSION='3.9.2';
+const APP_VERSION='3.12.0';
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
 const FS_STEPS=[1,1.15,1.3,1.45,1.6];
 function applyTheme(){
@@ -180,31 +180,34 @@ async function openSettings(focus){
   const up=$('#st-up',m); if(up) up.addEventListener('click',()=>{ closeModal(); Sync.upload(); });
   const down=$('#st-down',m); if(down) down.addEventListener('click',()=>{ closeModal(); Sync.openDownload(); });
   const disc=$('#st-disc',m); if(disc) disc.addEventListener('click',()=>{ DriveSync.disconnect(); updateSyncUI(); closeModal(); toast('Odpojeno od Google Disku. Data v zařízení zůstala.'); });
-  $('#st-exp',m).addEventListener('click',()=>{
-    downloadFile(`ukolnicek-zaloha-${ymd(new Date())}.json`,JSON.stringify(Object.assign({app:'ukolnicek',version:2,exported:new Date().toISOString()},dataForSave()),null,1));
-  });
-  $('#st-imp',m).addEventListener('change',e=>{
-    const f=e.target.files[0]; if(!f) return;
-    const rd=new FileReader();
-    rd.onload=async()=>{
-      try{
-        const d=JSON.parse(rd.result); if(!d||typeof d.pages!=='object') throw 0;
-        await Local.addBackup(stateForStorage(),'Před importem ze souboru');
-        const n=normalizeImport(d);
-        Object.assign(S.pages,n.pages); Object.assign(S.events,n.events); Object.assign(S.subjects,n.subjects); Object.assign(S.semesters,n.semesters);
-        if(d.settings){ S.settings=Object.assign(defaultSettings(),n.settings); applySkin(); }
-        HIST.clear(); Store.queue();
-        closeModal(); renderSidebar(); renderMain(); const np=Object.keys(n.pages).length, ne=Object.keys(n.events).length; toast(`Importováno: ${np} ${np===1?'stránka':np<5&&np>0?'stránky':'stránek'}, ${ne} ${ne===1?'událost':ne<5&&ne>0?'události':'událostí'}`);
-      }catch(_){ toast('Soubor se nepodařilo načíst. Vyber zálohu exportovanou z Úkolníčku.'); }
-    };
-    rd.readAsText(f);
-  });
+  $('#st-exp',m).addEventListener('click',exportData);
+  $('#st-imp',m).addEventListener('change',e=>{ const f=e.target.files[0]; if(f) importFile(f); });
   $$('[data-bk]',m).forEach(b=>b.addEventListener('click',async()=>{
     const bk=await Local.getBackup(+b.dataset.bk); if(!bk) return;
     await Local.addBackup(stateForStorage(),'Před obnovením místní zálohy');
     applyData(bk.state); Store.queue(); closeModal(); toast('Záloha z '+fmtTime(bk.id)+' obnovena');
   }));
   if(focus==='drive'&&!DriveSync.clientId()) setTimeout(()=>$('#st-cid',m).focus(),30);
+}
+
+/* export a import souboru se zálohou (Nastavení → Zálohy a widget Zálohy na Dnes) */
+function exportData(){
+  downloadFile(`ukolnicek-zaloha-${ymd(new Date())}.json`,JSON.stringify(Object.assign({app:'ukolnicek',version:2,exported:new Date().toISOString()},dataForSave()),null,1));
+}
+function importFile(f){
+  const rd=new FileReader();
+  rd.onload=async()=>{
+    try{
+      const d=JSON.parse(rd.result); if(!d||typeof d.pages!=='object') throw 0;
+      await Local.addBackup(stateForStorage(),'Před importem ze souboru');
+      const n=normalizeImport(d);
+      Object.assign(S.pages,n.pages); Object.assign(S.events,n.events); Object.assign(S.subjects,n.subjects); Object.assign(S.semesters,n.semesters);
+      if(d.settings){ S.settings=Object.assign(defaultSettings(),n.settings); applySkin(); }
+      HIST.clear(); Store.queue();
+      closeModal(); renderSidebar(); renderMain(); const np=Object.keys(n.pages).length, ne=Object.keys(n.events).length; toast(`Importováno: ${np} ${np===1?'stránka':np<5&&np>0?'stránky':'stránek'}, ${ne} ${ne===1?'událost':ne<5&&ne>0?'události':'událostí'}`);
+    }catch(_){ toast('Soubor se nepodařilo načíst. Vyber zálohu exportovanou z Úkolníčku.'); }
+  };
+  rd.readAsText(f);
 }
 
 /* potvrzení smazání školních dat (před smazáním se uloží místní záloha, v oznámení jde vrátit) */
@@ -249,4 +252,4 @@ export function initSettings(){
   try{ matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme); }catch(_){}
 }
 
-export { applyFontScale, applyTheme, openSettings };
+export { applyFontScale, applyTheme, exportData, FS_STEPS, importFile, openSettings };

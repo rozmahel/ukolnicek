@@ -43,7 +43,7 @@ function showEvTip(btn){
   const rep=ev.repeat==='odd'?'lichý týden':ev.repeat==='even'?'sudý týden':ev.repeat==='once'?'jednorázově':ev.repeat==='count'?`${occIndex(ev,d)}. z ${+ev.count||1}`:'každý týden';
   evtip.className='evtip hl-'+evColor(ev);
   evtip.innerHTML=`<div class="et-k">${esc([ev.type,rep].filter(Boolean).join(' · '))}</div><div class="et-t">${esc(su?subjLabel(su):evTitle(ev))}</div>
-    <div class="et-r">🕘 ${esc(ev.start)}–${esc(ev.end)}${d?` · ${DAYS_FULL[(d.getDay()+6)%7]} ${shortDate(d)}`:''}</div>
+    <div class="et-r">🕘 ${esc(ev.start)} – ${esc(ev.end)}${d?` · ${DAYS_FULL[(d.getDay()+6)%7]} ${shortDate(d)}`:''}</div>
     ${ev.place?`<div class="et-r">📍 ${esc(ev.place)}</div>`:''}${ev.who?`<div class="et-r">👤 ${esc(ev.who)}</div>`:''}
     ${ev.note?`<div class="et-n">${esc(ev.note.length>180?ev.note.slice(0,180)+'…':ev.note)}</div>`:''}`;
   evtip.hidden=false;
@@ -71,7 +71,7 @@ function renderSchedule(){
         const size=height<2*L+12?'ev-xs':height<3*L+14?'ev-s':'';
         col+=`<div class="ev-w" style="top:${top}px;height:${height}px;left:calc(${it.col}*100%/${it.n} + 3px);width:calc(100%/${it.n} - 6px)">
           <button class="ev hl-${evColor(ev)} ${size}" data-act="ev" data-id="${ev.id}" data-date="${ymd(d)}">
-          ${kind?`<span class="ev-k">${esc(kind)}</span>`:''}<span class="ev-t">${esc(evTitle(ev))}</span><span class="ev-m mono">${esc(ev.start)}–${esc(ev.end)}</span>${evMeta(ev)?`<span class="ev-m">${evMeta(ev)}</span>`:''}</button>
+          ${kind?`<span class="ev-k">${esc(kind)}</span>`:''}<span class="ev-t">${esc(evTitle(ev))}</span><span class="ev-m mono">${esc(ev.start)} – ${esc(ev.end)}</span>${evMeta(ev)?`<span class="ev-m">${evMeta(ev)}</span>`:''}</button>
           <button class="ev-add" data-act="ev-par" data-id="${ev.id}" data-date="${ymd(d)}" title="Přidat další událost ve stejný čas" aria-label="Přidat další událost ve stejný čas">+</button></div>`;
       });
       if(ymd(d)===today){ const nm=new Date().getHours()*60+new Date().getMinutes(); if(nm>=h0*60&&nm<=h1*60) col+=`<div class="now" style="top:${(nm-h0*60)/60*hh}px"></div>`; }
@@ -106,7 +106,7 @@ function renderSchedule(){
 }
 function evRow(ev,d){
   const rep=ev.repeat==='count'&&d&&occIndex(ev,d)?`${occIndex(ev,d)}. z ${+ev.count||1}`:'';
-  return `<button class="ev-row hl-${evColor(ev)}" data-act="ev" data-id="${ev.id}"><span class="t">${esc(ev.start)}–${esc(ev.end)}</span><span class="dot"></span><span><b>${esc(evTitle(ev))}</b><small>${[TYPE_SHORT[ev.type]?ev.type:'',rep,ev.place,ev.who].filter(Boolean).map(esc).join(' · ')}</small></span></button>`;
+  return `<button class="ev-row hl-${evColor(ev)}" data-act="ev" data-id="${ev.id}"><span class="t">${esc(ev.start)} – ${esc(ev.end)}</span><span class="dot"></span><span><b>${esc(evTitle(ev))}</b><small>${[TYPE_SHORT[ev.type]?ev.type:'',rep,ev.place,ev.who].filter(Boolean).map(esc).join(' · ')}</small></span></button>`;
 }
 function openEventModal(ev,preset){
   const isNew=!ev;
@@ -201,7 +201,7 @@ function openEventModal(ev,preset){
 function openEventLocked(anchor,ev){
   const su=evSubj(ev), occ=su?subjOcc(su.id):[];
   const where=pg=>{ const r=[]; let p=pg; while(p&&r.length<6){ r.unshift(pTitle(p)); p=S.pages[p.parent]; } return r.join(' › '); };
-  const h=`<div class="pop-h">${esc(su?subjLabel(su):evTitle(ev))}</div><p class="note ev-lk-t">${esc([ev.type,`${ev.start}–${ev.end}`,ev.place].filter(Boolean).join(' · '))}</p>`
+  const h=`<div class="pop-h">${esc(su?subjLabel(su):evTitle(ev))}</div><p class="note ev-lk-t">${esc([ev.type,`${ev.start} – ${ev.end}`,ev.place].filter(Boolean).join(' · '))}</p>`
     +(su&&isIndex()?`<button class="pop-item" data-v="ix"><span class="pi-ic">🎓</span>Otevřít v Indexu</button>`:'')
     +occ.map((o,i)=>`<button class="pop-item" data-v="n:${i}"><span class="pi-ic">📄</span><span>Otevřít v poznámkách<small>${esc(where(o.pg))}</small></span></button>`).join('')
     +`<p class="note ev-lk-n">🔒 Zamčeno: ${su||occ.length?'úpravy':'hodinu upravíš'} až po odemčení.</p>`;

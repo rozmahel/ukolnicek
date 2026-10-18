@@ -1,16 +1,13 @@
-/* Úkolníček – Index: karty předmětů (body se zapisují přímo na kartě), nastavení předmětu (ozubené kolečko), semestry, známky a kredity */
-import { $, $$, clone, COLOR_CZ, COLORS, esc, ICONS, plain, plural, rid } from '../core.js';
+/* Úkolníček – Index: semestry jako karty, předměty v nich (body a zápočet přímo na místě), nastavení předmětu (klik na název), semestry, známky a kredity */
+import { $, $$, clone, COLOR_CZ, COLORS, esc, ICONS, plural, rid } from '../core.js';
 import { S } from '../state.js';
 import { applyLock, LOCK } from '../lock.js';
 import { Store } from '../store.js';
 import { parseD } from '../dates.js';
-import { pIcon, pTitle, revealBlock } from '../pages.js';
-import { offerLink, semList, subjLabel, subjOcc, subjShort, subjsOf } from '../school.js';
+import { offerLink, semList, subjLabel, subjsOf } from '../school.js';
 import { renderSidebar } from '../sidebar.js';
 import { renderMain } from '../router.js';
-import { closeModal, openModal, openPop, toast } from '../ui.js';
-import { allTasks } from './tasks.js';
-import { mentionsOf } from '../editor/mention.js';
+import { closeModal, openModal, toast } from '../ui.js';
 
 /* ================= Index: databáze předmětů, kredity, body a známky ================= */
 /* stupnice VUT: [známka, od bodů, slovně, číselně] */
@@ -45,49 +42,34 @@ function semName(d){
 }
 function gradeChip(su){
   if(su.end==='z') return su.passed?'<span class="grade hl-green" title="Zápočet udělen">✓</span>':'<span class="grade none">–</span>';
-  const g=subjGrade(su); if(g) return `<span class="grade hl-${GRADE_HL[g[0]]}" title="${g[2]} (${fmtNum(g[3])})">${g[0]}</span>`;
-  return `<span class="grade none" ${rawGrade(su)?'title="Známka se ukáže po zaškrtnutí zápočtu"':''}>–</span>`;
+  const g=subjGrade(su); if(g) return `<span class="grade hl-${GRADE_HL[g[0]]}" title="${g[2]} · ${fmtNum(g[3])}">${g[0]}</span>`;
+  return `<span class="grade none" ${rawGrade(su)?'title="Známka se ukáže po zápočtu"':''}>–</span>`;
 }
-/* nesplněné úkoly pod bloky předmětu v poznámkách */
-const openTasksOf=id=>allTasks().filter(t=>!t.done&&t.subj===id);
 
-/* ---- karta předmětu ---- */
-function resHtml(su){
+/* ---- předmět v kartě semestru ----
+   řádek s názvem (klik = nastavení), šedý řádek se zápočtem Ne/Ano, body celkem a známkou, pod ním dílčí hodnocení */
+function outHtml(su){
   if(su.end==='z') return gradeChip(su);
   const pts=subjPoints(su), mx=subjMax(su);
   return `<span class="ixc-sum">${pts==null?'– b':`<b>${fmtNum(pts)}</b>${mx?` / ${fmtNum(mx)}`:''} b`}</span>${gradeChip(su)}`;
 }
-function metaHtml(su){
-  const g=subjGrade(su), cr=subjCr(su);
-  return [cr?`${fmtNum(cr)} kr.`:'bez kreditů',esc(endOf(su.end)[1]),g?`<span class="ixc-num" title="Slovně a číselně">${g[2]} · ${fmtNum(g[3])}</span>`:''].filter(Boolean).join('<span class="ixc-sep">·</span>');
-}
+const segHtml=su=>`<span class="ixc-seg" role="group" aria-label="Zápočet"><button type="button" data-pass="0" class="${su.passed?'':'on'}" aria-pressed="${!su.passed}">Ne</button><button type="button" data-pass="1" class="${su.passed?'on':''}" aria-pressed="${!!su.passed}">Ano</button></span>`;
 function ptField(id,name,val,max){
   const n=num(val), mx=num(max), bonus=n!=null&&mx!=null&&n>mx;
-  return `<label class="ixc-part ${bonus?'bonus':''}"><span class="pn">${esc(name)}</span><span class="pv"><input class="ixc-in ${isNum(val)?'':'bad'}" data-part="${esc(id)}" type="text" inputmode="decimal" value="${esc(val??'')}" placeholder="–" autocomplete="off" aria-label="Body – ${esc(name)}">${mx!=null?`<span class="pm">/ ${fmtNum(mx)}</span>`:''}</span></label>`;
+  return `<label class="ixc-part ${bonus?'bonus':''}"><span class="pn">${esc(name)}</span><span class="ixc-v"><input class="ixc-in ${isNum(val)?'':'bad'}" data-part="${esc(id)}" type="text" inputmode="decimal" value="${esc(val??'')}" placeholder="–" autocomplete="off" aria-label="Body – ${esc(name)}">${mx!=null?`<span class="pm">/ ${fmtNum(mx)}</span>`:''}</span></label>`;
 }
 function partsHtml(su){
-  /* předmět jen se zápočtem nemá body, jen zaškrtávátko */
-  const parts=su.parts||[], pass=`<label class="chk ixc-pass"><input type="checkbox" class="ixc-passed" ${su.passed?'checked':''}> Zápočet udělen</label>`;
-  if(su.end==='z') return pass;
-  return (parts.length?parts.map(p=>ptField(p.id,p.name||'Bez názvu',p.pts,p.max)).join(''):ptField('','Body celkem',su.pts,''))+pass;
-}
-function linksHtml(su){
-  const occ=subjOcc(su.id), open=openTasksOf(su.id), out=[];
-  if(occ.length) out.push(`<button class="ixc-link" data-act="ix-notes" data-id="${su.id}" data-popanchor>Poznámky${occ.length>1?` · ${occ.length}`:''}</button>`);
-  const men=mentionsOf('subj',su.id);
-  if(men.length) out.push(`<button class="ixc-link" data-act="ix-ment" data-id="${su.id}" data-popanchor>Zmínky · ${men.length}</button>`);
-  if(open.length) out.push(`<button class="ixc-link" data-act="ix-tasks" data-id="${su.id}" data-popanchor>${open.length} ${plural(open.length,'nesplněný úkol','nesplněné úkoly','nesplněných úkolů')}</button>`);
-  return out.join('<span class="ixc-sep">·</span>');
+  /* předmět jen se zápočtem nemá body */
+  if(su.end==='z') return '';
+  const parts=su.parts||[];
+  return parts.length?parts.map(p=>ptField(p.id,p.name||'Bez názvu',p.pts,p.max)).join(''):ptField('','Body celkem',su.pts,'');
 }
 function cardHtml(su){
-  const links=linksHtml(su);
+  const parts=partsHtml(su), cr=subjCr(su);
   return `<article class="ix-card hl-${esc(su.color||'purple')} ${subjDone(su)?'done':''}" data-id="${su.id}">
-    <div class="ixc-h"><span class="ti-dot"></span><h3 class="ixc-nm">${su.code?`<b>${esc(su.code)}</b>`:''}<span>${esc(su.name||'')}</span></h3>
-      <div class="ixc-res">${resHtml(su)}</div>
-      <button class="icon-btn ixc-gear" data-act="subj" data-id="${su.id}" title="Nastavení předmětu" aria-label="Nastavení předmětu ${esc(subjLabel(su))}">${ICONS.settings}</button></div>
-    <div class="ixc-meta">${metaHtml(su)}</div>
-    <div class="ixc-pts">${partsHtml(su)}</div>
-    ${links?`<div class="ixc-links">${links}</div>`:''}
+    <div class="ixc-h"><button type="button" class="ixc-nm" data-act="subj" data-id="${su.id}" title="Nastavení předmětu" aria-label="${esc(subjLabel(su))}, nastavení předmětu">${su.code?`<b>${esc(su.code)}</b>`:''}<span class="ixc-name">${esc(su.name||'')}</span>${cr?`<span class="ixc-cr">${fmtNum(cr)} kr.</span>`:''}<span class="ixc-set" aria-hidden="true">${ICONS.settings}</span></button></div>
+    <div class="ixc-res"><span class="ixc-zl">Zápočet</span>${segHtml(su)}<span class="ixc-out">${outHtml(su)}</span></div>
+    ${parts?`<div class="ixc-pts">${parts}</div>`:''}
   </article>`;
 }
 
@@ -105,15 +87,15 @@ function sumInner(subs){
 function semHeadInner(sem,list){
   const got=list.filter(subjDone).reduce((a,su)=>a+subjCr(su),0), target=sem?(num(sem.target)||0):0, av=wavg(list);
   return `<h2>${esc(sem?sem.name||'Semestr':'Bez semestru')}</h2>
-        ${target?`<div class="ix-prog" title="Získané kredity v semestru"><span><b>${fmtNum(got)}</b> / ${fmtNum(target)} kr.</span><span class="bar"><i style="width:${Math.min(100,Math.round(got/target*100))}%"></i></span></div>`:`<span class="ix-prog"><span><b>${fmtNum(got)}</b> kr.</span></span>`}
+        <span class="ix-prog" title="Získané kredity v semestru">${target?`<i style="width:${Math.min(100,Math.round(got/target*100))}%"></i>`:''}<span>${fmtNum(got)}${target?` / ${fmtNum(target)}`:''} kr.</span></span>
         ${av!=null?`<span class="ix-avg" title="Vážený průměr splněných předmětů (A = 1 … E = 3)">⌀ ${fmtNum(av)}</span>`:''}
-        ${sem?`<button class="icon-btn" data-act="sem-edit" data-id="${sem.id}" title="Upravit semestr" aria-label="Upravit semestr">⋯</button>`:''}`;
+        ${sem?`<button class="icon-btn ix-more" data-act="sem-edit" data-id="${sem.id}" title="Upravit semestr" aria-label="Upravit semestr">⋯</button>`:''}`;
 }
 function semHtml(sem){
   const list=subjsOf(sem?sem.id:null); if(!sem&&!list.length) return '';
   return `<section class="ix-sem" data-sem="${sem?sem.id:''}">
       <div class="ix-sem-h">${semHeadInner(sem,list)}</div>
-      <div class="ix-cards">${list.length?list.map(cardHtml).join(''):`<div class="card"><div class="empty" style="padding:14px 16px">V semestru zatím nic není. <button class="linkbtn" data-act="subj-new" data-sem="${sem.id}">Přidat předmět</button></div></div>`}</div></section>`;
+      <div class="ix-cards">${list.length?list.map(cardHtml).join(''):`<div class="empty ix-empty">V semestru zatím nic není. <button class="linkbtn" data-act="subj-new" data-sem="${sem.id}">Přidat předmět</button></div>`}</div></section>`;
 }
 function renderIndex(){
   const subs=Object.values(S.subjects), sems=semList();
@@ -122,7 +104,7 @@ function renderIndex(){
   const shown=sems.filter(sm=>!sm.hidden||sm.id===peek), nHid=sems.filter(sm=>sm.hidden&&sm.id!==peek).length, stats=statSubs();
   $('#view').innerHTML=`<div class="view ix-view" style="max-width:920px">
     <div class="v-head"><div><h1 class="v-title">Index</h1></div>
-      <div class="v-tools">${sems.length?'<button class="icon-btn ix-cfg" data-act="ix-view" title="Které semestry ukazovat" aria-label="Zobrazení semestrů">'+ICONS.settings+'</button><button class="btn" data-act="sem-new">＋ Semestr</button><button class="btn" data-act="subj-new">＋ Předmět</button>':'<button class="btn pri" data-act="sem-new">＋ Semestr</button>'}</div></div>
+      <div class="v-tools">${sems.length?'<button class="btn" data-act="sem-new">＋ Semestr</button><button class="btn" data-act="subj-new">＋ Předmět</button><button class="icon-btn ix-cfg" data-act="ix-view" title="Které semestry ukazovat" aria-label="Zobrazení semestrů">'+ICONS.settings+'</button>':'<button class="btn pri" data-act="sem-new">＋ Semestr</button>'}</div></div>
     ${subs.length?`<div class="ix-sum">${sumInner(stats)}</div>${stats.length<subs.length?`<p class="note ix-sumnote">Souhrn bez ${sems.filter(sm=>sm.noStats).map(sm=>esc(sm.name||'Semestr')).join(', ')}.</p>`:''}`
     :sems.length?`<div class="card"><div class="empty" style="padding:18px">Index je databáze tvých předmětů: kredity, body a známky. Předměty se zakládají jen tady. V rozvrhu je pak vybereš u hodiny a do poznámek je vložíš přes <b>/předmět</b>. <div class="m-actions" style="margin-top:10px"><button class="btn pri" data-act="subj-new">＋ První předmět</button></div></div></div>`
     :`<div class="card"><div class="empty" style="padding:18px">Index je databáze tvých předmětů: kredity, body a známky. <b>Začni semestrem</b>, předměty se pak zakládají do něj. V rozvrhu je vybereš u hodiny a do poznámek je vložíš přes <b>/předmět</b>. <div class="m-actions" style="margin-top:10px"><button class="btn pri" data-act="sem-new">＋ První semestr</button></div></div></div>`}
@@ -134,7 +116,8 @@ function renderIndex(){
 }
 /* po zápisu bodů se překreslí jen výsledek karty a souhrny (pole s kurzorem zůstane, jak je) */
 function refreshCard(card,su){
-  $('.ixc-res',card).innerHTML=resHtml(su); $('.ixc-meta',card).innerHTML=metaHtml(su); card.classList.toggle('done',subjDone(su));
+  $('.ixc-out',card).innerHTML=outHtml(su); card.classList.toggle('done',subjDone(su));
+  $$('.ixc-seg button',card).forEach(b=>{ const on=(b.dataset.pass==='1')===!!su.passed; b.classList.toggle('on',on); b.setAttribute('aria-pressed',on); });
   const sum=$('.ix-sum'); if(sum) sum.innerHTML=sumInner(statSubs());
   $$('.ix-sem').forEach(sec=>{ const sem=S.semesters[sec.dataset.sem]||null, h=$('.ix-sem-h',sec); if(h) h.innerHTML=semHeadInner(sem,subjsOf(sem?sem.id:null)); });
   applyLock();
@@ -157,30 +140,7 @@ function onPtsChange(e){
     t.value=pid?(p?p.pts||'':''):(x.su.pts||''); t.classList.remove('bad');
     toast('Body piš jako číslo, třeba 12 nebo 7,5.');
   }
-  if(t.classList.contains('ixc-passed')){ x.su.passed=t.checked; Store.queue(); refreshCard(x.card,x.su); }
 }
-/* odkazy na kartě: poznámky a úkoly */
-function ixAction(act,a){
-  const su=S.subjects[a.dataset.id]; if(!su) return;
-  if(act==='ix-notes'){
-    const occ=subjOcc(su.id); if(!occ.length) return;
-    if(occ.length===1) return revealBlock(occ[0].pg.id,occ[0].b.id,true);
-    openPop(a,`<div class="pop-h">${esc(subjShort(su))} v poznámkách</div>`+occ.map((o,i)=>{ const r=pathOf(o.pg); return `<button class="pop-item" data-v="${i}">${pIcon(r[0])}<span>${esc(r.map(pTitle).join(' › '))}</span></button>`; }).join(''),v=>{ const o=occ[+v]; if(o) revealBlock(o.pg.id,o.b.id,true); });
-    return;
-  }
-  if(act==='ix-ment'){
-    const men=mentionsOf('subj',su.id); if(!men.length) return;
-    if(men.length===1) return revealBlock(men[0].pg.id,men[0].b.id,false);
-    openPop(a,`<div class="pop-h">Zmínky · ${esc(subjShort(su))}</div>`+men.map((o,i)=>{ const r=pathOf(o.pg), tx=plain(o.b.html||'').trim(); return `<button class="pop-item" data-v="${i}">${pIcon(r[0])}<span>${esc(r.map(pTitle).join(' › '))}${tx?`<small>${esc(tx.length>60?tx.slice(0,60)+'…':tx)}</small>`:''}</span></button>`; }).join(''),v=>{ const o=men[+v]; if(o) revealBlock(o.pg.id,o.b.id,false); });
-    return;
-  }
-  if(act==='ix-tasks'){
-    const ts=openTasksOf(su.id);
-    openPop(a,`<div class="pop-h">Nesplněné úkoly · ${esc(subjShort(su))}</div>`+ts.map(t=>{ const tx=plain(t.html).trim()||'Bez textu'; return `<button class="pop-item" data-v="${esc(t.key)}"><span class="pi-ic">☐</span><span>${esc(tx.length>70?tx.slice(0,70)+'…':tx)}</span></button>`; }).join(''),v=>{ const t=allTasks().find(q=>q.key===v); if(t) revealBlock(t.pg.id,t.b.id,false); });
-  }
-}
-const pathOf=pg=>{ const out=[pg]; let p=S.pages[pg.parent]; while(p&&out.length<8){ out.unshift(p); p=S.pages[p.parent]; } return out; };
-
 /* ---- zobrazení semestrů: co se počítá do souhrnu a co je vidět v seznamu ---- */
 function openIndexView(){
   const sems=semList();
@@ -199,7 +159,7 @@ function openIndexView(){
   });
 }
 
-/* ---- nastavení předmětu (ozubené kolečko): jen zkratka, název, kredity, semestr, ukončení, barva a definice dílčích hodnocení ---- */
+/* ---- nastavení předmětu (klik na název): jen zkratka, název, kredity, semestr, ukončení, barva a definice dílčích hodnocení ---- */
 function openSubjectModal(su,preset){
   const isNew=!su, old=su||null;
   su=su?clone(su):Object.assign({id:rid(),code:'',name:'',credits:'',sem:'',end:'zk',color:'purple',pts:'',parts:[],note:''},preset||{});
@@ -230,7 +190,7 @@ function openSubjectModal(su,preset){
     $('#su-parts',m).innerHTML=parts.map((p,i)=>`<div class="ix-part su-pdef" data-i="${i}"><input class="inp pn" value="${esc(p.name||'')}" placeholder="Cvičení, test, zkouška…" aria-label="Název"><span class="ps">max</span><input class="inp pm" value="${esc(p.max??'')}" inputmode="decimal" placeholder="–" aria-label="Maximum bodů"><span class="pz">${String(p.pts??'').trim()?`${esc(p.pts)} b`:''}</span><button type="button" class="icon-btn lk-hide" data-rm="${i}" aria-label="Odebrat">×</button></div>`).join('');
     const mx=subjMax({parts});
     $('#su-sum',m).textContent=parts.length&&mx!=null?`celkem max ${fmtNum(mx)} b`:'';
-    $('#su-pnote',m).textContent=(parts.length?'Body do nich zapisuješ přímo na kartě předmětu. Body nad maximum se počítají jako bonus.':'Bez dílčích hodnocení se na kartě zapisují jen body celkem.')+' Známka se ukáže až po zaškrtnutí zápočtu na kartě.';
+    $('#su-pnote',m).textContent=(parts.length?'Body do nich zapisuješ přímo na kartě předmětu. Body nad maximum se počítají jako bonus.':'Bez dílčích hodnocení se na kartě zapisují jen body celkem.')+' Známka se ukáže, až u předmětu přepneš Zápočet na Ano.';
     applyLock();
   };
   $('#su-parts',m).addEventListener('input',e=>{ const r=e.target.closest('.ix-part'); if(!r) return; const p=parts[+r.dataset.i]; p[e.target.classList.contains('pn')?'name':'max']=e.target.value; const mx=subjMax({parts}); $('#su-sum',m).textContent=parts.length&&mx!=null?`celkem max ${fmtNum(mx)} b`:''; });
@@ -290,6 +250,13 @@ export function initIndex(){
   const view=$('#view');
   view.addEventListener('input',onPtsInput);
   view.addEventListener('change',onPtsChange);
+  /* zápočet Ne/Ano (funguje i se zámkem, stejně jako zápis bodů) */
+  view.addEventListener('click',e=>{
+    const b=e.target.closest&&e.target.closest('.ixc-seg button'), x=b&&cardCtx(b); if(!x) return;
+    const v=b.dataset.pass==='1'; if(!!x.su.passed===v) return;
+    x.su.passed=v;
+    Store.queue(); refreshCard(x.card,x.su);
+  });
   /* Enter v poli s body skočí na další pole na kartě */
   view.addEventListener('keydown',e=>{
     if(e.key!=='Enter'||!e.target.classList||!e.target.classList.contains('ixc-in')) return;
@@ -298,4 +265,4 @@ export function initIndex(){
   });
 }
 
-export { fmtNum, gradeChip, GRADES, ixAction, openIndexView, openSemModal, openSubjectModal, renderIndex, subjCr, subjDone, subjMax, subjPoints, wavg };
+export { fmtNum, gradeChip, GRADES, openIndexView, openSemModal, openSubjectModal, renderIndex, subjCr, subjDone, subjMax, subjPoints, wavg };
