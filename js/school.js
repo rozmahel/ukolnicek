@@ -24,7 +24,6 @@ const subjsOf=sid=>Object.values(S.subjects).filter(su=>sid?su.sem===sid:!S.seme
 const subjList=()=>[...semList().flatMap(s=>subjsOf(s.id)),...subjsOf(null)];
 /* místa v poznámkách, kde je předmět vložený přes /předmět (v pořadí z levého panelu) */
 function subjOcc(id){ const out=[]; flatPages().forEach(({p})=>(p.blocks||[]).forEach(b=>{ if(b.type==='subj'&&b.subj===id) out.push({pg:p,b}); })); return out; }
-const subjEvents=id=>Object.values(S.events).filter(ev=>ev.subj===id);
 /* text bloku předmětu: živě z Indexu, u smazaného předmětu poslední uložený název */
 const subjBlockText=b=>{ const su=S.subjects[b.subj]; return su?subjLabel(su):(plain(b.html).trim()||'Smazaný předmět'); };
 /* převod bloku předmětu na obyčejný nadpis H1: text, emoji a formát nadpisu se přenesou do HTML */
@@ -51,7 +50,6 @@ function unlinkedMatches(su){
   return Object.values(S.events).filter(ev=>(!ev.subj||!S.subjects[ev.subj])&&k.has(key(ev.title)));
 }
 const hodin=n=>`${n} ${plural(n,'hodina','hodiny','hodin')}`;
-const hodinu=n=>`${n} ${plural(n,'hodinu','hodiny','hodin')}`;   /* „propojit 1 hodinu“ */
 /* propojí hodiny s předmětem; barva se přepne na „podle předmětu“. Vrátí funkci pro vrácení. */
 function linkEvents(su,evs){
   const before=evs.map(ev=>clone(ev));

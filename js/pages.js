@@ -53,7 +53,7 @@ function deletePage(id){
   const ids=[id,...descendants(id)]; const backup=ids.map(i=>clone(S.pages[i])); const title=pTitle(S.pages[id]);
   ids.forEach(i=>{ delete S.pages[i]; }); Store.queue();
   if(S.view.kind==='page'&&ids.includes(S.view.pageId)) go({kind:'today'}); else { renderSidebar(); renderMain(); }
-  toast(`Stránka „${title}“ smazána${ids.length>1?` i s ${ids.length-1} podstránkami`:''}`,'Vrátit',()=>{
+  toast(`Stránka „${title}“ smazána${ids.length>1?` i s ${ids.length-1} ${ids.length===2?'podstránkou':'podstránkami'}`:''}`,'Vrátit',()=>{
     backup.forEach(p=>{ S.pages[p.id]=p; savePage(p,0); }); renderSidebar(); renderMain();
   });
 }

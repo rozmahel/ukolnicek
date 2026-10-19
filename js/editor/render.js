@@ -27,7 +27,7 @@ function renderPage(pg){
   $('#view').innerHTML=`
   <article class="doc ${pg.wide?'wide':''}" id="doc" data-page="${pg.id}" spellcheck="true">
     <div class="pagebar">
-      <div class="crumbs">${crumbs.map(c=>`<button data-act="open" data-id="${c.id}">${esc(c.icon||'')} ${esc(pTitle(c))}</button><span>/</span>`).join('')}<span>${esc(pg.icon||'')} ${esc(pTitle(pg))}</span></div>
+      <div class="crumbs ${crumbs.length?'':'solo'}">${crumbs.map(c=>`<button data-act="open" data-id="${c.id}">${esc(c.icon||'')} ${esc(pTitle(c))}</button><span>/</span>`).join('')}<span>${esc(pg.icon||'')} ${esc(pTitle(pg))}</span></div>
       <div class="pb-acts">${pg.icon?'':`<button class="ghost-btn" data-act="icon" data-popanchor>☺ Ikona</button>`}<button class="ghost-btn" data-act="wide">${pg.wide?'↤ Užší':'↔ Celá šířka'}</button>
         <span class="pb-sep"></span>
         <button class="icon-btn" id="undo-btn" data-act="undo" title="Zpět (⌘Z)" aria-label="Zpět"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>

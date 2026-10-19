@@ -7,7 +7,7 @@ Poznámky, úkoly a (volitelně) školní rozvrh a známky na jednom místě. Ú
 - **Stránka Dnes** jako nástěnka z widgetů (hodiny, rozvrh dnes a zítra, termíny, stav úkolů) ve třech velikostech, s rozložením zvlášť pro telefon a počítač.
 - **Školní režim** (zapíná se v nastavení): týdenní rozvrh, Index předmětů po semestrech s body, známkami A–F a kredity, týden výuky (lichý a sudý) a nadpisy s předměty v poznámkách (`/předmět`).
 - **Zámek** (⌘⇧L), aby se nic nepřesunulo ani nesmazalo omylem.
-- **Barevné motivy** (Výchozí, Papír, Les), každý ve světlé i tmavé variantě, velikost písma 100–160 %.
+- **Barevné motivy** (Výchozí, Papír, Les, Mlha, Šípek, Levandule), každý ve světlé i tmavé variantě, velikost písma 100–160 %.
 
 Podrobný návod je přímo v aplikaci: **Nastavení → Návod a novinky** (soubor `navod.html`).
 

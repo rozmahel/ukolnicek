@@ -1,6 +1,6 @@
 /* Úkolníček – Levý panel: menu, strom projektů, mini kalendář */
 import { $, DAYS, DAYS_FULL, esc, ICONS } from './core.js';
-import { MONTHS_NOM, S } from './state.js';
+import { MONTHS_NOM, S, SEARCH_KEY } from './state.js';
 import { LOCK } from './lock.js';
 import { savePage, updateSaving } from './store.js';
 import { isoWeek, mondayOf, parseD, weekInfo, weekNo, weeksBetween, ymd } from './dates.js';
@@ -47,7 +47,7 @@ function renderSidebar(){
       ${nav('today','Dnes')}
       ${school?(isIndex()?nav('index','Index'):'')+nav('schedule','Rozvrh'):''}
       ${nav('tasks','Úkoly',open?`<span class="badge">${open}</span>`:'')}
-      <button class="nv" data-act="search">${ICONS.search}<span>Hledat</span><kbd>⌘K</kbd></button>
+      <button class="nv" data-act="search">${ICONS.search}<span>Hledat</span><kbd>${SEARCH_KEY}</kbd></button>
       <button class="nv" data-act="arch">${ICONS.archive}<span>Archiv</span>${archN?`<span class="badge">${archN}</span>`:''}</button>
     </nav>
     <div class="sec-h"><span>Projekty</span><button class="icon-btn" data-act="new-page" aria-label="Nový projekt">+</button></div>

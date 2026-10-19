@@ -99,7 +99,7 @@ function lineKeys(e,x,t){
   if(e.key==='Tab'){
     e.preventDefault();
     const cols=b.rows[0].cells.length, rows=b.rows.length; let idx=r*cols+c+(e.shiftKey?-1:1);
-    if(idx>=rows*cols){ b.rows.push({cells:Array.from({length:cols},()=>emptyCell())}); savePage(pg); rerenderBlocks(); }
+    if(idx>=rows*cols&&!LOCK){ b.rows.push({cells:Array.from({length:cols},()=>emptyCell())}); savePage(pg); rerenderBlocks(); }
     idx=clamp(idx,0,b.rows.length*cols-1);
     focusLine(b.id,Math.floor(idx/cols),idx%cols,0,'end'); return;
   }

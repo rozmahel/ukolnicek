@@ -43,8 +43,8 @@ function showEvTip(btn){
   const rep=ev.repeat==='odd'?'lichý týden':ev.repeat==='even'?'sudý týden':ev.repeat==='once'?'jednorázově':ev.repeat==='count'?`${occIndex(ev,d)}. z ${+ev.count||1}`:'každý týden';
   evtip.className='evtip hl-'+evColor(ev);
   evtip.innerHTML=`<div class="et-k">${esc([ev.type,rep].filter(Boolean).join(' · '))}</div><div class="et-t">${esc(su?subjLabel(su):evTitle(ev))}</div>
-    <div class="et-r">🕘 ${esc(ev.start)} – ${esc(ev.end)}${d?` · ${DAYS_FULL[(d.getDay()+6)%7]} ${shortDate(d)}`:''}</div>
-    ${ev.place?`<div class="et-r">📍 ${esc(ev.place)}</div>`:''}${ev.who?`<div class="et-r">👤 ${esc(ev.who)}</div>`:''}
+    <div class="et-r">${esc(ev.start)} – ${esc(ev.end)}${d?` · ${DAYS_FULL[(d.getDay()+6)%7]} ${shortDate(d)}`:''}</div>
+    ${evMeta(ev)?`<div class="et-r">${evMeta(ev)}</div>`:''}
     ${ev.note?`<div class="et-n">${esc(ev.note.length>180?ev.note.slice(0,180)+'…':ev.note)}</div>`:''}`;
   evtip.hidden=false;
   const r=btn.getBoundingClientRect(), w=evtip.offsetWidth, hgt=evtip.offsetHeight;
@@ -91,7 +91,9 @@ function renderSchedule(){
         <button class="btn pri" data-act="ev-add">＋ Přidat</button>
       </div></div>
     ${grid}${agenda}
-    <p class="sched-hint">${LOCK?'Zamčeno: hodiny nejde upravovat, klikem na hodinu přejdeš k jejímu předmětu. Novou hodinu přidáš jen tlačítkem ＋ Přidat.':hasAny?'Klikni do volného místa pro novou hodinu, klikni na hodinu pro úpravu.':'Rozvrh je zatím prázdný. Klikni do mřížky na den a čas, kdy máš hodinu, nebo použij ＋ Přidat.'} ${S.settings.semesterStart?'':'Pro liché a sudé týdny si v Nastavení zadej začátek semestru.'}</p>
+    ${(()=>{ /* nápověda jen když je k něčemu: prázdný rozvrh, zámek, chybějící začátek semestru */
+      const t=[LOCK?'Zamčeno: klikem na hodinu přejdeš k předmětu, novou přidáš jen tlačítkem ＋ Přidat.':hasAny?'':'Rozvrh je zatím prázdný. Klikni do mřížky na den a čas, kdy máš hodinu, nebo použij ＋ Přidat.',S.settings.semesterStart?'':'Pro liché a sudé týdny si v Nastavení zadej začátek semestru.'].filter(Boolean).join(' ');
+      return t?`<p class="sched-hint">${t}</p>`:''; })()}
   </div>`;
   applyLock();
   const sg=$('#sg');
@@ -100,7 +102,7 @@ function renderSchedule(){
     const col=e.target.closest('.sg-col'); $$('.ghost',sg).forEach(g=>{ if(!col||g.parentElement!==col) g.hidden=true; });
     if(!col||e.target!==col) { if(col) $('.ghost',col).hidden=true; return; }
     const g=$('.ghost',col); const y=e.clientY-col.getBoundingClientRect().top; const m=h0*60+Math.floor(y/hh*2)/2*60;
-    g.hidden=false; g.style.top=((m-h0*60)/60*hh)+'px'; g.style.height=(hh*1.5)+'px'; g.textContent='＋ '+fromMin(m);
+    g.hidden=false; g.style.top=((m-h0*60)/60*hh)+'px'; g.style.height=(hh*110/60)+'px'; g.textContent='＋ '+fromMin(m);   /* stejně dlouhá jako nová hodina (1 h 50 min) */
   });
   sg.addEventListener('mouseleave',()=>$$('.ghost',sg).forEach(g=>g.hidden=true));
 }

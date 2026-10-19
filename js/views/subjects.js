@@ -14,11 +14,12 @@ import { closeModal, openModal, toast } from '../ui.js';
 const GRADES=[['A',90,'výborně',1],['B',80,'velmi dobře',1.5],['C',70,'dobře',2],['D',60,'uspokojivě',2.5],['E',50,'dostatečně',3],['F',0,'nedostatečně',4]];
 const GRADE_HL={A:'green',B:'green',C:'blue',D:'yellow',E:'orange',F:'red'};
 const ENDS=[['zk','Zápočet a zkouška','Zk'],['kz','Klasifikovaný zápočet','KZ'],['z','Zápočet','Z']];
-const endOf=k=>ENDS.find(e=>e[0]===k)||ENDS[0];
 const num=v=>{ if(v===''||v==null) return null; const n=parseFloat(String(v).replace(',','.')); return isFinite(n)?n:null; };
 /* body jako číslo s desetinnou čárkou nebo tečkou (12, 7,5, 7.5) */
 const isNum=v=>{ const t=String(v??'').trim(); return t===''||/^-?\d+([.,]\d+)?$/.test(t); };
 const fmtNum=n=>n==null?'':String(Math.round(n*100)/100).replace('.',',');
+/* průměr vždy na dvě místa (1,00 místo 1, ať nevypadá jako známka) */
+const fmtAvg=n=>n==null?'':n.toFixed(2).replace('.',',');
 /* body: součet dílčích hodnocení, nebo jedno číslo, když žádná dílčí nejsou (body nad maximum se počítají jako bonus) */
 function subjPoints(su){
   const parts=su.parts||[];
@@ -27,8 +28,10 @@ function subjPoints(su){
 }
 function subjMax(su){ const parts=su.parts||[]; if(!parts.length||parts.some(p=>num(p.max)==null)) return null; return parts.reduce((a,p)=>a+num(p.max),0); }
 const gradeOf=pts=>pts==null?null:GRADES.find(g=>pts>=g[1]);
+/* některé dílčí hodnocení ještě nemá body (třeba zkouška): F by bylo předčasné, známka se zatím neukáže */
+const partsOpen=su=>(su.parts||[]).some(p=>num(p.pts)==null);
 /* známka podle bodů bez ohledu na zápočet (jen pro nápovědu na kartě) */
-function rawGrade(su){ return su.end==='z'?null:gradeOf(subjPoints(su)); }
+function rawGrade(su){ if(su.end==='z') return null; const g=gradeOf(subjPoints(su)); return g&&g[0]==='F'&&partsOpen(su)?null:g; }
 /* známka platí, až je zaškrtnutý zápočet (u všech typů ukončení) */
 function subjGrade(su){ return su.passed?rawGrade(su):null; }
 /* kredity se počítají, až je zápočet a známka A–E (u předmětu jen se zápočtem stačí zápočet) */
@@ -43,7 +46,8 @@ function semName(d){
 function gradeChip(su){
   if(su.end==='z') return su.passed?'<span class="grade hl-green" title="Zápočet udělen">✓</span>':'<span class="grade none">–</span>';
   const g=subjGrade(su); if(g) return `<span class="grade hl-${GRADE_HL[g[0]]}" title="${g[2]} · ${fmtNum(g[3])}">${g[0]}</span>`;
-  return `<span class="grade none" ${rawGrade(su)?'title="Známka se ukáže po zápočtu"':''}>–</span>`;
+  const tip=rawGrade(su)?'Známka se ukáže po zápočtu':subjPoints(su)!=null&&partsOpen(su)?'Známka se ukáže, až budou zadané všechny body':'';
+  return `<span class="grade none" ${tip?`title="${tip}"`:''}>–</span>`;
 }
 
 /* ---- předmět v kartě semestru ----
@@ -80,15 +84,15 @@ const inStats=su=>{ const sm=S.semesters[su.sem]; return !sm||!sm.noStats; };
 const statSubs=()=>Object.values(S.subjects).filter(inStats);
 function sumInner(subs){
   const earned=subs.filter(subjDone).reduce((a,su)=>a+subjCr(su),0), enrolled=subs.reduce((a,su)=>a+subjCr(su),0), avg=wavg(subs);
-  return `<div class="ix-tile"><span class="k">Získané kredity</span><b>${fmtNum(earned)}<span> ze ${fmtNum(enrolled)} zapsaných</span></b></div>
-      <div class="ix-tile"><span class="k">Splněné předměty</span><b>${subs.filter(subjDone).length}<span> / ${subs.length}</span></b></div>
-      <div class="ix-tile"><span class="k">Vážený průměr</span><b>${avg!=null?fmtNum(avg):'–'}</b></div>`;
+  return `<div class="ix-tile"><span class="k">Kredity</span><b>${fmtNum(earned)}<span> ze ${fmtNum(enrolled)} zapsaných</span></b></div>
+      <div class="ix-tile"><span class="k">Splněno</span><b>${subs.filter(subjDone).length}<span> / ${subs.length}</span></b></div>
+      <div class="ix-tile"><span class="k">Vážený průměr</span><b>${avg!=null?fmtAvg(avg):'–'}</b></div>`;
 }
 function semHeadInner(sem,list){
   const got=list.filter(subjDone).reduce((a,su)=>a+subjCr(su),0), target=sem?(num(sem.target)||0):0, av=wavg(list);
   return `<h2>${esc(sem?sem.name||'Semestr':'Bez semestru')}</h2>
         <span class="ix-prog" title="Získané kredity v semestru">${target?`<i style="width:${Math.min(100,Math.round(got/target*100))}%"></i>`:''}<span>${fmtNum(got)}${target?` / ${fmtNum(target)}`:''} kr.</span></span>
-        ${av!=null?`<span class="ix-avg" title="Vážený průměr splněných předmětů (A = 1 … E = 3)">⌀ ${fmtNum(av)}</span>`:''}
+        ${av!=null?`<span class="ix-avg" title="Vážený průměr splněných předmětů (A = 1 … E = 3)">⌀ ${fmtAvg(av)}</span>`:''}
         ${sem?`<button class="icon-btn ix-more" data-act="sem-edit" data-id="${sem.id}" title="Upravit semestr" aria-label="Upravit semestr">⋯</button>`:''}`;
 }
 function semHtml(sem){
@@ -265,4 +269,4 @@ export function initIndex(){
   });
 }
 
-export { fmtNum, gradeChip, GRADES, openIndexView, openSemModal, openSubjectModal, renderIndex, subjCr, subjDone, subjMax, subjPoints, wavg };
+export { fmtAvg, fmtNum, gradeChip, GRADES, openIndexView, openSemModal, openSubjectModal, partsOpen, renderIndex, subjCr, subjDone, subjMax, subjPoints, wavg };

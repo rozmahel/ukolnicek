@@ -1,5 +1,5 @@
 /* Úkolníček – Nastavení, motiv a velikost písma, návod a novinky */
-import { $, $$, downloadFile, esc, lsGet, lsSet, plural } from '../core.js';
+import { $, $$, downloadFile, esc, ICONS, lsGet, lsSet, plural } from '../core.js';
 import { defaultSettings, S } from '../state.js';
 import { applySkin, skinOf, SKINS, syncThemeColor } from '../theme.js';
 import { LOCK } from '../lock.js';
@@ -16,7 +16,7 @@ import { ImgSync, withImgs } from '../sync/images.js';
 import { placeFrame } from '../editor/images.js';
 
 /* ================= settings ================= */
-const APP_VERSION='3.12.0';
+const APP_VERSION='4.0.0';
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
 const FS_STEPS=[1,1.15,1.3,1.45,1.6];
 function applyTheme(){
@@ -31,7 +31,9 @@ function applyFontScale(){
 }
 
 /* ---- nastavení po kategoriích ---- */
-const SET_TABS=[['general','Obecné','⚙️'],['look','Vzhled','🎨'],['school','Škola','🎓'],['sync','Google Disk','☁️'],['backup','Zálohy','🗂️'],['help','Návod a novinky','📖']];
+/* ikony kategorií: stejné čárové jako v levém panelu (ne emoji) */
+const SET_IC={general:'<svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg>',look:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17z" fill="currentColor" stroke="none"/></svg>',sync:'<svg viewBox="0 0 24 24"><path d="M7 18.5h10a4 4 0 0 0 .6-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 18.5z"/></svg>',backup:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4.5" rx="1.2"/><path d="M4.8 8.5v9.5a2 2 0 0 0 2 2h10.4a2 2 0 0 0 2-2V8.5"/><path d="M10 12.5h4"/></svg>',help:'<svg viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H14a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z"/></svg>'};
+const SET_TABS=[['general','Obecné',SET_IC.general],['look','Vzhled',SET_IC.look],['school','Škola',ICONS.index],['sync','Google Disk',SET_IC.sync],['backup','Zálohy',SET_IC.backup],['help','Návod a novinky',SET_IC.help]];
 /* stav obrázků podle dat a poslední kontroly Disku */
 function imgState(){
   ImgSync.refresh(); const n=ImgSync.refs.size, s=ImgSync.summary();
@@ -60,22 +62,22 @@ async function openSettings(focus){
     <section class="set-pane" data-pane="look">
       <div class="fld"><span class="lbl" id="st-skin-l">Barevný motiv</span>
         <div class="skins" id="st-skin" role="group" aria-labelledby="st-skin-l">${SKINS.map(([id,nm])=>`<button type="button" class="skin ${id===skin?'on':''}" data-v="${id}" aria-pressed="${id===skin}"><span class="skin-sw" data-sk="${id}" aria-hidden="true"><b>Aa</b><i></i><i></i><i></i></span><span class="skin-nm">${nm}</span></button>`).join('')}</div>
-        <p class="note">Mění barvy a písmo. Synchronizuje se přes Disk, takže ho uvidíš na všech zařízeních.</p></div>
+        <p class="note">Motiv se přes Disk přenese i do ostatních zařízení.</p></div>
       <div class="fld"><span class="lbl">Světlý nebo tmavý režim</span>${seg('st-theme',[['auto','Podle zařízení'],['light','☀︎ Světlý'],['dark','☾ Tmavý']],theme)}</div>
       <div class="fld"><span class="lbl">Velikost textu</span>${seg('st-fs',FS_STEPS.map(v=>[v,Math.round(v*100)+' %']),FS_STEPS.includes(fs)?fs:1)}
-        <p class="note">Režim a velikost textu platí jen pro toto zařízení a nenahrávají se na Disk. Každý motiv má světlou i tmavou variantu.</p></div>
+        <p class="note">Režim a velikost textu platí jen pro toto zařízení.</p></div>
     </section>
 
     <section class="set-pane" data-pane="school">
       <label class="chk"><input type="checkbox" id="st-school" ${isSchool()?'checked':''}> <b>Školní režim</b></label>
-      <p class="note" style="margin-top:-8px;padding-left:26px">Přidá Rozvrh, Index (předměty, kredity, body a známky), týden výuky a bloky <b>/předmět</b> v poznámkách. Vypnutím se nic nesmaže, jen se to schová.</p>
+      <p class="note" style="margin-top:-8px;padding-left:26px">Rozvrh, Index předmětů, týden výuky a bloky <b>/předmět</b>. Vypnutím se nic nesmaže, jen schová.</p>
       <div class="set-school" id="st-school-box" ${isSchool()?'':'hidden'}>
         <label class="chk"><input type="checkbox" id="st-ix" ${S.settings.noIndex===true?'':'checked'}> Zobrazovat Index</label>
-        <p class="note" style="margin-top:-8px;padding-left:26px">Předměty, kredity, body a známky. Bez Indexu zůstane rozvrh s vlastními názvy hodin, výběr předmětu a bloky /předmět se nenabízejí. Vypnutím se nic nesmaže.</p>
+        <p class="note" style="margin-top:-8px;padding-left:26px">Předměty s kredity, body a známkami. Bez něj mají hodiny v rozvrhu vlastní názvy a /předmět se nenabízí.</p>
         <div class="fld"><label for="st-start">Začátek výuky (pondělí 1. týdne)</label><input type="date" id="st-start" value="${esc(st.semesterStart)}"><p class="note">Podle něj se počítá číslo týdne a lichý/sudý týden.</p></div>
         <h3 class="set-h">Rozvrh</h3>
         <div class="grid2"><div class="fld"><label for="st-h0">Od (hodina)</label><select id="st-h0">${Array.from({length:14},(_,i)=>i+5).map(h=>`<option ${+st.dayStart===h?'selected':''}>${h}</option>`).join('')}</select></div><div class="fld"><label for="st-h1">Do (hodina)</label><select id="st-h1">${Array.from({length:12},(_,i)=>i+13).map(h=>`<option ${+st.dayEnd===h?'selected':''}>${h}</option>`).join('')}</select></div></div>
-        <div class="fld"><label for="st-hs">Výška hodiny</label><select id="st-hs">${HOUR_SCALES.map(v=>`<option value="${v}" ${(+st.hourScale||1)===v?'selected':''}>${String(v).replace('.',',')}×</option>`).join('')}</select><p class="note">Vyšší políčka = u krátkých hodin se vejde víc textu. Celé informace ukáže najetí myší na hodinu.</p></div>
+        <div class="fld"><label for="st-hs">Výška hodiny</label><select id="st-hs">${HOUR_SCALES.map(v=>`<option value="${v}" ${(+st.hourScale||1)===v?'selected':''}>${String(v).replace('.',',')}×</option>`).join('')}</select><p class="note">Do vyššího políčka se u krátké hodiny vejde víc textu.</p></div>
         <label class="chk"><input type="checkbox" id="st-we" ${st.showWeekend?'checked':''}> Zobrazovat i víkend</label>
       </div>
       <div class="set-sep lk-hide"></div>
@@ -89,30 +91,30 @@ async function openSettings(focus){
         <div class="drive-state ${ds==='ok'?'cl-ok':ds==='expired'?'cl-exp':'cl-off'}">${cloudSvg(ds==='off')}<span>${ds==='ok'?`Připojeno. ${META.lastUpload?'Naposledy nahráno '+fmtTime(META.lastUpload)+'.':'Zatím nic nenahráno.'}`:ds==='expired'?'Přihlášení vypršelo. Připoj se znovu.':'Nepřipojeno.'}</span></div>
         <label for="st-cid" class="note">OAuth Client ID (typ „Webová aplikace“) z Google Cloud. Ukládá se jen v tomto prohlížeči.</label>
         <input id="st-cid" value="${esc(cid)}" placeholder="123456789-abc….apps.googleusercontent.com" autocomplete="off" spellcheck="false">
-        <label for="st-acc" class="note">Účet Google (nepovinné). Když ho vyplníš, Google při přihlášení nenabízí výběr účtu. Platí jen pro toto zařízení.</label>
+        <label for="st-acc" class="note">Účet Google (nepovinné): přihlášení pak nenabízí výběr účtu.</label>
         <input id="st-acc" type="email" value="${esc(DriveSync.account())}" placeholder="tvuj.ucet@gmail.com" autocomplete="email" spellcheck="false">
         <div class="m-actions">
           ${ds==='ok'?`<button type="button" class="btn" id="st-up">↑ Nahrát na Disk</button><button type="button" class="btn" id="st-down">↓ Stáhnout z Disku…</button><span class="sp"></span><button type="button" class="btn danger" id="st-disc">Odpojit</button>`
             :`<button type="button" class="btn pri" id="st-conn">${ds==='expired'?'Připojit znovu':'Přihlásit k Disku'}</button>`}
         </div>
-        <p class="note">↑ uloží aktuální stav jako novou zálohu (drží se posledních 10), ↓ nahradí data v tomto zařízení vybranou verzí.</p>
+        <p class="note">↑ uloží stav jako novou zálohu (drží se posledních 10), ↓ nahradí data v zařízení vybranou verzí.</p>
         <h3 class="set-h">Obrázky</h3>
         <p class="note">${imgState()}</p>
         ${ds==='ok'?`<div class="m-actions"><button type="button" class="btn" id="st-img-up">↑ Nahrát obrázky</button><button type="button" class="btn" id="st-img-down">↓ Stáhnout obrázky</button></div>`:''}
-        <label class="chk"><input type="checkbox" id="st-imgs" ${withImgs()?'checked':''}> Šipky ↑ a ↓ přenáší i obrázky</label>
-        <p class="note" style="margin-top:-8px;padding-left:26px">Každý obrázek je na Disku jako samostatný soubor a nahrávají se jen nové. Když se přenos přeruší, příště se pokračuje. Obrázek, který tu ještě není, se ukáže jako rámeček s názvem. Na mobilních datech se před stažením víc než 5 MB zeptá. Žlutý vykřičník u mráčku znamená, že obrázky čekají na nahrání, chybí tady nebo čekají na smazání z Disku. Platí jen pro toto zařízení.</p>
+        <label class="chk"><input type="checkbox" id="st-imgs" ${withImgs()?'checked':''}> Šipky ↑ a ↓ přenášejí i obrázky</label>
+        <p class="note" style="margin-top:-8px;padding-left:26px">Nahrávají se jen nové, přerušený přenos příště pokračuje. Na mobilních datech se před stažením víc než 5 MB zeptá. Žlutý vykřičník u mráčku = obrázky čekají na přenos. Jen pro toto zařízení.</p>
         <h3 class="set-h">Stahování z Disku</h3>
         <label class="chk"><input type="checkbox" id="st-auto" ${autoPull()?'checked':''}> Po otevření aplikace stáhnout novější verzi z Disku</label>
-        <p class="note" style="margin-top:-8px;padding-left:26px">Stáhne se sama, jen když tady nemáš změny, které na Disku nejsou. Když se změnilo obojí, Úkolníček se zeptá. Před každým stažením se uloží místní záloha. Platí jen pro toto zařízení.</p>
+        <p class="note" style="margin-top:-8px;padding-left:26px">Jen když tu nemáš změny, které na Disku nejsou; když se změnilo obojí, zeptá se. Před stažením se uloží místní záloha. Jen pro toto zařízení.</p>
         <label class="chk"><input type="checkbox" id="st-dll" ${lsGet('uk-dl-latest',false)?'checked':''}> Šipka ↓ stáhne rovnou nejnovější verzi (bez výběru z 10)</label>
-        <p class="note" style="margin-top:-8px;padding-left:26px">Starší verzi pak vybereš po kliknutí na mráček → „Vybrat starší verzi…“. Platí jen pro toto zařízení.</p>
+        <p class="note" style="margin-top:-8px;padding-left:26px">Starší verzi vybereš v menu mráčku. Jen pro toto zařízení.</p>
       </div>
     </section>
 
     <section class="set-pane" data-pane="backup">
       <div class="fld"><span class="lbl">Soubor se zálohou</span>
         <div class="m-actions"><button type="button" class="btn" id="st-exp">Exportovat do souboru</button><label class="btn" for="st-imp" style="cursor:pointer">Importovat ze souboru…</label><input type="file" id="st-imp" accept=".json,application/json" hidden></div>
-        <p class="note">Import přidá stránky a události ze souboru (i ze zálohy z Claude verze). Stejné stránky přepíše.</p></div>
+        <p class="note">Import přidá stránky, hodiny a předměty ze souboru. Stejné stránky přepíše.</p></div>
       <div class="set-sep"></div>
       <div class="fld"><span class="lbl">Místní zálohy</span>
         ${backups.length?`<div class="bk-list scroll">${backups.map(b=>`<div class="bk"><span><b>${esc(fmtTime(b.id))}</b> · ${esc(b.label||'Záloha')}</span><button type="button" class="btn" data-bk="${b.id}">Obnovit</button></div>`).join('')}</div>`:'<p class="note">Zatím žádné. Vytvoří se samy před každým stažením z Disku (i automatickým) nebo obnovením.</p>'}
@@ -120,8 +122,8 @@ async function openSettings(focus){
     </section>
 
     <section class="set-pane" data-pane="help">
-      <button type="button" class="guide-link" data-guide="navod"><span class="gl-ic" aria-hidden="true">📖</span><span><b>Návod</b><small>Základní funkce Úkolníčku v kostce</small></span><span class="gl-arr" aria-hidden="true">›</span></button>
-      <button type="button" class="guide-link" data-guide="novinky"><span class="gl-ic" aria-hidden="true">✨</span><span><b>Novinky</b><small>Co přibylo v posledních verzích</small></span><span class="gl-arr" aria-hidden="true">›</span></button>
+      <button type="button" class="guide-link" data-guide="navod"><span class="gl-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H14a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z"/></svg></span><span><b>Návod</b><small>Základní funkce v kostce</small></span><span class="gl-arr" aria-hidden="true">›</span></button>
+      <button type="button" class="guide-link" data-guide="novinky"><span class="gl-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="8.5"/></svg></span><span><b>Novinky</b><small>Co přibylo v posledních verzích</small></span><span class="gl-arr" aria-hidden="true">›</span></button>
     </section>
     <p class="set-foot">Úkolníček ${APP_VERSION} · <a href="#" class="set-news" id="st-news">co je nového</a></p>
     </form></div>`,'set-m');

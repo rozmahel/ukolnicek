@@ -117,12 +117,12 @@ function renderTasks(){
   if(!dated.length&&!shownProjs.length){
     if(!every.length||(!all.length&&!hiddenRoots.length)) empty=`Úkol přidáš na libovolné stránce: napiš <b>[]</b> a mezeru, nebo <b>/úkol</b>. Když do textu dáš datum jako <span class="mono">5.10.</span>, objeví se tu s termínem.`;
     else if(!all.length) empty=`Všechny projekty s úkoly jsou tady skryté. <button class="linkbtn" data-act="t-showall">Zobrazit všechny</button>`;
-    else empty=`Všechno hotovo. 🎉`;
+    else empty=`Všechno hotovo.`;
   }
   const tile=(l,v,extra,cls)=>`<div class="tk-tile"><div class="tk-tl">${l}</div><div class="tk-tv ${cls||''}">${v}${extra?`<small>${extra}</small>`:''}</div></div>`;
   const fD=fold.has(DUE);
   $('#view').innerHTML=`<div class="view tk-view">
-    <div class="v-head"><div><div class="eyebrow">Ze všech stránek</div><h1 class="v-title">Úkoly</h1></div>
+    <div class="v-head"><div><h1 class="v-title">Úkoly</h1></div>
       <div class="filters"><button class="${S.taskFilter==='open'?'on':''}" data-act="tfilter" data-v="open">Nesplněné · ${openN}</button><button class="${S.taskFilter==='all'?'on':''}" data-act="tfilter" data-v="all">Vše · ${all.length}</button>
         <button class="t-projbtn ${hiddenNames.length?'has':''}" data-act="t-projs" aria-haspopup="true">${ICONS.eyeOff}Projekty${hiddenNames.length?` · ${hiddenNames.length}`:''}</button></div></div>
     ${all.length?`<div class="tk-sum">${tile('Po termínu',lateN,'',lateN?'late':'')}${tile('Příštích 7 dní',weekN)}${tile('Nesplněné',openN,` z ${all.length}`)}</div>`:''}

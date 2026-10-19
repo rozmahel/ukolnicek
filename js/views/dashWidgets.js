@@ -14,7 +14,7 @@ import { renderMain } from '../router.js';
 import { hiddenMask } from '../editor/render.js';
 import { toast } from '../ui.js';
 import { evColor, evTitle } from './schedule.js';
-import { fmtNum, gradeChip, GRADES, subjCr, subjDone, subjMax, subjPoints, wavg } from './subjects.js';
+import { fmtAvg, fmtNum, gradeChip, GRADES, partsOpen, subjCr, subjDone, subjMax, subjPoints, wavg } from './subjects.js';
 import { allTasks, taskRow } from './tasks.js';
 import { applyFontScale, applyTheme, exportData, FS_STEPS, importFile, openSettings } from './settings.js';
 import { Sync } from '../sync/sync.js';
@@ -137,14 +137,15 @@ function wStudy(s,c,id,o){
   if(!sem) return {title:'Studium',body:`<div class="empty">V Indexu zatím není semestr. <button class="linkbtn" data-act="nav" data-v="index">Otevřít Index</button></div>`};
   const list=subjsOf(sem.id), got=list.filter(subjDone).reduce((a,su)=>a+subjCr(su),0), enr=list.reduce((a,su)=>a+subjCr(su),0), target=dwNum(sem.target)||enr, av=wavg(list);
   const pct=target?Math.min(100,Math.round(got/target*100)):0, eMin=GRADES.find(g=>g[0]==='E')[1];
-  const head=`<button class="st-sum" data-act="nav" data-v="index"><div class="wg-stat"><b>${fmtNum(got)}</b> / ${fmtNum(target)} kr.</div><span class="bar"><i style="width:${pct}%"></i></span><div class="wg-sub">${list.filter(subjDone).length} z ${list.length} předmětů splněno${av!=null?` · ⌀ ${fmtNum(av)}`:''}</div></button>`;
+  const head=`<button class="st-sum" data-act="nav" data-v="index"><div class="wg-stat"><b>${fmtNum(got)}</b> / ${fmtNum(target)} kr.</div><span class="bar"><i style="width:${pct}%"></i></span><div class="wg-sub">${list.filter(subjDone).length} z ${list.length} předmětů splněno${av!=null?` · ⌀ ${fmtAvg(av)}`:''}</div></button>`;
   const title=s==='s'?'Studium':`Studium · ${sem.name||'Semestr'}`;
   if(s==='s') return {title,sub:esc(sem.name||''),body:head};
   if(s==='m'){
     const miss=list.filter(su=>!subjDone(su)).map(su=>{ const p=subjPoints(su);
-      const why=su.end==='z'?'chybí zápočet':p==null?'zatím bez bodů':p<eMin?`${fmtNum(p)} b, pod hranicí na E`:'chybí zápočet';
-      return `<button class="st-row" data-act="wg-subj" data-id="${su.id}"><span class="ti-dot hl-${esc(su.color||'purple')}"></span><span class="nm">${esc(subjLabel(su))}</span><small class="${p!=null&&p<eMin&&su.end!=='z'?'late':''}">${why}</small></button>`; });
-    return {title,body:head+(miss.length?`<div class="wg-grp">Ještě chybí<span>${miss.length}</span></div>${miss.join('')}`:'<div class="empty">Všechno v semestru je splněné. 🎉</div>')};
+      const open=p!=null&&p<eMin&&partsOpen(su);   /* zkouška apod. ještě bez bodů: zatím se nedá říct, že je to pod hranicí */
+      const why=su.end==='z'?'chybí zápočet':p==null?'zatím bez bodů':open?`zatím ${fmtNum(p)} b`:p<eMin?`${fmtNum(p)} b, pod hranicí na E`:'chybí zápočet';
+      return `<button class="st-row" data-act="wg-subj" data-id="${su.id}"><span class="ti-dot hl-${esc(su.color||'purple')}"></span><span class="nm">${esc(subjLabel(su))}</span><small class="${p!=null&&p<eMin&&su.end!=='z'&&!open?'late':''}">${why}</small></button>`; });
+    return {title,body:head+(miss.length?`<div class="wg-grp">Ještě chybí<span>${miss.length}</span></div>${miss.join('')}`:'<div class="empty">Všechno v semestru je splněné.</div>')};
   }
   const rows=list.map(su=>{ const p=subjPoints(su), mx=subjMax(su);
     return `<tr data-act="wg-subj" data-id="${su.id}"><td><span class="ti-dot hl-${esc(su.color||'purple')}"></span>${esc(subjLabel(su))}</td><td class="num">${su.end==='z'?'':p==null?'–':`${fmtNum(p)}${mx?` / ${fmtNum(mx)}`:''}`}</td><td>${gradeChip(su)}</td><td class="num">${fmtNum(subjCr(su))} kr.</td><td class="num">${subjDone(su)?'✓':''}</td></tr>`; }).join('');

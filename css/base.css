@@ -75,8 +75,11 @@ html{font-size:calc(16px*var(--fs))}
 body{background:var(--bg);color:var(--fg);font:calc(15px*var(--fs))/1.6 var(--f-body);-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font:inherit;color:inherit}
 button{background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
+/* zaškrtávátka, přepínače a posuvníky prohlížeče v barvě motivu (jinak systémová modrá) */
+input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--accent)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
-.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+/* čísla a časy (dřív neproporcionální písmo): stejné písmo jako text, jen číslice stejně široké, kde to písmo umí */
+.mono{font-variant-numeric:tabular-nums}
 .muted{color:var(--muted)}
 mark{background:var(--c-bg,var(--hl-yellow-bg));color:var(--c-fg,var(--hl-yellow-fg));border-radius:4px;padding:0 .18em;box-decoration-break:clone;-webkit-box-decoration-break:clone}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}

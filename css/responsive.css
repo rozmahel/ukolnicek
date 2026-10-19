@@ -1,8 +1,9 @@
 /* Úkolníček – Úzké obrazovky (telefon): vysouvací panel, menší okraje, agenda místo mřížky */
 @media (max-width:860px){
   #app{grid-template-columns:minmax(0,1fr)}
-  .side{position:fixed;z-index:75;top:0;bottom:0;left:0;width:min(300px,86vw);transform:translateX(-102%);transition:transform .2s ease;padding-top:calc(16px + env(safe-area-inset-top,0px));box-shadow:var(--shadow)}
-  .side.open{transform:none}
+  /* stín jen u vysunutého panelu: u schovaného by jeho rozmazaný okraj prosvítal podél levé hrany stránky */
+  .side{position:fixed;z-index:75;top:0;bottom:0;left:0;width:min(300px,86vw);transform:translateX(-102%);transition:transform .2s ease,box-shadow .2s ease;padding-top:calc(16px + env(safe-area-inset-top,0px));box-shadow:none}
+  .side.open{transform:none;box-shadow:var(--shadow)}
   .scrim.open{display:block;position:fixed;inset:0;z-index:74;background:var(--scrim)}
   .topbar{display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line);padding:0 12px;height:48px}
   .pagebar{top:48px;margin:0 -16px 14px;padding:8px 16px}

@@ -11,17 +11,18 @@
 /* ---------- hlavičky pohledů, Dnes, karty, úkoly ---------- */
 .view{max-width:1120px;margin:0 auto;padding:44px 40px 80px}
 .v-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:22px}
-.v-title{font:800 2.3rem/1.1 var(--f-display);letter-spacing:-.015em;margin:0}
-.eyebrow{font-size:calc(12px*var(--fs));font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+.v-title{font:750 2.05rem/1.12 var(--f-display);letter-spacing:-.012em;margin:0}
+/* řádek nad nadpisem pohledu (den, týden výuky): obyčejná věta, ne štítek velkými písmeny */
+.eyebrow{font-size:calc(14px*var(--fs));font-weight:500;color:var(--muted);margin-bottom:2px}
 .v-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:3px 10px;font-size:calc(13px*var(--fs));color:var(--fg2);background:var(--panel)}
-.pill b{font:600 calc(12.5px*var(--fs)) var(--f-mono);color:var(--accent)}
-.navbtn{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);display:grid;place-items:center;background:var(--panel)}
+.pill b{font-weight:600;font-variant-numeric:tabular-nums;color:var(--accent)}
+.navbtn{width:32px;height:32px;border-radius:7px;border:1px solid var(--line);display:grid;place-items:center;background:var(--panel)}
 .navbtn:hover{border-color:var(--faint)}
 .wk-label{font-weight:600;font-size:calc(14.5px*var(--fs));min-width:0}
-.wk-label span{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.wk-label span{font-variant-numeric:tabular-nums;white-space:nowrap}
 .cards{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px;align-items:start}
-.card{border:1px solid var(--line);border-radius:13px;background:var(--panel);overflow:hidden}
+.card{border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden}
 .card-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px 10px}
 .card-h h2{font:700 1.05rem/1.3 var(--f-display);margin:0}
 .card-body{padding:0 0 4px}
@@ -30,7 +31,7 @@
 .subj:hover{background:var(--hover)}
 .subj .bar{grid-column:2/4;height:5px;border-radius:3px;background:var(--hover);overflow:hidden;margin-top:-4px}
 .subj .bar i{display:block;height:100%;background:var(--c-fg)}
-.subj .n{font:500 calc(12.5px*var(--fs)) var(--f-mono);color:var(--muted)}
+.subj .n{font-size:calc(12.5px*var(--fs));font-variant-numeric:tabular-nums;color:var(--muted)}
 .subj .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
 .task{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:8px;align-items:start;padding:8px 16px;border-bottom:1px solid var(--line)}
 .task:last-child{border-bottom:0}
@@ -39,16 +40,17 @@
 .task.done .task-t{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--faint)}
 .task-pg{display:inline-flex;gap:5px;align-items:center;font-size:calc(12.5px*var(--fs));color:var(--muted);border-radius:5px;padding:0 4px;margin-left:-4px;margin-top:1px}
 .task-pg:hover{background:var(--hover);color:var(--fg)}
-.chip{font:600 calc(12.5px*var(--fs))/1.5 var(--f-body);font-variant-numeric:tabular-nums;padding:1px 9px;border-radius:99px;background:var(--hover);color:var(--fg2);white-space:nowrap;margin-top:2px}
+.chip{font:600 calc(12.5px*var(--fs))/1.5 var(--f-body);font-variant-numeric:tabular-nums;padding:1px 8px;border-radius:6px;background:var(--hover);color:var(--fg2);white-space:nowrap;margin-top:2px}
 .chip.soon{background:var(--hl-orange-bg);color:var(--hl-orange-fg)}
 .chip.late{background:var(--hl-red-bg);color:var(--hl-red-fg)}
 .chip.today{background:var(--accent);color:var(--on-accent)}
 .filters{display:flex;gap:6px}
-.filters button{border:1px solid var(--line);border-radius:99px;padding:4px 12px;font-size:calc(13.5px*var(--fs));background:var(--panel)}
+.filters button{border:1px solid var(--line);border-radius:7px;padding:4px 12px;font-size:calc(13.5px*var(--fs));background:var(--panel)}
 .filters button.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 .loading{padding:80px 20px;text-align:center;color:var(--muted)}
-.welcome{max-width:520px;margin:12vh auto 0;text-align:center;display:grid;gap:12px;justify-items:center}
-.welcome h1{font:800 2rem/1.15 var(--f-display);margin:0}
+.welcome{max-width:480px;margin:6vh 0 0;display:grid;gap:10px;justify-items:start}
+.welcome h1{font:700 1.6rem/1.2 var(--f-display);margin:0}
+.welcome p{margin:0}
 
 /* ---------- Úkoly: souhrn, sekce, projekty (barvy z motivu) ---------- */
 .task-pg{max-width:100%}
@@ -62,15 +64,17 @@
 .t-pi.on .t-ck::after{content:"";width:8px;height:4px;margin-top:-2px;border:2px solid var(--on-accent);border-top:0;border-right:0;transform:rotate(-45deg)}
 .t-pi .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
 .t-pi:not(.on) .nm{color:var(--muted)}
-.t-pi .n{font:500 calc(12px*var(--fs)) var(--f-mono);color:var(--muted)}
+.t-pi .n{font-size:calc(12.5px*var(--fs));font-variant-numeric:tabular-nums;color:var(--muted)}
 .t-projbtn svg{width:15px;height:15px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.filters button{min-height:34px;padding:4px 14px}
+.filters button{min-height:34px;padding:4px 13px}
 .tk-view{max-width:1000px}
 .tk-view .v-head{margin-bottom:20px}
-.tk-sum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:34px}
-.tk-tile{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px 17px 12px;min-width:0}
-.tk-tl{font-size:calc(11.5px*var(--fs));font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tk-tv{font:700 calc(28px*var(--fs))/1.25 var(--f-display);color:var(--fg);font-variant-numeric:tabular-nums;margin-top:4px}
+/* souhrn: jeden pruh rozdělený čarami (ne tři samostatné karty) */
+.tk-sum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:30px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.tk-tile{padding:11px 16px 10px;min-width:0}
+.tk-tile+.tk-tile{border-left:1px solid var(--line)}
+.tk-tl{font-size:calc(13px*var(--fs));font-weight:500;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-tv{font:700 calc(26px*var(--fs))/1.2 var(--f-display);color:var(--fg);font-variant-numeric:tabular-nums;margin-top:2px}
 .tk-tv.late{color:var(--hl-red-fg)}
 .tk-tv small{font-size:.6em;font-weight:600;color:var(--muted)}
 .tk-h{display:flex;align-items:center;gap:12px;min-width:0;margin-bottom:12px}
@@ -85,7 +89,7 @@
 .tk-ib svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .tk-sec{margin-bottom:26px}
 .tk-list{display:grid;gap:8px}
-.tk-row{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 14px;border-radius:11px;background:color-mix(in srgb,var(--panel) 62%,var(--hover));border:1px solid color-mix(in srgb,var(--line) 78%,var(--faint))}
+.tk-row{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 14px;border-radius:8px;background:color-mix(in srgb,var(--panel) 62%,var(--hover));border:1px solid color-mix(in srgb,var(--line) 78%,var(--faint))}
 .tk-sec .tk-row{padding-block:9px;min-height:56px}
 .tk-row .task-t{font-weight:500;word-break:break-word;line-height:1.4}
 .tk-row.done .task-t{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--faint)}
@@ -93,7 +97,7 @@
 .tk-path{display:flex;align-items:center;gap:7px;max-width:100%;font-size:calc(12.5px*var(--fs));color:var(--muted);border-radius:5px;padding:0 4px;margin:1px 0 0 -4px;text-align:left}
 .tk-path:hover{background:var(--hover);color:var(--fg)}
 .tk-path .ti-dot{flex:none}
-.tk-proj{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 18px 18px;margin-bottom:26px}
+.tk-proj{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 18px 18px;margin-bottom:26px}
 .tk-proj.folded .tk-h,.tk-sec.folded .tk-h{margin-bottom:0}
 .tk-grp{position:relative;padding-left:16px;margin-top:20px}
 .tk-h+.tk-grp{margin-top:6px}
@@ -104,14 +108,14 @@
 .tk-code{font:700 calc(16.5px*var(--fs))/1.35 var(--f-display);color:var(--c-fg)}
 .tk-nm{font-weight:600;color:var(--fg)}
 .tk-gpg{flex:none;font-size:calc(12.5px*var(--fs));color:var(--muted);border-radius:5px;padding:0 4px}
-.tk-cnt{flex:none;margin-left:auto;font:500 calc(13px*var(--fs)) var(--f-mono);color:var(--muted)}
+.tk-cnt{flex:none;margin-left:auto;font-size:calc(13px*var(--fs));font-variant-numeric:tabular-nums;color:var(--muted)}
 .tk-hidnote{margin:4px 0 0;font-size:calc(13px*var(--fs));color:var(--muted)}
 .tk-hidnote .linkbtn{margin-left:6px;color:var(--accent);text-decoration:underline}
 @media (max-width:600px){
-  .tk-sum{gap:8px;margin-bottom:24px}
-  .tk-tile{padding:10px 11px 9px;border-radius:11px}
-  .tk-tl{font-size:calc(10.5px*var(--fs));letter-spacing:.03em}
-  .tk-tv{font-size:calc(22px*var(--fs))}
+  .tk-sum{margin-bottom:24px}
+  .tk-tile{padding:9px 11px 8px}
+  .tk-tl{font-size:calc(12px*var(--fs))}
+  .tk-tv{font-size:calc(21px*var(--fs))}
   .tk-proj{padding:14px 12px}
   .tk-grp{padding-left:12px}
   .tk-row{grid-template-columns:24px minmax(0,1fr);padding-inline:10px}

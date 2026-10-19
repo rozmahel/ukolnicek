@@ -52,7 +52,7 @@ function relDay(dt){
 function dueChip(dt,done){
   const n=Math.round((sod(dt)-sod(new Date()))/864e5);
   const cls=done?'':n<0?'late':n===0?'today':n<=3?'soon':'';
-  return `<span class="chip ${cls}" title="${shortDate(dt)}${dt.getFullYear()}">${shortDate(dt)} · ${relDay(dt)}</span>`;
+  return `<span class="chip ${cls}" title="${shortDate(dt)} ${dt.getFullYear()}">${shortDate(dt)} · ${relDay(dt)}</span>`;
 }
 
 function fmtTime(ts){ if(!ts) return ''; const d=new Date(ts); const t=`${d.getHours()}:${pad(d.getMinutes())}`; return sod(d).getTime()===sod(new Date()).getTime()?t:`${shortDate(d)} ${t}`; }

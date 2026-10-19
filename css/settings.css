@@ -5,11 +5,13 @@
    hlavička a levé menu stojí, posouvá se jen obsah kategorie. */
 .modal.set-m{width:min(780px,100%);height:min(640px,calc(100vh - 9vh - 24px));height:min(640px,calc(100dvh - 9vh - 24px));display:flex;flex-direction:column;overflow:hidden}
 .set{flex:1;min-height:0;display:grid;grid-template-columns:190px minmax(0,1fr);border-top:1px solid var(--line);margin-top:10px}
-.set-nav{display:flex;flex-direction:column;gap:2px;padding:12px 10px;border-right:1px solid var(--line);background:var(--side);border-bottom-left-radius:14px;overflow-y:auto}
+.set-nav{display:flex;flex-direction:column;gap:2px;padding:12px 10px;border-right:1px solid var(--line);background:var(--side);border-bottom-left-radius:12px;overflow-y:auto}
 .set-nav button{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;text-align:left;color:var(--fg2);font-size:calc(14px*var(--fs))}
 .set-nav button:hover{background:var(--hover);color:var(--fg)}
 .set-nav button.on{background:var(--panel);color:var(--fg);font-weight:600;box-shadow:var(--shadow-sm)}
-.set-nav button span{width:20px;text-align:center}
+.set-nav button span{width:20px;display:grid;place-items:center;color:var(--muted)}
+.set-nav button.on span{color:var(--fg)}
+.set-nav svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .set-body{display:flex;flex-direction:column;padding:16px 20px 18px;min-width:0;min-height:0;overflow-y:auto;overscroll-behavior:contain}
 .set-pane{display:grid;gap:14px;align-content:start}
 .set-sep{height:1px;background:var(--line);margin:2px 0}
@@ -32,14 +34,16 @@
 .modal.guide-m{width:min(760px,100%)}
 .guide{gap:0;max-height:min(76vh,780px);overflow:auto;padding-top:4px}
 .g-tabs{position:sticky;top:-4px;z-index:2;display:flex;gap:4px;padding:6px 0 10px;background:var(--panel);border-bottom:1px solid var(--line);margin-bottom:14px}
-.g-tabs button{padding:6px 14px;border-radius:99px;font-weight:600;color:var(--fg2);font-size:calc(14px*var(--fs))}
-.g-tabs button:hover{background:var(--hover)}
-.g-tabs button.on{background:var(--accent);color:var(--on-accent)}
+.g-tabs button{padding:6px 12px;border-radius:7px;font-weight:600;color:var(--muted);font-size:calc(14px*var(--fs))}
+.g-tabs button:hover{background:var(--hover);color:var(--fg)}
+.g-tabs button.on{background:var(--hover);color:var(--fg)}
 .g-lead{margin:0 0 14px;color:var(--fg2);font-size:calc(15px*var(--fs))}
-.g-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-.g-card{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--bg)}
-.g-card h3{display:flex;align-items:center;gap:9px;margin:0 0 8px;font:700 calc(16px*var(--fs))/1.3 var(--f-display)}
-.g-card h3 .g-ic{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:var(--c-bg,var(--accent-soft));font-size:16px;flex:none}
+/* návod: jeden sloupec k čtení, oddíly oddělené čarou (ne mřížka karet s ikonami ve čtverečcích) */
+.g-grid{display:grid;gap:0;max-width:640px}
+.g-card{padding:16px 0 14px;border-top:1px solid var(--line)}
+.g-card:first-child{border-top:0;padding-top:4px}
+.g-card h3{display:flex;align-items:baseline;gap:8px;margin:0 0 8px;font:700 calc(16.5px*var(--fs))/1.3 var(--f-display)}
+.g-card h3 .g-ic{display:none}
 .g-card p,.g-card li{margin:0 0 6px;font-size:calc(14px*var(--fs));line-height:1.55;color:var(--fg2)}
 .g-card ul{margin:0;padding-left:18px}
 .g-card p:last-child,.g-card li:last-child{margin-bottom:0}
@@ -50,7 +54,7 @@
 .g-rel::before{content:"";position:absolute;left:-7px;top:3px;width:12px;height:12px;border-radius:50%;background:var(--panel);border:2px solid var(--accent)}
 .g-rel.new::before{background:var(--accent)}
 .g-rel h3{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0 0 8px;font:700 calc(16px*var(--fs))/1.3 var(--f-display)}
-.g-rel h3 .v{font:600 calc(12px*var(--fs)) var(--f-mono);color:var(--accent);background:var(--accent-soft);padding:2px 8px;border-radius:99px}
+.g-rel h3 .v{font-size:calc(13px*var(--fs));font-weight:600;font-variant-numeric:tabular-nums;color:var(--muted)}
 .g-rel h3 time{font-size:calc(12.5px*var(--fs));font-weight:500;color:var(--muted);font-family:var(--f-body)}
 .g-rel ul{margin:0;padding-left:18px}
 .g-rel li{margin:0 0 5px;font-size:calc(14px*var(--fs));line-height:1.55;color:var(--fg2)}
@@ -64,7 +68,7 @@ body.navod-page section[data-tab]::before{content:attr(data-title);display:block
 .set-school{display:grid;gap:14px;padding-left:26px}
 /* výběr barevného motivu (Nastavení → Vzhled); .skin-sw si barvy bere z css/themes.css a base.css */
 .skins{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.skin{display:grid;gap:7px;padding:6px 6px 9px;border:1.5px solid var(--line);border-radius:12px;background:var(--panel);text-align:center;font-size:calc(13.5px*var(--fs));font-weight:600;color:var(--fg2)}
+.skin{display:grid;gap:7px;padding:6px 6px 9px;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);text-align:center;font-size:calc(13.5px*var(--fs));font-weight:600;color:var(--fg2)}
 .skin:hover{background:var(--hover)}
 .skin.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);color:var(--fg)}
 .skin-sw{display:flex;align-items:center;gap:5px;height:46px;padding:0 10px;border-radius:8px;background:var(--bg);color:var(--fg);border:1px solid var(--line);overflow:hidden}

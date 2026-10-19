@@ -6,7 +6,7 @@
 .pagebar{position:sticky;top:0;z-index:15;background:var(--bg);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;padding:10px 20px;margin:0 -20px 18px;border-bottom:1px solid transparent}
 #main.scrolled .pagebar{border-bottom-color:var(--line)}
 .crumbs{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:calc(13px*var(--fs));color:var(--muted);min-height:20px;min-width:0}
-.pb-acts{display:flex;align-items:center;gap:2px;flex-wrap:wrap}
+.pb-acts{display:flex;align-items:center;gap:2px;flex-wrap:wrap;margin-left:auto}
 .pb-sep{width:1px;height:18px;background:var(--line);margin:0 6px}
 .pb-acts .icon-btn{width:32px;height:32px}
 .pb-acts svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -14,6 +14,7 @@
 .title-row{display:flex;align-items:flex-start;gap:10px}
 .title-row .page-title{flex:1;min-width:0}
 .crumbs button{padding:1px 5px;border-radius:5px}
+@media (max-width:860px){ .crumbs.solo,.pb-acts [data-act="wide"],.pb-acts [data-act="wide"]+.pb-sep{display:none} }
 .crumbs button:hover{background:var(--hover);color:var(--fg)}
 .doc-head{position:relative}
 .page-icon{flex:none;font-size:2.15rem;line-height:1.2;border-radius:9px;padding:2px 5px;margin:3px 0 0 -7px}
@@ -58,7 +59,7 @@
 .t-h3{font:650 1.1rem/1.35 var(--f-display)}
 .mk{flex:none;width:24px;min-height:1.6em;display:grid;place-items:center;color:var(--fg2);margin-top:3px;height:1.6em}
 .mk.bullet{font-size:1.15em;line-height:1}
-.mk.num{font:500 .92em var(--f-mono);font-variant-numeric:tabular-nums;justify-items:end;padding-right:4px;width:28px}
+.mk.num{font-weight:500;font-variant-numeric:tabular-nums;color:var(--fg2);justify-items:end;padding-right:5px;width:28px}
 .check{width:24px}
 .check::before{content:"";width:15px;height:15px;border:1.6px solid var(--faint);border-radius:4px;transition:background .12s,border-color .12s}
 .check:hover::before{border-color:var(--accent)}
@@ -73,7 +74,7 @@
 .blk:hover .caret{opacity:1}
 .caret:hover{background:var(--hover)}
 .hidden-count{font-size:calc(12.5px*var(--fs));color:var(--muted);margin:0 0 0 2px}
-.b-quote .txt{border-left:3px solid var(--fg);padding-left:14px;margin:4px 0}
+.b-quote .txt{border-left:3px solid color-mix(in srgb,var(--fg) 30%,transparent);padding-left:14px;margin:4px 0;color:var(--fg2)}
 /* blok s kódem: neformátovaný text na mírně šedém podkladu; řádky se nezalamují (stromy složek zůstanou zarovnané), dlouhý řádek se posouvá do strany */
 .b-code .txt{font:400 .86em/1.55 var(--f-mono);font-variant-ligatures:none;background:var(--hl-gray-bg,var(--hover));color:var(--fg);border-radius:9px;padding:10px 14px;margin:4px 0;white-space:pre;word-break:normal;overflow-x:auto;tab-size:2}
 .b-code .txt:empty::before{font-family:var(--f-body)}
@@ -236,7 +237,7 @@ a.mention.gone{color:var(--muted);background:var(--hover);text-decoration:line-t
 
 /* ---------- zpětné odkazy dole na stránce ---------- */
 .backlinks{margin:34px 0 0;padding-top:14px;border-top:1px solid var(--line)}
-.bl-h{font-size:calc(11.5px*var(--fs));font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.bl-h{font-size:calc(13px*var(--fs));font-weight:600;color:var(--muted);margin-bottom:8px}
 .bl-h span{margin-left:4px;color:var(--faint)}
 .bl-pg{margin-bottom:10px}
 .bl-t{display:flex;align-items:center;gap:6px;font-weight:600;color:var(--fg2);font-size:calc(14px*var(--fs));margin-bottom:2px}

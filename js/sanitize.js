@@ -18,7 +18,8 @@ function normUrl(u){
 function urlLabel(u){ try{ if(/^mailto:/i.test(u)) return u.slice(7); const x=new URL(u); return x.hostname.replace(/^www\./,'')+(x.pathname.length>1?x.pathname:''); }catch(_){ return u; } }
 function placeholderSrc(name){
   const n=String(name||'obrázek').replace(/[<>&"]/g,'').slice(0,40);
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="360" height="120" viewBox="0 0 360 120"><rect x="1" y="1" width="358" height="118" rx="10" fill="#EEEDF2" stroke="#A8A2B6" stroke-dasharray="6 5"/><text x="180" y="52" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="600" fill="#4A4556">${n}</text><text x="180" y="78" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12.5" fill="#77718A">Obrázek není zálohovaný – je jen na zařízení, kde byl vložen</text></svg>`;
+  /* šedé barvy, které jdou vidět ve světlém i tmavém režimu (obrázek nezná barvy motivu) */
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="360" height="120" viewBox="0 0 360 120"><rect x="1" y="1" width="358" height="118" rx="10" fill="none" stroke="#8E889C" stroke-dasharray="6 5"/><text x="180" y="52" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="600" fill="#8E889C">${n}</text><text x="180" y="78" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12.5" fill="#8E889C">V tomto zařízení zatím není, stáhne se z Disku</text></svg>`;
   return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
 }
 function imgSrc(id,name){ return IMGURL.get(id)||placeholderSrc(name); }

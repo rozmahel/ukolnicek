@@ -11,6 +11,10 @@
 .wg.sz-s .card-h{padding:11px 14px 6px}
 .wg-grid.anim>.wg{transition:transform .28s cubic-bezier(.2,.8,.2,1)}
 .wg .card-h{align-items:flex-start}
+/* odkaz v hlavičce widgetu (Rozvrh, Úkoly): tichý text se šipkou, ne tlačítko s rámečkem */
+.wg .card-h>.btn{flex:none;border:0;background:none;padding:2px 6px;margin:-1px -6px 0 0;border-radius:6px;font-size:calc(13px*var(--fs));font-weight:500;color:var(--muted);white-space:nowrap}
+.wg .card-h>.btn::after{content:" →"}
+.wg .card-h>.btn:hover{background:var(--hover);color:var(--fg)}
 .wg-h-sub{font-size:calc(12.5px*var(--fs));color:var(--muted);margin-top:2px}
 .wg.flash{animation:flash 1.6s ease-out}
 /* poloviční widget (výška půl řádku, dva pod sebou = jeden řádek): bez nadpisu, obsah svisle uprostřed */
@@ -28,6 +32,9 @@
 .wg:hover .wg-grip{opacity:.75}
 @media (hover:none){ .wg-grip{opacity:.4} }
 body:not(.locked) .wg .card-h{padding-right:40px}
+/* poloviční widget nemá nadpis: úchyt je svisle uprostřed u pravého okraje a obsah mu nechá místo (jinak překrýval sekundy hodin a počty) */
+.wg.half .wg-grip{top:50%;right:3px;width:18px;height:30px;margin-top:-15px}
+@media (hover:none){ body:not(.locked) .wg.half>.card-body{padding-right:16px} }
 body.locked .wg-grip,body.locked .wg-addbtn{display:none!important}
 /* tažení: kopie jede za kurzorem, obrys ukazuje, kam se widget vloží, ostatní mu uhnou */
 .wg.wg-drag{background:var(--accent-soft);border:2px dashed var(--accent);box-shadow:none}
@@ -47,12 +54,12 @@ body.dash-dragging,body.dash-dragging *{cursor:grabbing!important;user-select:no
 button.wg-more{color:var(--accent)}
 .wg .bar{display:block;height:5px;border-radius:3px;background:var(--hover);overflow:hidden}
 .wg .bar i{display:block;height:100%;background:var(--c-fg,var(--accent))}
-.wg-grp{display:flex;justify-content:space-between;padding:10px 16px 4px;font-size:calc(11.5px*var(--fs));font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
+.wg-grp{display:flex;justify-content:space-between;padding:10px 16px 4px;font-size:calc(12.5px*var(--fs));font-weight:600;color:var(--muted);border-bottom:1px solid var(--line)}
 
 /* hodiny */
 .clk{padding:14px 18px}
 .clk-t{font:700 clamp(1.6rem,20cqi,3rem)/1 var(--f-display);white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
-.clk-sec{font-size:.5em;color:var(--muted);font-weight:600;margin-left:2px}
+.clk-sec{display:inline-block;width:2.55ch;text-align:left;font-size:.5em;color:var(--muted);font-weight:600;margin-left:2px}
 .clk-d{margin-top:8px;font-weight:500}
 .clk-s{padding:0 10px;text-align:center}
 .clk-s .clk-d{margin-top:4px;color:var(--muted);font-size:calc(14px*var(--fs));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -76,14 +83,14 @@ button.wg-more{color:var(--accent)}
 .wg-big{display:grid;gap:3px;width:calc(100% - 24px);margin:0 12px 6px;padding:11px 12px;border-radius:10px;background:var(--c-bg);text-align:left}
 .wg-big b{font-weight:600;color:var(--fg)}
 .wg-big small{color:var(--fg2);font-size:calc(13px*var(--fs))}
-.wb-lbl{font-size:calc(11.5px*var(--fs));font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--c-fg)}
+.wb-lbl{font-size:calc(12.5px*var(--fs));font-weight:600;color:var(--c-fg)}
 .wg-big .bar{margin-top:6px;background:color-mix(in srgb,var(--c-fg) 18%,transparent)}
 .wg.sz-s .wg-big{gap:2px;width:calc(100% - 20px);margin:0 10px 4px;padding:8px 10px}
 .wg.sz-s .wg-big b,.wg.sz-s .wg-big small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wg.sz-s .wg-big .bar{margin-top:4px}
 .wg.sz-s .wg-more{padding:4px 14px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wg.half .wg-big{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;gap:1px;width:auto;min-height:0;margin:6px 8px;padding:7px 10px;overflow:hidden}
-.wg.half .wb-lbl{font-size:calc(10.5px*var(--fs));line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wg.half .wb-lbl{font-size:calc(11.5px*var(--fs));line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wg.half .wg-big b{font-size:calc(14px*var(--fs));line-height:1.25}
 .wg.half .wg-big small{font-size:calc(12px*var(--fs));line-height:1.25}
 .wg.half .wg-big .bar{flex:none;height:4px;margin-top:4px}
@@ -94,7 +101,7 @@ button.wg-more{color:var(--accent)}
 .ev-prog{grid-column:1/-1;display:block;height:4px;border-radius:2px;background:var(--hover);overflow:hidden}
 .ev-prog i{display:block;height:100%;background:var(--c-fg)}
 .now-line{position:relative;height:0;border-top:2px solid var(--accent);margin:0 12px}
-.now-line span{position:absolute;left:0;top:-10px;padding:1px 6px;border-radius:5px;background:var(--accent);color:var(--on-accent);font:600 calc(11px*var(--fs)) var(--f-mono)}
+.now-line span{position:absolute;left:0;top:-10px;padding:1px 6px;border-radius:5px;background:var(--accent);color:var(--on-accent);font:600 calc(11.5px*var(--fs)) var(--f-body);font-variant-numeric:tabular-nums}
 
 /* termíny (malý) */
 .dl-ns{display:grid;gap:2px;padding:0 8px 8px}
@@ -117,6 +124,8 @@ button.wg-more{color:var(--accent)}
 .st-half .wg-stat b{font-size:calc(24px*var(--fs));line-height:1}
 .st-half .st-n{flex:none;font-size:calc(12px*var(--fs));color:var(--muted)}
 .st-half .bar{margin:0}
+/* úzký widget (telefon): jen „23 % hotovo“, datum hodin bez roku */
+@container (max-width:215px){ .st-half .st-w,.st-half .st-n,.st-half .st-w2{display:none} .st-half{padding-inline:12px} .clk-s .clk-y{display:none} }
 .st-half .wg-sub{margin:0;font-size:calc(12px*var(--fs));line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ================= další widgety (js/views/dashWidgets.js) ================= */
@@ -129,7 +138,7 @@ button.wg-more{color:var(--accent)}
 /* krátký řádek hodiny */
 .dw-ev{display:grid;grid-template-columns:44px 4px minmax(0,1fr);column-gap:8px;align-items:baseline;width:100%;padding:5px 16px;text-align:left;font-size:calc(14px*var(--fs))}
 .dw-ev::before{content:"";grid-column:2;grid-row:1;width:4px;height:14px;border-radius:2px;background:var(--c-fg);align-self:center}
-.dw-ev .t{grid-column:1;grid-row:1;font:500 calc(12.5px*var(--fs)) var(--f-mono);color:var(--fg2)}
+.dw-ev .t{grid-column:1;grid-row:1;font-size:calc(13px*var(--fs));font-weight:500;font-variant-numeric:tabular-nums;color:var(--fg2)}
 .dw-ev .n{grid-column:3;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dw-ev small{grid-column:3;color:var(--muted);font-size:calc(12.5px*var(--fs))}
 .dw-ev:hover{background:var(--hover)}
@@ -231,7 +240,7 @@ button.wg-more{color:var(--accent)}
 .st-row small.late{color:var(--danger)}
 .st-tw{overflow-x:auto;padding:0 8px 8px}
 .st-tab{width:100%;border-collapse:collapse;font-size:calc(14px*var(--fs))}
-.st-tab th{text-align:left;font-size:calc(11.5px*var(--fs));font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);padding:8px 8px 6px;border-bottom:1px solid var(--line)}
+.st-tab th{text-align:left;font-size:calc(12.5px*var(--fs));font-weight:600;color:var(--muted);padding:8px 8px 6px;border-bottom:1px solid var(--line)}
 .st-tab td{padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
 .st-tab tr:last-child td{border-bottom:0}
 .st-tab tbody tr{cursor:pointer}
