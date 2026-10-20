@@ -16,7 +16,7 @@ import { handleImageFiles, pickImageBlock, rangeFromPoint } from './images.js';
 import { codeHtml, domText, insertCode } from './code.js';
 import { dollarInput, eqFromSelection } from './math.js';
 import { mentionInput, mentionKey } from './mention.js';
-import { blockEsc, initMultiSel } from './multisel.js';
+import { blockEsc, initMultiSel, UK_CLIP } from './multisel.js';
 
 /* ---- document events ---- */
 const viewEl=$('#view');
@@ -94,7 +94,8 @@ export function initEvents(){
     const imgs=[...(e.clipboardData.files||[])].filter(f=>f.type.startsWith('image/'));
     if(imgs.length&&t.classList.contains('txt')){ const s=getSelection(); handleImageFiles(imgs,t,s.rangeCount?s.getRangeAt(0).cloneRange():null); return; }
     const text=(e.clipboardData.getData('text/plain')||'').replace(/\r/g,'');
-    if(!t.classList.contains('txt')||!text.includes('\n')){ document.execCommand('insertText',false,text.replace(/\n+/g,' ')); return; }
+    const ukBlk=[...(e.clipboardData.types||[])].includes(UK_CLIP);   /* celý řádek zkopírovaný v Úkolníčku */
+    if(!t.classList.contains('txt')||(!text.includes('\n')&&!ukBlk)){ document.execCommand('insertText',false,text.replace(/\n+/g,' ')); return; }
     const x=ctxOf(t); if(!x) return;
     const lines=text.split('\n').filter(s=>s.trim().length);
     if(!lines.length) return;
@@ -105,8 +106,10 @@ export function initEvents(){
       else if((m=s.match(/^[-*•◦▪]\s+/))){ type='bullet'; s=s.slice(m[0].length); }
       else if((m=s.match(/^(#{1,3})\s+/))){ type='h'+m[1].length; s=s.slice(m[0].length); }
       else if((m=s.match(/^\d+[.)]\s+/))){ type='num'; s=s.slice(m[0].length); }
+      else if((m=s.match(/^>\s+/))){ type='quote'; s=s.slice(m[0].length); }
       return {type,done,html:esc(s),level:Math.min(4,Math.floor(ind/2))};
     };
+    const wasEmpty=!x.line&&!t.textContent.trim();
     const tail=splitAtCaret(t);
     const first=parse(lines[0]);
     document.execCommand('insertText',false,plain(first.html));
@@ -119,6 +122,7 @@ export function initEvents(){
       x.cell.lines.splice(x.l+1,0,...nl);
       savePage(pg); rerenderBlocks(); focusLine(x.b.id,x.r,x.c,x.l+nl.length,'end'); return;
     }
+    if(wasEmpty&&first.type!=='p'){ setType(pg,x.b,first.type); if(first.done) x.b.done=true; }   /* prázdný řádek převezme typ vloženého */
     x.b.html=sanitize(t.innerHTML);
     const nbs=rest.map(p=>{ const nb=newBlock('p',{html:p.html,level:p.level}); setType(pg,nb,p.type); if(p.type==='todo'&&p.done) nb.done=true; return nb; });
     if(nbs.length) nbs[nbs.length-1].html+=tail; else x.b.html+=tail;

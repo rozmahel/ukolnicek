@@ -28,14 +28,14 @@
 <main class="navod" id="navod">
 
 <section data-tab="navod" data-title="Návod">
-  <p class="g-lead">Úkolníček je školní sešit: stránky s poznámkami a úkoly, týdenní rozvrh a přehled termínů. Všechno se ukládá v zařízení. Na Google Disk se nahrává ručně a novější verze z Disku se po otevření aplikace stáhne sama.</p>
+  <p class="g-lead">Úkolníček je školní sešit: stránky s poznámkami a úkoly, týdenní rozvrh a přehled termínů. Všechno se ukládá v zařízení. Na Google Disk se nahrává ručně (zapomenuté změny se nahrají samy po 5 minutách nečinnosti) a novější verze z Disku se po otevření aplikace stáhne sama.</p>
   <div class="g-grid">
 
     <div class="g-card hl-purple">
       <h3><span class="g-ic">📄</span>Stránky a bloky</h3>
       <p>Projekty a jejich podstránky jsou v levém panelu. ＋ přidá nový, ⋯ u názvu otevře možnosti. Pořadí změníš tažením myší (na telefonu přes ⋯ → Posunout nahoru/dolů).</p>
       <p><b>Archiv:</b> ⋯ → Archivovat schová stránku i s podstránkami z projektů, Úkolů a Dnes. Tlačítko <b>Archiv</b> pod Hledat přepne levý panel na archivované stránky, <b>Zpět</b> ho vrátí. Obnovíš je přes ⋯ → Obnovit z archivu. Hledání najde i archiv.</p>
-      <p>Tažením myší přes víc bloků vybereš text z nich všech. <kbd>⌘C</kbd> ho zkopíruje i s odrážkami a zaškrtávátky, <kbd>⌘X</kbd> vyjme, <kbd>⌫</kbd> smaže, <kbd>Esc</kbd> výběr zruší.</p>
+      <p>Tažením myší přes víc bloků vybereš text z nich všech. <kbd>⌘C</kbd> ho zkopíruje i s odrážkami a zaškrtávátky. Označený celý řádek se zkopíruje i s formátem (nadpis, odrážka, úkol) a vložený do prázdného řádku ho převezme, <kbd>⌘X</kbd> vyjme, <kbd>⌫</kbd> smaže, <kbd>Esc</kbd> výběr zruší.</p>
       <p><b>Celé bloky</b> vybereš klávesou <kbd>Esc</kbd> při psaní, <kbd>Shift</kbd>+klikem na jiný blok nebo tažením myši z okraje stránky. <kbd>⇧↑</kbd> <kbd>⇧↓</kbd> výběr rozšíří. Pak: lišta nad výběrem (převést na jiný typ, duplikovat, smazat, kopírovat), <kbd>Tab</kbd> odsadí, <kbd>⌥⇧↑</kbd> <kbd>⌥⇧↓</kbd> posune (jde i při psaní v bloku), <kbd>⌘D</kbd> duplikuje, <kbd>⌫</kbd> smaže, <kbd>Enter</kbd> se vrátí k psaní. Druhé <kbd>⌘A</kbd> v bloku vybere všechny bloky.</p>
       <p><kbd>@</kbd> v textu nabídne termín (dnes, zítra, dny v týdnu, kalendář), odkaz na jinou stránku nebo předmět z Indexu. Termín se vloží jako „12. 10.“, takže úkol hned dostane datum. Odkaz se klikem otevře a jeho text se drží podle aktuálního názvu. Dole na stránce je <b>Odkazuje sem</b>: odkud na ni vedou odkazy. Na kartě předmětu v Indexu jsou to <b>Zmínky</b>.</p>
       <p>Na stránce piš jako v sešitu. <kbd>Enter</kbd> udělá nový řádek, <kbd>/</kbd> otevře nabídku bloků. Blok přesuneš chycením za tečky ⋮⋮, plusem vedle nich přidáš nový. Odsazení změníš <kbd>Tab</kbd> a <kbd>⇧Tab</kbd>, nebo přes ⋮⋮ → Posunout doleva/doprava. Šipka u nadpisu sbalí sekci. Obrázek přetažený za ⋮⋮ nad pravou část textu nabídne <b>Nechat vpravo</b>: zůstane vedle a text ho obteče. Obrázek stáhneš klikem na něj → <b>Stáhnout</b>. Přes ⋮⋮ u bloku nastavíš, kam až se má nadpis sbalit. U oddělovače si vybereš, jestli se schová taky, nebo zůstane vidět.</p>
@@ -73,7 +73,7 @@
 
     <div class="g-card hl-gray">
       <h3><span class="g-ic">&lt;/&gt;</span>Kód a číslování</h3>
-      <p><b>Blok s kódem:</b> <kbd>/kód</kbd> nebo <kbd>```</kbd> na začátku řádku. Je to mírně šedý blok s neformátovaným textem na víc řádků, mezery a zalomení zůstanou přesně tak, jak je napíšeš nebo vložíš (třeba struktura složek). Dlouhý řádek se nezalamuje, ale posouvá do strany. <kbd>Enter</kbd> udělá nový řádek v bloku, <kbd>Enter</kbd> na prázdném posledním řádku nebo <kbd>⌘Enter</kbd> blok opustí. <kbd>Tab</kbd> odsadí o dvě mezery, <kbd>⇧Tab</kbd> je odebere. V kódu se nic nezvýrazňuje a <kbd>/</kbd>, <kbd>@</kbd> a <kbd>$</kbd> jsou obyčejné znaky. Export do <code>.md</code> z něj udělá ohraničený blok a import ohraničený kód z <code>.md</code> pozná.</p>
+      <p><b>Blok s kódem:</b> <kbd>/kód</kbd> nebo <kbd>```</kbd> na začátku řádku. Je to mírně šedý blok s neformátovaným textem na víc řádků, mezery a zalomení zůstanou přesně tak, jak je napíšeš nebo vložíš (třeba struktura složek). Dlouhý řádek se zalomí podle šířky stránky. <kbd>Enter</kbd> udělá nový řádek v bloku, <kbd>Enter</kbd> na prázdném posledním řádku nebo <kbd>⌘Enter</kbd> blok opustí. <kbd>Tab</kbd> odsadí o dvě mezery, <kbd>⇧Tab</kbd> je odebere. V kódu se nic nezvýrazňuje a <kbd>/</kbd>, <kbd>@</kbd> a <kbd>$</kbd> jsou obyčejné znaky. Export do <code>.md</code> z něj udělá ohraničený blok a import ohraničený kód z <code>.md</code> pozná.</p>
       <p><b>Text začínající „1.“:</b> napsané <kbd>1.</kbd> + mezera udělá číslovaný seznam. Když ho hned vrátíš na text (<kbd>⌫</kbd> na začátku řádku, nebo ⋮⋮ → Převést na → Text), „1. “ zůstane v textu a v tomhle řádku se seznam znovu nevytvoří. Číslovaný seznam z nabídky <kbd>/</kbd> se při vrácení na text chová jako dřív.</p>
     </div>
 
@@ -133,7 +133,7 @@
     <div class="g-card hl-yellow">
       <h3><span class="g-ic">☁️</span>Záloha na Google Disk</h3>
       <p>↑ nahraje data, ↓ je stáhne (podle nastavení rovnou nejnovější verzi, nebo výběr z posledních 10). Po otevření aplikace se Úkolníček sám podívá na Disk: když je tam novější verze a ty tady nemáš neuložené změny, tiše ji stáhne (v oznámení je tlačítko <b>Vrátit</b>). Když se změnilo obojí, hned se zeptá: verze z Disku, tvoje, nebo obě. Před každým stažením se uloží místní záloha.</p>
-      <p>Oranžová tečka u mráčku znamená změny, které na Disku nejsou. Rozbalení nadpisu se nepočítá a když změnu vrátíš (třeba <kbd>⌘Z</kbd>), tečka zmizí. Žlutý mráček: přihlášení vypršelo (platí asi hodinu), první klepnutí kamkoli do aplikace ho obnoví a zkontroluje Disk. Žlutý vykřičník vedle mráčku: obrázky čekají na nahrání, v tomto zařízení chybí nebo čekají na smazání z Disku, klik ukáže podrobnosti.</p>
+      <p>Oranžová tečka u mráčku znamená změny, které na Disku nejsou. Rozbalení nadpisu se nepočítá a když změnu vrátíš (třeba <kbd>⌘Z</kbd>), tečka zmizí. Po 5 minutách bez psaní a klikání se neuložené změny nahrají samy, když je přihlášení platné a na Disku není novější verze (vypnout jde v Nastavení → Google Disk). Žlutý mráček: přihlášení vypršelo (platí asi hodinu), první klepnutí kamkoli do aplikace ho obnoví a zkontroluje Disk. Žlutý vykřičník vedle mráčku: obrázky čekají na nahrání, v tomto zařízení chybí nebo čekají na smazání z Disku, klik ukáže podrobnosti.</p>
       <p><b>Obrázky</b> jsou na Disku zvlášť, každý jako vlastní soubor. ↑ nahraje jen nové obrázky a pak text, ↓ (i automatické stažení) doplní obrázky, které tady chybí. Do té doby se ukáže rámeček s názvem. Přerušený přenos příště pokračuje. Na mobilních datech se před stažením víc než 5 MB zeptá. Samostatná tlačítka a vypnutí přenosu obrázků přes šipky najdeš v Nastavení → Google Disk.</p>
     </div>
 
@@ -148,6 +148,17 @@
 <section data-tab="novinky" data-title="Novinky">
 
   <article class="g-rel new">
+    <h3>Kopírování s formátem a automatické nahrání <span class="v">4.1.0</span> <time datetime="2026-10-20">20. 10. 2026</time></h3>
+    <ul>
+      <li><b>Kopírování celého řádku</b> přenese i formát: nadpis, odrážku, úkol nebo citaci. Do prázdného řádku se vloží jako stejný blok, doprostřed textu jen jako text.</li>
+      <li><b>Automatické nahrání:</b> po 5 minutách nečinnosti se neuložené změny nahrají na Disk. Jen s platným přihlášením, vypíná se v Nastavení → Google Disk.</li>
+      <li>Blok s kódem zalamuje dlouhé řádky podle šířky stránky.</li>
+      <li>Tečka odrážky je vystředěná na text.</li>
+      <li>Písma jsou přímo v aplikaci, takže fungují i offline a nic se nenačítá z Google Fonts.</li>
+    </ul>
+  </article>
+
+  <article class="g-rel">
     <h3>Klidnější vzhled a opravy <span class="v">4.0.0</span> <time datetime="2026-10-19">19. 10. 2026</time></h3>
     <ul>
       <li><b>Vzhled:</b> popisky malými písmeny místo štítků VELKÝMI, časy a čísla stejným písmem jako text, menší zaoblení, souhrn v Úkolech a Indexu jako jeden pruh, přepínače jako jeden ovládací prvek, v Nastavení čárové ikony místo emoji, návod v jednom sloupci.</li>

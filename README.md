@@ -127,6 +127,7 @@ Kód je rozdělený do malých souborů podle oblastí. Prohlížeč je načte s
 | `js/sync/` | synchronizace s Google Diskem (`sync.js`), obrázky na Disku (`images.js`) a spojení dvou verzí při kolizi (`merge.js`) |
 | `js/storage.js` | IndexedDB: data, obrázky, místní zálohy |
 | `js/driveSync.js` | přihlášení Google a práce se soubory na Disku |
+| `lib/fonts/` | písma aplikace (Bricolage Grotesque, Onest, JetBrains Mono, Literata, Newsreader; SIL OFL 1.1, z balíčků `@fontsource-variable`, jen latin a latin-ext), načítá je `lib/fonts/fonts.css`, offline je drží `sw.js` |
 | `lib/katex/` | KaTeX 0.16.22 (MIT) pro vykreslení rovnic: skript, styl a písma `.woff2`; načte se až když je na stránce rovnice, offline ho drží `sw.js` |
 | `navod.html` | návod a novinky (zobrazují se v Nastavení) |
 | `sw.js` | Service Worker: offline režim a nasazení nové verze |

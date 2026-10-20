@@ -1,7 +1,6 @@
 /* Úkolníček – Service Worker (offline režim)
    Při každé nové verzi aplikace zvyš VERSION, jinak si telefony nechají starou verzi. */
-const VERSION = 'ukolnicek-v4.0.0';
-const RUNTIME = 'ukolnicek-runtime';
+const VERSION = 'ukolnicek-v4.1.0';
 const ASSETS = [
   './',
   './index.html',
@@ -58,6 +57,21 @@ const ASSETS = [
   './js/views/tasks.js',
   './js/views/today.js',
   './js/views/dashWidgets.js',
+  './lib/fonts/fonts.css',
+  './lib/fonts/bricolage-grotesque-latin-ext-opsz-normal.woff2',
+  './lib/fonts/bricolage-grotesque-latin-opsz-normal.woff2',
+  './lib/fonts/onest-latin-ext-wght-normal.woff2',
+  './lib/fonts/onest-latin-wght-normal.woff2',
+  './lib/fonts/jetbrains-mono-latin-ext-wght-normal.woff2',
+  './lib/fonts/jetbrains-mono-latin-wght-normal.woff2',
+  './lib/fonts/literata-latin-ext-opsz-normal.woff2',
+  './lib/fonts/literata-latin-opsz-normal.woff2',
+  './lib/fonts/literata-latin-ext-opsz-italic.woff2',
+  './lib/fonts/literata-latin-opsz-italic.woff2',
+  './lib/fonts/newsreader-latin-ext-opsz-normal.woff2',
+  './lib/fonts/newsreader-latin-opsz-normal.woff2',
+  './lib/fonts/newsreader-latin-ext-opsz-italic.woff2',
+  './lib/fonts/newsreader-latin-opsz-italic.woff2',
   './lib/katex/katex.min.js',
   './lib/katex/katex.min.css',
   './lib/katex/fonts/KaTeX_AMS-Regular.woff2',
@@ -99,7 +113,7 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION && k !== RUNTIME).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -114,18 +128,8 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
 
   // Google přihlášení a Drive API nikdy necachovat
-  if (/(^|\.)googleapis\.com$/.test(url.hostname) && url.hostname !== 'fonts.googleapis.com') return;
+  if (/(^|\.)googleapis\.com$/.test(url.hostname)) return;
   if (url.hostname === 'accounts.google.com') return;
-
-  // písma: z mezipaměti, na pozadí aktualizovat
-  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
-    e.respondWith(caches.open(RUNTIME).then(async (c) => {
-      const hit = await c.match(req);
-      const net = fetch(req).then((res) => { if (res.ok || res.type === 'opaque') c.put(req, res.clone()); return res; }).catch(() => hit);
-      return hit || net;
-    }));
-    return;
-  }
 
   if (url.origin !== self.location.origin) return;
 

@@ -6,7 +6,7 @@
    - každý blok níže obsahuje KOMPLETNÍ sadu proměnných (i barvy značek --hl-*), aby se nic ze světlého bloku nepřeneslo do tmavého;
    - selektory s .skin-sw jsou pro malé ukázky v Nastavení, takže ukázka má stejné barvy jako skutečný motiv;
    - Papír a Les mají jen systémová písma; Mlha, Šípek a Levandule patková webová písma Newsreader a Literata
-     (odkaz na Google Fonts je v index.html, soubor písma se stáhne až při použití a pak je v mezipaměti sw.js);
+     (soubory písem jsou v lib/fonts, načítá je lib/fonts/fonts.css z index.html, sw.js je má v mezipaměti);
      --f-mono všude bez JetBrains Mono;
    - světlé odstíny značek (--hl-*-fg) jsou o něco tmavší než ve Výchozím motivu, aby text dosáhl kontrastu aspoň 4,5:1
      na všech površích (hlídá tests/motivy.test.js). */

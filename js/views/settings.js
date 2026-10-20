@@ -11,12 +11,12 @@ import { renderSidebar } from '../sidebar.js';
 import { renderMain } from '../router.js';
 import { closeModal, openModal, toast } from '../ui.js';
 import { HOUR_SCALES } from './schedule.js';
-import { autoPull, cloudSvg, Sync, updateSyncUI } from '../sync/sync.js';
+import { autoPull, autoPush, cloudSvg, Sync, updateSyncUI } from '../sync/sync.js';
 import { ImgSync, withImgs } from '../sync/images.js';
 import { placeFrame } from '../editor/images.js';
 
 /* ================= settings ================= */
-const APP_VERSION='4.0.0';
+const APP_VERSION='4.1.0';
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
 const FS_STEPS=[1,1.15,1.3,1.45,1.6];
 function applyTheme(){
@@ -103,6 +103,9 @@ async function openSettings(focus){
         ${ds==='ok'?`<div class="m-actions"><button type="button" class="btn" id="st-img-up">↑ Nahrát obrázky</button><button type="button" class="btn" id="st-img-down">↓ Stáhnout obrázky</button></div>`:''}
         <label class="chk"><input type="checkbox" id="st-imgs" ${withImgs()?'checked':''}> Šipky ↑ a ↓ přenášejí i obrázky</label>
         <p class="note" style="margin-top:-8px;padding-left:26px">Nahrávají se jen nové, přerušený přenos příště pokračuje. Na mobilních datech se před stažením víc než 5 MB zeptá. Žlutý vykřičník u mráčku = obrázky čekají na přenos. Jen pro toto zařízení.</p>
+        <h3 class="set-h">Nahrávání na Disk</h3>
+        <label class="chk"><input type="checkbox" id="st-autoup" ${autoPush()?'checked':''}> Po 5 minutách nečinnosti nahrát neuložené změny</label>
+        <p class="note" style="margin-top:-8px;padding-left:26px">Jen s platným přihlášením a když na Disku není novější verze. Jen pro toto zařízení.</p>
         <h3 class="set-h">Stahování z Disku</h3>
         <label class="chk"><input type="checkbox" id="st-auto" ${autoPull()?'checked':''}> Po otevření aplikace stáhnout novější verzi z Disku</label>
         <p class="note" style="margin-top:-8px;padding-left:26px">Jen když tu nemáš změny, které na Disku nejsou; když se změnilo obojí, zeptá se. Před stažením se uloží místní záloha. Jen pro toto zařízení.</p>
@@ -172,6 +175,7 @@ async function openSettings(focus){
   $('#st-imgs',m).addEventListener('change',e=>{ lsSet('uk-img-sync',e.target.checked); });
   const iu=$('#st-img-up',m); if(iu) iu.addEventListener('click',()=>{ closeModal(); Sync.uploadImgs(); });
   const idn=$('#st-img-down',m); if(idn) idn.addEventListener('click',()=>{ closeModal(); Sync.downloadImgs(); });
+  $('#st-autoup',m).addEventListener('change',e=>lsSet('uk-auto-push',e.target.checked));
   $('#st-auto',m).addEventListener('change',e=>{ lsSet('uk-auto-pull',e.target.checked); if(e.target.checked){ Sync.lastCheck=0; Sync.check('setting'); } else Sync.disarm(); });
   $('#st-news',m).addEventListener('click',e=>{ e.preventDefault(); openGuide('novinky'); });
   const conn=$('#st-conn',m); if(conn) conn.addEventListener('click',async()=>{

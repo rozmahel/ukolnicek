@@ -78,6 +78,7 @@ function toClipboard(items){
       txt.push(ind+mk+s); html.push(`<li>${h}</li>`); return;
     }
     close();
+    if(b.type==='quote'){ txt.push(ind+'> '+s); html.push(`<blockquote>${h}</blockquote>`); return; }
     if(b.type==='todo'){ txt.push(ind+(b.done?'[x] ':'[ ] ')+s); html.push(`<p>${b.done?'☑':'☐'} ${h}</p>`); return; }
     const hm=/^h([1-3])$/.exec(b.type); if(hm){ txt.push('#'.repeat(+hm[1])+' '+s); html.push(`<h${hm[1]}>${h}</h${hm[1]}>`); return; }
     txt.push(ind+s); html.push(`<p>${h}</p>`);
@@ -85,6 +86,19 @@ function toClipboard(items){
   close();
   return {text:txt.join('\n'),html:html.join('')};
 }
+/* výběr celého textu jednoho bloku (nadpis, odrážka, úkol…): kopíruje se i typ bloku */
+function wholeBlock(r){
+  const n=r.commonAncestorContainer, t=(n.nodeType===1?n:n.parentElement)?.closest('.txt'); if(!t) return null;
+  const el=topBlk(t); if(!el||mainTxt(el)!==t) return null;
+  const pg=curPage(), b=pg&&pg.blocks.find(x=>x.id===el.dataset.id);
+  if(!b||!TEXT_TYPES.includes(b.type)||['p','code','callout'].includes(b.type)||!t.textContent.trim()) return null;
+  const pre=document.createRange(); pre.selectNodeContents(t); pre.setEnd(r.startContainer,r.startOffset);
+  const post=document.createRange(); post.selectNodeContents(t); post.setStart(r.endContainer,r.endOffset);
+  return pre.toString().trim()||post.toString().trim()?null:{el,b,t,part:null};
+}
+/* příznak pro vložení zpět do Úkolníčku: i jeden řádek se vloží jako blok svého typu */
+export const UK_CLIP='application/x-ukolnicek-blocks';
+const setClip=(e,c)=>{ e.clipboardData.setData('text/plain',c.text); e.clipboardData.setData('text/html',c.html); try{ e.clipboardData.setData(UK_CLIP,'1'); }catch(_){} };
 /* smazání výběru: první blok si nechá text před výběrem, k němu se připojí zbytek posledního bloku */
 function deleteSel(items){
   const pg=curPage(); if(!pg||!items.length) return;
@@ -250,10 +264,10 @@ export function initMultiSel(){
   });
   document.addEventListener('mouseup',()=>{ xs=null; });
   document.addEventListener('copy',e=>{
-    if(bs&&!e.target.closest?.('input,textarea')){ const br=bRange(); if(!br) return; const c=toClipboard(blockItems(br)); e.preventDefault(); e.clipboardData.setData('text/plain',c.text); e.clipboardData.setData('text/html',c.html); return; }
-    const r=active&&curRange(); if(!r) return;
-    const c=toClipboard(picked(r)); e.preventDefault();
-    e.clipboardData.setData('text/plain',c.text); e.clipboardData.setData('text/html',c.html);
+    if(bs&&!e.target.closest?.('input,textarea')){ const br=bRange(); if(!br) return; const c=toClipboard(blockItems(br)); e.preventDefault(); setClip(e,c); return; }
+    const r=curRange(); if(!r) return;
+    if(!active){ const one=wholeBlock(r); if(!one) return; e.preventDefault(); setClip(e,toClipboard([one])); return; }
+    const c=toClipboard(picked(r)); e.preventDefault(); setClip(e,c);
   });
   document.addEventListener('cut',e=>{
     if(bs){ const br=bRange(); if(!br) return; e.preventDefault(); if(guard()) return; const c=toClipboard(blockItems(br)); e.clipboardData.setData('text/plain',c.text); e.clipboardData.setData('text/html',c.html); delBlocks(); return; }

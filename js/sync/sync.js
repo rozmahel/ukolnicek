@@ -12,6 +12,8 @@ import { imgNote, ImgSync, withImgs } from './images.js';
 function cloudSvg(off){ return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18.5h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.6 4.5 4.5 0 0 0 7 18.5Z"/>${off?'<path d="M4 4l16 16"/>':''}</svg>`; }
 function deviceName(){ const u=navigator.userAgent; return /iPhone/.test(u)?'iPhone':/iPad/.test(u)?'iPad':/Android/.test(u)?'Android':/Mac/.test(u)?'Mac':/Windows/.test(u)?'Windows':'Prohlížeč'; }
 const autoPull=()=>lsGet('uk-auto-pull',true)!==false;
+const autoPush=()=>lsGet('uk-auto-push',true)!==false;
+const IDLE_MS=5*60000;
 /* je nejnovější soubor na Disku jiný a novější než ten, se kterým bylo toto zařízení naposledy synchronizované?
    (porovnává se čas vytvoření na serveru Googlu, ne hodiny zařízení) */
 function newerOnDrive(top){ return !!(top&&top.name!==META.remoteName&&(!META.remoteAt||top.createdTime>META.remoteAt)); }
@@ -23,8 +25,12 @@ const Sync={
   pending:null,      /* stažená novější verze, čeká na zavření dialogu */
   armed:false,       /* token vypršel: kontrola proběhne po prvním klepnutí do aplikace */
   connecting:null,checking:false,lastCheck:0,hiddenAt:0,snoozed:'',
+  lastAct:Date.now(),lastAuto:0,
   init(){
     DriveSync.preload(); updateSyncUI();
+    /* zapomenuté změny: po 5 minutách bez psaní a klikání se tiše nahrají (jen s platným přihlášením) */
+    ['keydown','pointerdown','input'].forEach(t=>document.addEventListener(t,()=>{ this.lastAct=Date.now(); },true));
+    setInterval(()=>this.idlePush(),30000);
     this.check('start');
     document.addEventListener('visibilitychange',()=>{
       if(document.visibilityState==='hidden'){ this.hiddenAt=Date.now(); return; }
@@ -245,13 +251,13 @@ const Sync={
     }catch(e){ toast('Nepodařilo se uložit místní zálohu, nic se nezměnilo.'); }
     finally{ this.setBusy(false); }
   },
-  async upload(force){
+  async upload(force,auto){
     if(this.busy) return;
-    if(!await this.ensure()) return;
+    if(!auto&&!await this.ensure()) return;
     this.setBusy(true);
     try{
       const files=await DriveSync.list(); const top=files[0];
-      if(!force&&newerOnDrive(top)){ this.setBusy(false); return confirmNewerRemote(top); }
+      if(!force&&newerOnDrive(top)){ this.setBusy(false); if(auto){ this.remoteNewer=true; updateSyncUI(); return; } return confirmNewerRemote(top); }
       await Store.flush();
       const seenAt=META.remoteAt;
       /* obrázky napřed: text pak neodkazuje na obrázek, který na Disku ještě není; chyba u obrázků text nezastaví */
@@ -264,9 +270,16 @@ const Sync={
       Local.saveBase(sent).catch(()=>{});
       await DriveSync.rotate(10).catch(()=>0);
       if(ir&&!ir.err) await ImgSync.prune(sent,seenAt).catch(()=>0);
-      toast('Nahráno na Disk'+imgNote(ir,'up'));
-    }catch(e){ toast(DriveSync.errText(e)); }
+      toast((auto?'Automaticky nahráno na Disk':'Nahráno na Disk')+imgNote(ir,'up'));
+    }catch(e){ if(!auto||!(e&&e.code==='expired')) toast(DriveSync.errText(e)); }
     finally{ this.progress(''); this.setBusy(false); }
+  },
+  idlePush(){
+    const now=Date.now();
+    if(!autoPush()||this.busy||this.connecting||this.checking||this.pending||S.modal||Store.broken||!navigator.onLine) return;
+    if(now-this.lastAct<IDLE_MS||now-this.lastAuto<IDLE_MS) return;
+    if(!DriveSync.clientId()||DriveSync.state()!=='ok'||!isDirty()) return;
+    this.lastAuto=now; this.upload(false,true);
   },
   /* ↓ v levém panelu: podle volby v nastavení rovnou nejnovější verze, jinak výběr z posledních 10 */
   download(){ return lsGet('uk-dl-latest',false)?this.downloadLatest():this.openDownload(); },
@@ -365,4 +378,4 @@ function openSyncMenu(anchor){
   openPop(anchor,h,v=>{ if(v==='up') Sync.upload(); else if(v==='down') Sync.download(); else if(v==='pick') Sync.openDownload(); else if(v==='merge'){ Sync.snoozed=''; Sync.check('menu',true); } else openSettings('drive'); });
 }
 
-export { autoPull, cloudSvg, deviceName, openSyncMenu, Sync, updateSyncUI };
+export { autoPull, autoPush, cloudSvg, deviceName, openSyncMenu, Sync, updateSyncUI };
