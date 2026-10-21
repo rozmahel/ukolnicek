@@ -309,3 +309,18 @@ button.wg-more{color:var(--accent)}
 .dz-v:hover{background:var(--hover)}
 .dz-v small{color:var(--muted)}
 @container (max-width:470px){ .dz-cols{grid-template-columns:minmax(0,1fr)} .dz-list{border-left:0;border-top:1px solid var(--line)} .dz-list .wg-grp{padding-top:10px} }
+.dz-v small{font-variant-numeric:tabular-nums}
+.dz-dv{margin-right:10px}
+/* Nahrávání na Disk (4.3.0): dva sloupcové grafy pod sebou, jeden sloupec = jeden den */
+.wg-uploads>.card-body{display:flex;flex-direction:column}
+.up{flex:1 1 auto;display:grid;grid-template-rows:1fr 1fr auto;gap:12px;padding:2px 16px 10px}
+.up-ch{display:grid;grid-template-rows:auto 1fr;gap:5px;min-height:0}
+.up-h{display:flex;justify-content:space-between;gap:8px;font-size:calc(12.5px*var(--fs));color:var(--muted);font-variant-numeric:tabular-nums}
+.up-h b{color:var(--fg);font-weight:600}
+.up-bars{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));align-items:end;gap:2px;min-height:calc(54px*var(--fs));border-bottom:1px solid var(--line)}
+.up-bars i{display:block;height:100%;position:relative;cursor:default}
+.up-bars i::after{content:"";position:absolute;left:0;right:0;bottom:0;height:var(--h,0);background:var(--accent);border-radius:3px 3px 0 0;opacity:.85}
+.up-bars i:hover::after{opacity:1}
+.up-bars i:hover{background:var(--hover);border-radius:3px 3px 0 0}
+.up-bars i.no::after{display:none}
+.up-x{display:flex;justify-content:space-between;font-size:calc(12px*var(--fs));color:var(--muted);margin-top:-6px}

@@ -100,3 +100,5 @@
 .bm-ic.danger{color:var(--danger)}
 .bm-ic:disabled{opacity:.35;cursor:default;background:var(--bg)}
 .bm-ic svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.src-btn.on{color:var(--accent);background:var(--accent-soft)}
+.src-btn.on:hover{background:var(--accent-soft);color:var(--accent)}

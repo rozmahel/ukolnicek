@@ -1,6 +1,6 @@
 /* Úkolníček – Service Worker (offline režim)
    Při každé nové verzi aplikace zvyš VERSION, jinak si telefony nechají starou verzi. */
-const VERSION = 'ukolnicek-v4.2.0';
+const VERSION = 'ukolnicek-v4.3.2';
 const ASSETS = [
   './',
   './index.html',
@@ -30,6 +30,7 @@ const ASSETS = [
   './js/editor/keys.js',
   './js/editor/links.js',
   './js/editor/markdown.js',
+  './js/editor/source.js',
   './js/editor/math.js',
   './js/editor/menus.js',
   './js/editor/render.js',
@@ -37,6 +38,7 @@ const ASSETS = [
   './js/editor/toolbar.js',
   './js/lock.js',
   './js/main.js',
+  './js/update.js',
   './js/pages.js',
   './js/router.js',
   './js/sanitize.js',
@@ -47,6 +49,7 @@ const ASSETS = [
   './js/store.js',
   './js/theme.js',
   './js/sync/merge.js',
+  './js/sync/uplog.js',
   './js/sync/sync.js',
   './js/sync/images.js',
   './js/ui.js',
@@ -103,10 +106,21 @@ const ASSETS = [
   './icons/icon-180.png'
 ];
 
+/* číslo verze z názvu mezipaměti 'ukolnicek-v4.3.0' → [4,3,0] */
+const vnum = (k) => (/v(\d+)\.(\d+)(?:\.(\d+))?/.exec(k) || []).slice(1, 4).map((x) => +x || 0);
+const isNewer = (a, b) => { const x = vnum(a), y = vnum(b); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i]; return false; };
+/* ?v=verze: server (CDN GitHub Pages) nevrátí starou kopii souboru uloženou pod stejnou adresou */
+const bust = (u) => u + (u.includes('?') ? '&' : '?') + 'v=' + VERSION.replace('ukolnicek-v', '');
+
 self.addEventListener('install', (e) => {
-  // cache:'reload' = stáhnout ze serveru, ne z mezipaměti prohlížeče
-  // (GitHub Pages posílá soubory s 10min platností, jinak by se sem mohl uložit starý app.js)
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(ASSETS.map((u) => new Request(u, { cache: 'reload' })))));
+  e.waitUntil(caches.keys().then((keys) => {
+    /* Ochrana proti návratu na starší verzi: GitHub Pages chvíli po vydání může z některého serveru poslat ještě starý sw.js.
+       Když už je v zařízení novější verze, starší se nenainstaluje (instalace selže, zůstane novější). */
+    if (keys.some((k) => k.startsWith('ukolnicek-v') && isNewer(k, VERSION))) throw new Error('Starší verze ' + VERSION + ' se neinstaluje');
+    // cache:'reload' = stáhnout ze serveru, ne z mezipaměti prohlížeče; uloží se pod adresou bez ?v=
+    return caches.open(VERSION).then((c) => Promise.all(ASSETS.map((u) =>
+      fetch(new Request(bust(u), { cache: 'reload' })).then((r) => { if (!r.ok) throw new Error(u + ' ' + r.status); return c.put(u, r); }))));
+  }));
   // nečekáme automaticky: aplikace nabídne „Obnovit“, pak pošle skipWaiting
 });
 
@@ -120,6 +134,8 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('message', (e) => {
   if (e.data === 'skipWaiting') self.skipWaiting();
+  /* aplikace se ptá na verzi čekajícího Service Workeru (starší nenasadí) */
+  if (e.data === 'version' && e.ports && e.ports[0]) e.ports[0].postMessage(VERSION.replace('ukolnicek-v', ''));
 });
 
 self.addEventListener('fetch', (e) => {

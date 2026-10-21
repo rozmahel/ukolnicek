@@ -1,5 +1,5 @@
 /* Úkolníček – Události editoru: psaní, vkládání, přetahování bloků a obrázků */
-import { $, $$, clamp, esc, plain, TEXT_TYPES } from '../core.js';
+import { $, $$, clamp, clone, esc, plain, rid, TEXT_TYPES } from '../core.js';
 import { LOCK } from '../lock.js';
 import { savePage } from '../store.js';
 import { setTypingNow } from './history.js';
@@ -7,7 +7,7 @@ import { curPage, newBlock, pTitle } from '../pages.js';
 import { sanitize } from '../sanitize.js';
 import { caretOffset, focusBlock, focusEl, focusLine, onLastLine, splitAtCaret } from './caret.js';
 import { ctxOf, rerenderBlocks } from './render.js';
-import { setType } from './blocks.js';
+import { clearShortcut, setType } from './blocks.js';
 import { mdBlock, mdLine, openSlash, slash, slashKey, updateSlash } from './slash.js';
 import { blockKeys, lineKeys } from './keys.js';
 import { applyMark, hideCellbar, showCellbar } from './toolbar.js';
@@ -62,8 +62,10 @@ export function initEvents(){
     else if(typed&&e.data==='/'){ const off=caretOffset(t); const before=t.textContent.slice(0,off-1); if(!before||/\s$/.test(before)) openSlash(t,x.b.id,off-1,'slash'); }
     savePage(pg);
   });
+  viewEl.addEventListener('mousedown',()=>clearShortcut(),true);
   viewEl.addEventListener('keydown',e=>{
     const t=e.target;
+    if(e.key!=='Backspace'&&!['Shift','Meta','Control','Alt','CapsLock'].includes(e.key)) clearShortcut();
     if(slashKey(e)||mentionKey(e)) return;
     if(t.id==='page-title'){
       if(e.key==='Enter'||(e.key==='ArrowDown'&&onLastLine(t))){ e.preventDefault(); const pg=curPage(); if(!pg.blocks.length){ pg.blocks.push(newBlock('p')); rerenderBlocks(); } const first=$('#blocks .txt'); if(first) focusEl(first,'start'); else { pg.blocks.unshift(newBlock('p')); rerenderBlocks(); focusEl($('#blocks .txt'),0);} }
@@ -84,6 +86,14 @@ export function initEvents(){
       if(t.closest('.b-code')&&(k==='b'||k==='i'||k==='u'||k==='e')){ e.preventDefault(); return; }   /* v kódu se nic nezvýrazňuje */
       if(k==='b'||k==='i'||k==='u'){ e.preventDefault(); document.execCommand({b:'bold',i:'italic',u:'underline'}[k]); return; }
       if(k==='e'&&e.shiftKey){ e.preventDefault(); eqFromSelection(); return; }
+      /* ⌘D: zduplikuje blok s kurzorem, kurzor přejde do kopie na stejné místo */
+      if(k==='d'&&!e.shiftKey){
+        e.preventDefault(); const x=ctxOf(t); if(!x||LOCK) return;
+        const off=x.line?null:caretOffset(t), c=clone(x.b); c.id=rid(); x.pg.blocks.splice(x.bi+1,0,c);
+        savePage(x.pg); rerenderBlocks();
+        if(x.line) focusLine(c.id,x.r,x.c,x.l,'end'); else focusBlock(c.id,off);
+        return;
+      }
       if(k==='e'){ e.preventDefault(); applyMark('hl-purple'); return; }
     }
     const x=ctxOf(t); if(!x) return;

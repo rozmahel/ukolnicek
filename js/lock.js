@@ -12,6 +12,7 @@ function lockSvg(on){ return `<svg viewBox="0 0 24 24"><rect x="5" y="11" width=
 function applyLock(){
   document.body.classList.toggle('locked',LOCK);
   const t=(LOCK?'Odemknout':'Zamknout')+` (${LOCK_KEY})`;
+  const ta=document.getElementById('src-ed'); if(ta) ta.readOnly=LOCK;   /* zdroj stránky: zamčeno = jen čtení */
   $$('.lock-btn').forEach(b=>{ b.classList.toggle('on',LOCK); b.innerHTML=lockSvg(LOCK); b.setAttribute('aria-pressed',String(LOCK)); b.title=t; b.setAttribute('aria-label',t); });
 }
 function toggleLock(){

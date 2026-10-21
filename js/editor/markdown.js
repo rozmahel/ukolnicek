@@ -189,6 +189,35 @@ function htmlToMd(html,br){
   }).join('');
   return walk(t.content).replace(/[ \t]+$/,'');
 }
+/* jeden blok → markdown (null = vynechat); stránka i zobrazení zdroje */
+function blockMd(b){
+  const lv=b.level||0, ind='  '.repeat(lv);
+  let s=null;
+  switch(b.type){
+    case 'p': s=htmlToMd(b.html,'  \n'); if(!s.trim()) return null; break;
+    case 'h1': case 'h2': case 'h3': s='#'.repeat(+b.type[1])+' '+htmlToMd(b.html,' '); break;
+    case 'subj': s='# '+escMd(subjBlockText(b)); break;
+    case 'bullet': s=ind+'- '+htmlToMd(b.html,'  \n'+ind+'  '); break;
+    case 'num': s=ind+'1. '+htmlToMd(b.html,'  \n'+ind+'   '); break;
+    case 'todo': s=ind+(b.done?'- [x] ':'- [ ] ')+htmlToMd(b.html,'  \n'+ind+'  '); break;
+    case 'quote': s='> '+htmlToMd(b.html,'  \n> '); break;
+    case 'callout': s=`> [!${CALLOUT_BACK[b.icon]||'NOTE'}]\n> `+(b.icon&&!CALLOUT_BACK[b.icon]?b.icon+' ':'')+htmlToMd(b.html,'  \n> '); break;
+    case 'divider': s='---'; break;
+    case 'eq': s='$$\n'+plain(b.html)+'\n$$'; break;
+    case 'code': { const c=htmlToCode(b.html); const f=c.includes('```')?'~~~~':'```'; s=f+'\n'+c+'\n'+f; break; }
+    case 'page': s=`↗ ${escMd(pTitle(S.pages[b.pageId]||null))}`; break;
+    case 'image': s=`*[obrázek${b.name?': '+escMd(b.name):''}]*`+(b.caption?`  \n${htmlToMd(b.caption,' ')}`:''); break;
+    case 'table': {
+      const rows=(b.rows||[]).map(r=>r.cells.map(c=>c.lines.map(l=>(l.t==='bullet'?'- ':l.t==='todo'?(l.done?'- [x] ':'- [ ] '):'')+htmlToMd(l.html,'<br>')).filter((x,k,a)=>x||a.length===1).join('<br>').replace(/\n/g,' ')));
+      if(!rows.length) return null;
+      const nc=Math.max(...rows.map(r=>r.length)), line=r=>'| '+Array.from({length:nc},(_,c)=>r[c]||'').join(' | ')+' |';
+      s=[line(rows[0]),'|'+Array.from({length:nc},()=>' --- ').join('|')+'|',...rows.slice(1).map(line)].join('\n');
+      break;
+    }
+    default: s=htmlToMd(b.html||'','  \n');
+  }
+  return s;
+}
 function pageToMd(pg){
   const out=[], bl=pg.blocks||[];
   const push=(s,tight)=>{ if(out.length&&!tight) out.push(''); out.push(s); };
@@ -197,31 +226,8 @@ function pageToMd(pg){
   const isList=t=>t==='bullet'||t==='num'||t==='todo';
   let prev=null;
   for(const b of bl){
-    const lv=b.level||0, ind='  '.repeat(lv), tight=prev&&isList(prev.type)&&isList(b.type);
-    let s=null;
-    switch(b.type){
-      case 'p': s=htmlToMd(b.html,'  \n'); if(!s.trim()){ prev=b; continue; } break;
-      case 'h1': case 'h2': case 'h3': s='#'.repeat(+b.type[1])+' '+htmlToMd(b.html,' '); break;
-      case 'subj': s='# '+escMd(subjBlockText(b)); break;
-      case 'bullet': s=ind+'- '+htmlToMd(b.html,'  \n'+ind+'  '); break;
-      case 'num': s=ind+'1. '+htmlToMd(b.html,'  \n'+ind+'   '); break;
-      case 'todo': s=ind+(b.done?'- [x] ':'- [ ] ')+htmlToMd(b.html,'  \n'+ind+'  '); break;
-      case 'quote': s='> '+htmlToMd(b.html,'  \n> '); break;
-      case 'callout': s=`> [!${CALLOUT_BACK[b.icon]||'NOTE'}]\n> `+(b.icon&&!CALLOUT_BACK[b.icon]?b.icon+' ':'')+htmlToMd(b.html,'  \n> '); break;
-      case 'divider': s='---'; break;
-      case 'eq': s='$$\n'+plain(b.html)+'\n$$'; break;
-      case 'code': { const c=htmlToCode(b.html); const f=c.includes('```')?'~~~~':'```'; s=f+'\n'+c+'\n'+f; break; }
-      case 'page': s=`↗ ${escMd(pTitle(S.pages[b.pageId]||null))}`; break;
-      case 'image': s=`*[obrázek${b.name?': '+escMd(b.name):''}]*`+(b.caption?`  \n${htmlToMd(b.caption,' ')}`:''); break;
-      case 'table': {
-        const rows=(b.rows||[]).map(r=>r.cells.map(c=>c.lines.map(l=>(l.t==='bullet'?'- ':l.t==='todo'?(l.done?'- [x] ':'- [ ] '):'')+htmlToMd(l.html,'<br>')).filter((x,k,a)=>x||a.length===1).join('<br>').replace(/\n/g,' ')));
-        if(!rows.length) { prev=b; continue; }
-        const nc=Math.max(...rows.map(r=>r.length)), line=r=>'| '+Array.from({length:nc},(_,c)=>r[c]||'').join(' | ')+' |';
-        s=[line(rows[0]),'|'+Array.from({length:nc},()=>' --- ').join('|')+'|',...rows.slice(1).map(line)].join('\n');
-        break;
-      }
-      default: s=htmlToMd(b.html||'','  \n');
-    }
+    const tight=prev&&isList(prev.type)&&isList(b.type);
+    const s=blockMd(b); if(s==null){ prev=b; continue; }
     push(s,tight); prev=b;
   }
   return out.join('\n').replace(/\n{3,}/g,'\n\n')+'\n';
@@ -235,4 +241,4 @@ function exportMd(pg){
   toast(`Stránka uložena jako „${name}“`);
 }
 
-export { exportMd, importMd };
+export { blockMd, cleanBlock, exportMd, importMd, mdToBlocks };

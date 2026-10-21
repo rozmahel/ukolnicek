@@ -7,6 +7,7 @@ import { closeModal, openModal, openPop, toast } from '../ui.js';
 import { openSettings } from '../views/settings.js';
 import { keepFocus, mergeData, restoreFocus, syncDiff } from './merge.js';
 import { imgNote, ImgSync, withImgs } from './images.js';
+import { fmtSec, UpLog } from './uplog.js';
 
 /* ================= Google Drive sync (UI; transport in driveSync.js) ================= */
 function cloudSvg(off){ return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18.5h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.6 4.5 4.5 0 0 0 7 18.5Z"/>${off?'<path d="M4 4l16 16"/>':''}</svg>`; }
@@ -267,6 +268,9 @@ const Sync={
       const sent=dataForSave(), sentHash=hashData(clone(sent));
       const f=await DriveSync.upload(Object.assign({app:'ukolnicek',version:2,savedAt:new Date().toISOString(),device:deviceName()},sent));
       META.remoteAt=f.createdTime||new Date().toISOString(); META.remoteName=f.name; META.syncedAt=META.changedAt; META.syncedHash=sentHash; META.lastUpload=Date.now(); META.lastUpDur=Math.round(performance.now()-t0); this.remoteNewer=false;
+      /* statistika: délka k souboru na Disk (vidí ji i jiná zařízení) a do místního záznamu */
+      UpLog.add([{id:f.id,t:Date.parse(f.createdTime)||Date.now(),b:+f.size||0,ms:META.lastUpDur,dev:deviceName()}]).catch(()=>0);
+      DriveSync.setProps(f.id,{dur:String(META.lastUpDur),dev:deviceName().slice(0,60)}).catch(()=>0);
       await Store.flush();
       Local.saveBase(sent).catch(()=>{});
       await DriveSync.rotate(10).catch(()=>0);
@@ -323,11 +327,12 @@ const Sync={
     this.setBusy(true); let files;
     try{ files=await DriveSync.list(); }catch(e){ this.setBusy(false); return toast(DriveSync.errText(e)); }
     this.setBusy(false);
+    await UpLog.load(); UpLog.harvest(files).catch(()=>0);
     if(!files.length) return toast('Na Disku zatím nic není. Nejdřív nahraj data tlačítkem ↑.');
     const dirty=isDirty();
     const m=openModal('Stáhnout z Disku',`<form class="m-body" id="dlf">
       ${dirty?`<p class="warn">V tomto zařízení máš změny, které nejsou na Disku (poslední úprava ${esc(fmtTime(META.changedAt))}). Stažení je nahradí. Současný stav se předtím uloží do Nastavení → Místní zálohy.</p>`:'<p class="note">Data v tomto zařízení se nahradí vybranou verzí. Současný stav se předtím uloží do místních záloh.</p>'}
-      <div class="bk-list scroll">${files.map((f,i)=>`<label class="bk ${i===0?'on':''}"><span><input type="radio" name="dlv" value="${esc(f.id)}" ${i===0?'checked':''}> <b>${esc(fmtTime(Date.parse(f.createdTime)))}</b>${i===0?' · nejnovější':''}${f.name===META.remoteName?' · tvoje poslední synchronizace':''}</span><span class="note">${f.size?Math.max(1,Math.round(f.size/1024))+' kB':''}</span></label>`).join('')}</div>
+      <div class="bk-list scroll">${files.map((f,i)=>`<label class="bk ${i===0?'on':''}"><span><input type="radio" name="dlv" value="${esc(f.id)}" ${i===0?'checked':''}> <b>${esc(fmtTime(Date.parse(f.createdTime)))}</b>${i===0?' · nejnovější':''}${f.name===META.remoteName?' · tvoje poslední synchronizace':''}</span><span class="bk-meta note"><span class="bk-dur">${UpLog.durOf(f)?fmtSec(UpLog.durOf(f)):''}</span><span class="bk-kb">${f.size?Math.max(1,Math.round(f.size/1024))+' kB':''}</span></span></label>`).join('')}</div>
       <div class="m-actions">${dirty?'<button type="button" class="btn" id="dl-up">Nejdřív nahrát moje změny</button>':''}<span class="sp"></span><button type="button" class="btn" data-close>Zrušit</button><button type="submit" class="btn pri">Stáhnout a nahradit</button></div>
     </form>`);
     $$('input[name=dlv]',m).forEach(r=>r.addEventListener('change',()=>$$('.bk',m).forEach(b=>b.classList.toggle('on',b.contains(r)&&r.checked))));

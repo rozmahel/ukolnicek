@@ -51,3 +51,7 @@ img.missing{background:none}
 .cf-list .guide-link.rec{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
 .cf-list .guide-link em{font-style:normal;font-size:calc(11px*var(--fs));font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);margin-left:6px;vertical-align:.1em}
 .cf-list .gl-ic{width:26px;text-align:center}
+/* čas nahrání nalevo od velikosti (4.3.0) */
+.bk-meta{display:flex;gap:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.bk-dur{min-width:3.6em;text-align:right}
+.bk-kb{min-width:3.6em;text-align:right}

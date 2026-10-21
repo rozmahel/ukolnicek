@@ -5,7 +5,7 @@
    - na samostatném řádku: blok typu 'eq', TeX je v b.html (escapovaný text); ve starší verzi se z něj stane odstavec s TeX textem.
    - vložení: /rovnice (v prázdném řádku blok, jinak do textu), ∑ v liště formátu (z označeného textu), ⌘⇧E, psaní $…$
    - úprava: klik na rovnici otevře okénko s polem pro TeX a náhledem; Enter = hotovo, Esc = zrušit, prázdná = smazat */
-import { $, esc, TEXT_TYPES } from '../core.js';
+import { $, esc, plain, TEXT_TYPES } from '../core.js';
 import { S } from '../state.js';
 import { LOCK } from '../lock.js';
 import { savePage } from '../store.js';
@@ -13,6 +13,7 @@ import { newBlock } from '../pages.js';
 import { focusBlock } from './caret.js';
 import { ctxOf, rerenderBlocks } from './render.js';
 import { closePop, placePop } from '../ui.js';
+import { htmlToCode } from './code.js';
 
 const BASE='lib/katex/';
 let loading=null;
@@ -211,4 +212,21 @@ export function initMath(){
   });
 }
 
-export { dollarInput, eqFromSelection, insertEq, openEqEditor, toEqBlock };
+/* textový blok (třeba kód s LaTeXem z importovaného .md) → rovnice; obal $$…$$, \[…\] nebo $…$ se zahodí */
+function textToEq(b){
+  if(!TEXT_TYPES.includes(b.type)) return false;
+  let tex=htmlToCode(b.html).trim();
+  const m=tex.match(/^\$\$([\s\S]*)\$\$$/)||tex.match(/^\\\[([\s\S]*)\\\]$/)||tex.match(/^\$([\s\S]*)\$$/);
+  if(m) tex=m[1].trim();
+  b.type='eq'; b.html=esc(tex); delete b.done; delete b.collapsed; delete b.until; delete b.untilVis;
+  return true;
+}
+function blockToEq(pg,b){
+  if(!plain(b.html).trim()) return toEqBlock(pg,b);
+  if(!textToEq(b)) return;
+  const i=pg.blocks.indexOf(b), nx=pg.blocks[i+1];
+  if(!nx) pg.blocks.push(newBlock('p'));
+  savePage(pg); rerenderBlocks();
+}
+
+export { blockToEq, dollarInput, eqFromSelection, insertEq, openEqEditor, textToEq, toEqBlock };

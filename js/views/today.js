@@ -12,7 +12,7 @@ import { renderMain } from '../router.js';
 import { closePop, openPop } from '../ui.js';
 import { evColor, evRow, evTitle } from './schedule.js';
 import { allTasks, taskRow } from './tasks.js';
-import { wCal, wData, wLook, wPage, wQuick, wStudy, wWeek } from './dashWidgets.js';
+import { wCal, wData, wLook, wPage, wQuick, wStudy, wUploads, wWeek } from './dashWidgets.js';
 
 /* ================= widgety a rozložení ================= */
 const SIZES=['s','m','l'], SIZE_CZ={s:'Malý',m:'Střední',l:'Velký'};
@@ -31,6 +31,7 @@ const WG={
   page:{free:true,name:'Stránka',ic:'📃',multi:true,opts:'page',desc:'Náhled vybrané stránky',sizes:['s','l'],w:{s:1,l:2},sz:{s:'Název a kolik úkolů zbývá',l:'Náhled stránky'}},
   look:{name:'Vzhled',ic:'🎨',desc:'Motiv, den/noc a velikost textu',w:{s:1,m:1,l:2},h:{s:1},sz:{s:'Světlý nebo tmavý režim',m:'Motiv a den/noc',l:'Motiv, den/noc a velikost textu'}},
   data:{name:'Zálohy',ic:'🗂️',desc:'Export, import a zálohy na Disku',w:{s:1,m:1,l:2},h:{s:1},sz:{s:'Export a import',m:'K tomu nahrání na Disk',l:'K tomu seznam záloh na Disku'}},
+  uploads:{name:'Nahrávání na Disk',ic:'📈',desc:'Jak dlouho trvá nahrání a jak velké jsou zálohy',sizes:['m','l'],w:{m:2,l:4},sz:{m:'Posledních 30 dní',l:'Posledních 90 dní'}},
 };
 /* id widgetu = typ (clock, page…), další kusy stejného typu mají id typ-xxxxxx */
 const typeOf=id=>String(id).split('-')[0];
@@ -169,7 +170,7 @@ function wStatus(s,c){
   const wip=subj.filter(x=>x.done<x.total), fin=subj.filter(x=>x.done===x.total);
   return {title,body:`${wip.length?`<div class="st-grid">${wip.map(item).join('')}</div>`:'<div class="empty">Všechno hotovo.</div>'}${fin.length?`<div class="st-fin"><span>Hotovo:</span> ${fin.map(x=>`<button class="linkbtn" data-act="goto-task" data-k="${esc(x.key)}">${esc(x.sec||pTitle(x.p))}</button>`).join(', ')}</div>`:''}`};
 }
-const RENDER={clock:wClock,sched:wSched,tomorrow:wTomorrow,deadlines:wDeadlines,status:wStatus,week:wWeek,calendar:wCal,quick:wQuick,study:wStudy,page:wPage,look:wLook,data:wData};
+const RENDER={clock:wClock,sched:wSched,tomorrow:wTomorrow,deadlines:wDeadlines,status:wStatus,week:wWeek,calendar:wCal,quick:wQuick,study:wStudy,page:wPage,look:wLook,data:wData,uploads:wUploads};
 
 function wgHtml({id,s,o},c){
   const t=typeOf(id), r=RENDER[t](s,c,id,o||{});

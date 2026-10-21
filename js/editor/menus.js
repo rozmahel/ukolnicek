@@ -11,18 +11,23 @@ import { go } from '../router.js';
 import { defaultEnd, hLevel, isHeading, renderPage, rerenderBlocks } from './render.js';
 import { setType, subjToH1, toSubject } from './blocks.js';
 import { closePop, openPop, placePop, toast } from '../ui.js';
-import { openEqEditor } from './math.js';
+import { blockToEq, openEqEditor } from './math.js';
 import { bselCount, bulk, copyOne } from './multisel.js';
 
 /* ================= menus ================= */
+/* typy zvýrazněného bloku (jako rámečky na GitHubu: > [!NOTE] …) = předvolba ikony a barvy, v datech nic navíc */
+const CALLOUT_KINDS=[['💡','blue','Poznámka'],['✅','green','Tip'],['❗','purple','Důležité'],['⚠️','orange','Varování'],['🔴','red','Pozor']];
+const kindsHtml=b=>`<div class="pop-h">Typ</div><div class="swatches co-kinds">${CALLOUT_KINDS.map(([ic,c,t],i)=>`<button class="pop-item co-kind hl-${c} ${b.icon===ic&&b.color===c?'on':''}" data-v="kind:${i}"><span>${ic}</span>${t}</button>`).join('')}</div>`;
+const EQ_ITEM=`<button class="pop-item" data-v="type:eq"><span class="pi-ic">${TYPE_ICON.eq}</span><span>${TYPE_LABEL.eq}<small>Text bloku jako LaTeX</small></span></button>`;
+const applyKind=(b,v)=>{ const k=CALLOUT_KINDS[+v.slice(5)]; if(k){ b.icon=k[0]; b.color=k[1]; } };
 function openBlockMenu(anchor,pg,b){
   let h='';
   if(LOCK){
     /* zamčeno: u zvýrazněného bloku jde jen změnit ikonu a barvu, nic se nepřesouvá ani nemaže */
     if(b.type!=='callout') return;
-    h=`<div class="pop-h">Ikona</div><div class="swatches">${CALLOUT_IC.map(ic=>`<button class="pop-item" style="width:auto;padding:4px 6px;font-size:17px" data-v="icon:${ic}">${ic}</button>`).join('')}</div>
+    h=kindsHtml(b)+`<div class="pop-h">Ikona</div><div class="swatches">${CALLOUT_IC.map(ic=>`<button class="pop-item" style="width:auto;padding:4px 6px;font-size:17px" data-v="icon:${ic}">${ic}</button>`).join('')}</div>
       <div class="pop-h">Barva</div><div class="swatches">${COLORS.map(c=>`<button class="sw hl-${c} ${b.color===c?'on':''}" data-v="color:${c}" aria-label="${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}</div>`;
-    openPop(anchor,h,v=>{ if(v.startsWith('color:')) b.color=v.slice(6); else if(v.startsWith('icon:')) b.icon=v.slice(5); savePage(pg); rerenderBlocks(); });
+    openPop(anchor,h,v=>{ if(v.startsWith('kind:')) applyKind(b,v); else if(v.startsWith('color:')) b.color=v.slice(6); else if(v.startsWith('icon:')) b.icon=v.slice(5); savePage(pg); rerenderBlocks(); });
     return;
   }
   /* nahoře řada čtverečků (posun, kopírovat, duplikovat, smazat); s výběrem víc bloků platí menu pro všechny */
@@ -32,7 +37,7 @@ function openBlockMenu(anchor,pg,b){
     +(noLvl?'':ib('left','←','Posunout doleva (⌘ú)',!multi&&!((b.level||0)>0))+ib('right','→','Posunout doprava (⌘))',!multi&&(b.level||0)>=4))
     +`${ib('copy',BM_SVG.copy,'Kopírovat')}${ib('dup',BM_SVG.dup,'Duplikovat')}${ib('del',BM_SVG.del,'Smazat')}</div>`;
   if(multi){
-    h+=`<div class="pop-h">Vybrané bloky: ${multi}</div><div class="pop-h">Převést na</div>`+TEXT_TYPES.map(k=>`<button class="pop-item" data-v="type:${k}"><span class="pi-ic">${TYPE_ICON[k]}</span>${TYPE_LABEL[k]}</button>`).join('');
+    h+=`<div class="pop-h">Vybrané bloky: ${multi}</div><div class="pop-h">Převést na</div>`+TEXT_TYPES.map(k=>`<button class="pop-item" data-v="type:${k}"><span class="pi-ic">${TYPE_ICON[k]}</span>${TYPE_LABEL[k]}</button>`).join('')+EQ_ITEM;
     const p=openPop(anchor,h,v=>{
       if(v.startsWith('type:')) bulk.type(v.slice(5));
       else if(v==='up'||v==='down') bulk.move(v==='up'?-1:1);
@@ -42,14 +47,14 @@ function openBlockMenu(anchor,pg,b){
     p.classList.add('bm-pop'); placePop(p,anchor.getBoundingClientRect());
     return;
   }
-  if(TEXT_TYPES.includes(b.type)) h+=`<div class="pop-sep"></div><div class="pop-h">Převést na</div>`+TEXT_TYPES.map(k=>`<button class="pop-item ${b.type===k?'act':''}" data-v="type:${k}"><span class="pi-ic">${TYPE_ICON[k]}</span>${TYPE_LABEL[k]}</button>`).join('')
+  if(TEXT_TYPES.includes(b.type)) h+=`<div class="pop-sep"></div><div class="pop-h">Převést na</div>`+TEXT_TYPES.map(k=>`<button class="pop-item ${b.type===k?'act':''}" data-v="type:${k}"><span class="pi-ic">${TYPE_ICON[k]}</span>${TYPE_LABEL[k]}</button>`).join('')+EQ_ITEM
     +(b.type==='h1'&&isIndex()?`<button class="pop-item" data-v="tosubj"><span class="pi-ic">${TYPE_ICON.subj}</span><span>Předmět…<small>Nadpis nahradí předmět z Indexu</small></span></button>`:'');
   if(b.type==='subj'){
     const su=S.subjects[b.subj];
     h+=`<div class="pop-sep"></div><div class="pop-h">Předmět</div>${isIndex()?`${su?'<button class="pop-item" data-v="subj-ix"><span class="pi-ic">🎓</span>Otevřít v Indexu</button>':''}<button class="pop-item" data-v="subj-pick"><span class="pi-ic">⇄</span>${su?'Změnit předmět…':'Vybrat předmět…'}</button>`:''}<button class="pop-item" data-v="subj-h1"><span class="pi-ic">H1</span><span>Převést na nadpis H1<small>S názvem předmětu, bez vazby na Index</small></span></button>`;
   }
   if(b.type==='callout'){
-    h+=`<div class="pop-sep"></div><div class="pop-h">Ikona</div><div class="swatches">${CALLOUT_IC.map(ic=>`<button class="pop-item" style="width:auto;padding:4px 6px;font-size:17px" data-v="icon:${ic}">${ic}</button>`).join('')}</div>`;
+    h+=`<div class="pop-sep"></div>`+kindsHtml(b)+`<div class="pop-h">Ikona</div><div class="swatches">${CALLOUT_IC.map(ic=>`<button class="pop-item" style="width:auto;padding:4px 6px;font-size:17px" data-v="icon:${ic}">${ic}</button>`).join('')}</div>`;
     h+=`<div class="pop-h">Barva</div><div class="swatches">${COLORS.map(c=>`<button class="sw hl-${c} ${b.color===c?'on':''}" data-v="color:${c}" aria-label="${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}</div>`;
   }
   if(b.type==='eq') h+=`<div class="pop-sep"></div><button class="pop-item" data-v="eq-edit"><span class="pi-ic">${TYPE_ICON.eq}</span>Upravit rovnici</button><button class="pop-item" data-v="eq-txt"><span class="pi-ic">T</span><span>Převést na text<small>Zdroj LaTeX jako obyčejný odstavec</small></span></button>`;
@@ -83,7 +88,9 @@ function openBlockMenu(anchor,pg,b){
     if(v==='subj-h1'){ subjToH1(pg,b); return; }
     if(v==='eq-edit'){ const el=$(`#blocks .blk[data-id="${b.id}"] .eqb`); if(el) setTimeout(()=>openEqEditor(el),0); return; }
     if(v==='eq-txt'){ b.type='p'; savePage(pg); rerenderBlocks(); focusBlock(b.id,'end'); return; }
+    if(v==='type:eq'){ blockToEq(pg,b); return; }
     if(v.startsWith('type:')){ setType(pg,b,v.slice(5),true); }
+    else if(v.startsWith('kind:')) applyKind(b,v);
     else if(v.startsWith('color:')) b.color=v.slice(6);
     else if(v.startsWith('icon:')) b.icon=v.slice(5);
     else if(v.startsWith('until:')){ const hb=pg.blocks.find(q=>q.id===v.slice(6)); if(hb){ hb.until=b.id; delete hb.untilVis; } }

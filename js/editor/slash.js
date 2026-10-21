@@ -6,7 +6,7 @@ import { isIndex, openSubjPicker } from '../school.js';
 import { isBlank, isBlankEl, sanitize } from '../sanitize.js';
 import { caretOffset, caretRect, deleteOffsets, focusBlock, focusLine } from './caret.js';
 import { rerenderBlocks } from './render.js';
-import { insertSubjAt, insertTypeAt, numShortcutOff, rememberTypedNum, setType } from './blocks.js';
+import { insertSubjAt, insertTypeAt, noteShortcut, numShortcutOff, rememberTypedNum, setType } from './blocks.js';
 import { placePop } from '../ui.js';
 import { openLinkDialog } from './links.js';
 import { pickImageBlock, pickImageInline } from './images.js';
@@ -87,14 +87,14 @@ function slashKey(e){
 const MD=[[/^###[\s ]/,'h3'],[/^##[\s ]/,'h2'],[/^#[\s ]/,'h1'],[/^[-*•][\s ]/,'bullet'],[/^\[[\s ]?\][\s ]/,'todo'],[/^1[.)][\s ]/,'num'],[/^>[\s ]/,'quote'],[/^![\s ]/,'callout'],[/^```/,'code']];
 function mdBlock(x,t){
   const txt=t.textContent;
-  if(txt==='---'){ const pg=x.pg; x.b.type='divider'; x.b.html=''; let next=pg.blocks[x.bi+1]; if(!next||!TEXT_TYPES.includes(next.type)){ next=newBlock('p'); pg.blocks.splice(x.bi+1,0,next);} savePage(pg); rerenderBlocks(); focusBlock(next.id,0); return true; }
+  if(txt==='---'){ const pg=x.pg; x.b.type='divider'; x.b.html=''; let next=pg.blocks[x.bi+1], made=false; if(!next||!TEXT_TYPES.includes(next.type)){ next=newBlock('p'); pg.blocks.splice(x.bi+1,0,next); made=true; } savePage(pg); rerenderBlocks(); focusBlock(next.id,0); noteShortcut(next.id,'---','divider',{div:x.b.id,made}); return true; }
   if(x.b.type!=='p') return false;
   for(const [re,k] of MD){
     const m=txt.match(re); if(!m||caretOffset(t)!==m[0].length) continue;
     if(k==='num'&&numShortcutOff(x.b.id)) continue;   /* „1. “ už jednou vrácené na text: v tomhle bloku zůstane obyčejný text */
     deleteOffsets(t,0,m[0].length); x.b.html=sanitize(t.innerHTML); setType(x.pg,x.b,k);
     if(k==='num') rememberTypedNum(x.b.id,m[0]);
-    savePage(x.pg); rerenderBlocks(); focusBlock(x.b.id,0); return true;
+    savePage(x.pg); rerenderBlocks(); focusBlock(x.b.id,0); noteShortcut(x.b.id,m[0],k); return true;
   }
   return false;
 }
@@ -103,7 +103,7 @@ function mdLine(x,t){
   const txt=t.textContent; let k=null,m;
   if((m=txt.match(/^[-*•][\s ]/))) k='bullet'; else if((m=txt.match(/^\[[\s ]?\][\s ]/))) k='todo';
   if(!k||caretOffset(t)!==m[0].length) return false;
-  deleteOffsets(t,0,m[0].length); x.line.html=sanitize(t.innerHTML); x.line.t=k; savePage(x.pg); rerenderBlocks(); focusLine(x.b.id,x.r,x.c,x.l,0); return true;
+  deleteOffsets(t,0,m[0].length); x.line.html=sanitize(t.innerHTML); x.line.t=k; savePage(x.pg); rerenderBlocks(); focusLine(x.b.id,x.r,x.c,x.l,0); noteShortcut(`${x.b.id}:${x.r}:${x.c}:${x.l}`,m[0],k); return true;
 }
 
 export { closeSlash, drawSlash, mdBlock, mdLine, openSlash, slash, slashKey, updateSlash };

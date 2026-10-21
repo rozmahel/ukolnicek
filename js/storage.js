@@ -59,6 +59,17 @@
       await wrap(s.put(data, 'base'));
     },
 
+    /* drobné místní záznamy (statistika nahrávání); nejsou součástí dat */
+    async getKv(key) {
+      const s = await store('kv', 'readonly');
+      return (await wrap(s.get(key))) ?? null;
+    },
+
+    async setKv(key, value) {
+      const s = await store('kv', 'readwrite');
+      await wrap(s.put(value, key));
+    },
+
     async putImage(blob, name) {
       const id = 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
       const s = await store('images', 'readwrite');

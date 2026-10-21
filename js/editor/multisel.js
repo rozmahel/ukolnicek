@@ -15,6 +15,7 @@ import { setType } from './blocks.js';
 import { openPop, toast } from '../ui.js';
 import { rangeFromPoint } from './images.js';
 import { fragText, htmlToCode } from './code.js';
+import { textToEq } from './math.js';
 
 let xs=null;      /* rozběhnutý tah: {host, node, off, on} */
 let active=false; /* bloky jsou přepnuté na needitovatelné */
@@ -181,7 +182,8 @@ const indentBlocks=after((r,d)=>{
 });
 const typeBlocks=after((r,k)=>{
   if(guard()) return;
-  r.pg.blocks.slice(r.i0,r.i1+1).forEach(b=>{ if(TEXT_TYPES.includes(b.type)) setType(r.pg,b,k); });
+  r.pg.blocks.slice(r.i0,r.i1+1).forEach(b=>{ if(!TEXT_TYPES.includes(b.type)) return; if(k==='eq'){ if(plain(b.html).trim()) textToEq(b); } else setType(r.pg,b,k); });
+  if(k==='eq'&&r.i1===r.pg.blocks.length-1&&r.pg.blocks[r.i1].type==='eq') r.pg.blocks.push(newBlock('p'));
   savePage(r.pg); rerenderBlocks(); markSel();
 });
 /* posun o jeden viditelný blok nahoru/dolů (přes sbalenou sekci skočí celý) */
@@ -229,7 +231,7 @@ export function initMultiSel(){
   bar.addEventListener('click',e=>{
     const b=e.target.closest('[data-b]'); if(!b) return; const v=b.dataset.b, r=bRange(); if(!r) return clearBsel();
     if(v==='x') clearBsel(); else if(v==='del') delBlocks(); else if(v==='dup') dupBlocks(); else if(v==='copy') copyBlocks(r);
-    else if(v==='type') openPop(b,`<div class="pop-h">Převést na</div>`+TEXT_TYPES.map(k=>`<button class="pop-item" data-v="${k}"><span class="pi-ic">${TYPE_ICON[k]}</span>${TYPE_LABEL[k]}</button>`).join(''),k=>typeBlocks(k));
+    else if(v==='type') openPop(b,`<div class="pop-h">Převést na</div>`+[...TEXT_TYPES,'eq'].map(k=>`<button class="pop-item" data-v="${k}"><span class="pi-ic">${TYPE_ICON[k]}</span>${TYPE_LABEL[k]}</button>`).join(''),k=>typeBlocks(k));
   });
   $('#main').addEventListener('scroll',()=>{ if(bs) placeBar(); band&&band.on&&bandMove(band.lx,band.ly); },{passive:true});
   addEventListener('resize',()=>{ if(bs) placeBar(); });

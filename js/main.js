@@ -29,10 +29,12 @@ import { openLinkPop } from './editor/links.js';
 import { initImages, selectImage } from './editor/images.js';
 import { exportMd } from './editor/markdown.js';
 import { initMath, openEqEditor } from './editor/math.js';
+import { initSource, srcOn, toggleSource } from './editor/source.js';
+import { initUpdates, workerOk } from './update.js';
 import { quickAdd, wgDo, wgUi } from './views/dashWidgets.js';
 
 /* posluchače ostatních modulů; pořadí je stejné jako dřív v jednom souboru app.js (na pořadí registrace záleží) */
-initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings(); initImages(); initIndex(); initTreeDrag(); initMath();
+initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings(); initImages(); initIndex(); initTreeDrag(); initMath(); initSource();
 
 /* ================= global actions ================= */
 document.addEventListener('click',e=>{
@@ -66,6 +68,7 @@ document.addEventListener('click',e=>{
   switch(act){
     case 'lock': toggleLock(); break;
     case 'mdexport': exportMd(pg); break;
+    case 'source': toggleSource(pg); break;
     case 'mc-prev': S.calOffset--; renderSidebar(); break;
     case 'mc-next': S.calOffset++; renderSidebar(); break;
     case 'mc-now': S.calOffset=0; renderSidebar(); break;
@@ -104,7 +107,7 @@ document.addEventListener('click',e=>{
     case 'row-menu': case 'col-menu': { const x=ctxOf(a); if(x&&x.b.type==='table') openTableMenu(a,x.pg,x.b,act==='row-menu'?'row':'col',act==='row-menu'?x.r:x.c); break; }
     case 'add-row': { const x=ctxOf(a); if(!x) break; const cols=x.b.rows[0].cells.length; x.b.rows.push({cells:Array.from({length:cols},()=>emptyCell())}); savePage(x.pg); rerenderBlocks(); focusLine(x.b.id,x.b.rows.length-1,0,0,0); break; }
     case 'add-col': { const x=ctxOf(a); if(!x) break; x.b.rows.forEach(r=>r.cells.push(emptyCell())); savePage(x.pg); rerenderBlocks(); focusLine(x.b.id,0,x.b.rows[0].cells.length-1,0,0); break; }
-    case 'tail': if(pg){ const last=pg.blocks[pg.blocks.length-1]; if(last&&last.type==='p'&&isBlank(last.html)) focusBlock(last.id,0); else { const nb=newBlock('p'); pg.blocks.push(nb); savePage(pg); rerenderBlocks(); focusBlock(nb.id,0); } } break;
+    case 'tail': if(srcOn(pg)){ const ta=$('#src-ed'); if(ta){ ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length); } break; } if(pg){ const last=pg.blocks[pg.blocks.length-1]; if(last&&last.type==='p'&&isBlank(last.html)) focusBlock(last.id,0); else { const nb=newBlock('p'); pg.blocks.push(nb); savePage(pg); rerenderBlocks(); focusBlock(nb.id,0); } } break;
     case 'wk-prev': S.weekOffset--; renderMain(); break;
     case 'wk-next': S.weekOffset++; renderMain(); break;
     case 'wk-today': S.weekOffset=0; renderMain(); break;
@@ -176,14 +179,16 @@ else if('serviceWorker' in navigator&&location.protocol!=='file:'){
   let fresh=Date.now(), pending=null;
   const typing=()=>{ const a=document.activeElement; return !!a&&(a.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); };
   const apply=w=>w.postMessage('skipWaiting');
-  const offer=w=>{
+  const offer=async(w,checked)=>{
+    if(!checked){ const r=await workerOk(w); if(!r.ok) return; if(r.now) return apply(w); }   /* starší verze se nenasadí; po „Zkontrolovat aktualizace“ hned */
     pending=w;
-    if(Sync.busy||Sync.checking){ setTimeout(()=>offer(w),1500); return; }   /* nepřerušit stahování z Disku */
+    if(Sync.busy||Sync.checking){ setTimeout(()=>offer(w,true),1500); return; }   /* nepřerušit stahování z Disku */
     if(Date.now()-fresh<20000&&!S.modal&&!typing()) return apply(w);
     const bar=$('#upd'); if(!bar) return; bar.hidden=false; $('#upd-btn').onclick=()=>apply(w); $('#upd-x').onclick=()=>{ bar.hidden=true; };
   };
   window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('sw.js').then(reg=>{
+    navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{
+      initUpdates(reg);
       if(reg.waiting&&navigator.serviceWorker.controller) offer(reg.waiting);
       reg.addEventListener('updatefound',()=>{ const w=reg.installing; if(w) w.addEventListener('statechange',()=>{ if(w.state==='installed'&&navigator.serviceWorker.controller) offer(w); }); });
       document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'){ fresh=Date.now(); reg.update().catch(()=>{}); } });

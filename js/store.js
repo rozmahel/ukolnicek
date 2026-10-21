@@ -8,6 +8,7 @@ import { renderSidebar } from './sidebar.js';
 import { renderMain, restoreScroll } from './router.js';
 import { closePop, toast } from './ui.js';
 import { Sync, updateSyncUI } from './sync/sync.js';
+import { keepFocus, mergeData, restoreFocus } from './sync/merge.js';
 import { ImgSync } from './sync/images.js';
 import { hideImgSel } from './editor/images.js';
 
@@ -43,13 +44,54 @@ function isDirty(){
 /* číslo verze dat v paměti: zvýší se při každé změně (mezipaměť seznamu úkolů podle něj pozná, že je zastaralá) */
 let DATA_REV=0;
 const bumpRev=()=>{ DATA_REV++; };
+
+/* ---- víc oken najednou (nainstalovaná aplikace + karta v prohlížeči) ----
+   Každý zápis do IndexedDB dostane META.wid. Před zápisem se zkontroluje, jestli mezitím nezapsalo jiné okno;
+   když ano, spojí se jeho data s tímhle oknem (stejně jako při kolizi s Diskem, základ = naposledy viděný stav).
+   Zápisy oken jdou po sobě (Web Locks). Ostatní okna se o zápisu dozví přes BroadcastChannel a načtou si ho. */
+let lastWid='', lastSeen=null, staleTab=false;
+const TAB_CH=typeof BroadcastChannel==='function'?new BroadcastChannel('ukolnicek-data'):null;
+const withLock=fn=>navigator.locks&&navigator.locks.request&&!Store.unloading?navigator.locks.request('ukolnicek-store',fn):fn();
+function packN(n){ return packData(n.pages,n.events,Object.assign(defaultSettings(),n.settings),n.subjects,n.semesters); }
+/* data uložená jiným oknem (cur) + data v paměti → paměť; vrací uložený stav jiného okna (nový základ) */
+function takeOther(cur){
+  const R=packN(normalizeImport(cur)), L=dataForSave();
+  const same=hashData(L)===hashData(R);
+  const r=same||!lastSeen?{data:R,copies:0}:mergeData(L,R,lastSeen);
+  const om=cur.meta||{}, changed=Math.max(META.changedAt||0,om.changedAt||0);
+  Object.assign(META,om,{changedAt:changed});
+  if(!same){ const keep=keepFocus(); applyNormalized(r.data); restoreFocus(keep); loadMissingImages(); }
+  if(r.copies) toast(`Úprava ve dvou oknech najednou: ${r.copies} ${r.copies===1?'položka je':r.copies<5?'položky jsou':'položek je'} dvakrát (kopie).`);
+  return R;
+}
+/* obrázky přidané v jiném okně */
+async function loadMissingImages(){
+  const ids=new Set(); JSON.stringify(S.pages).replace(/"img":"([A-Za-z0-9_-]+)"|data-img=\\"([A-Za-z0-9_-]+)\\"/g,(_,a,b)=>{ ids.add(a||b); return ''; });
+  for(const id of ids){ if(IMGURL.has(id)) continue; try{ const r=await Local.getImage(id); if(r&&r.blob) IMGURL.set(id,URL.createObjectURL(r.blob)); }catch(_){} }
+  ImgSync.refresh();
+}
+async function refreshFromOther(){
+  if(Store.broken) return;
+  if(document.visibilityState==='hidden'){ staleTab=true; return; }
+  staleTab=false;
+  if(Store.t){ Store.flush(); return; }   /* tady je taky rozepsané: spojí se při zápisu */
+  await withLock(async()=>{
+    let cur; try{ cur=await Local.loadState(); }catch(_){ return; }
+    const wid=cur&&cur.meta&&cur.meta.wid||'';
+    if(!cur||wid===lastWid) return;
+    const R=takeOther(cur); lastWid=wid; lastSeen=R;
+    META.curHash=dataHash(); updateSyncUI();
+    if(hashData(dataForSave())!==hashData(R)) Store.queue();
+  });
+}
 const Store={
   t:null,broken:false,
   async init(){
     try{
       await Local.open();
       const st=await Local.loadState();
-      if(st){ const d=normalizeImport(st); S.pages=d.pages||{}; S.events=d.events||{}; S.subjects=d.subjects||{}; S.semesters=d.semesters||{}; S.settings=Object.assign(defaultSettings(),d.settings||{}); Object.assign(META,st.meta||{}); }
+      if(st){ const d=normalizeImport(st); S.pages=d.pages||{}; S.events=d.events||{}; S.subjects=d.subjects||{}; S.semesters=d.semesters||{}; S.settings=Object.assign(defaultSettings(),d.settings||{}); Object.assign(META,st.meta||{}); lastWid=META.wid||''; }
+      lastSeen=dataForSave();
       const imgs=await Local.allImages(); imgs.forEach(r=>{ try{ IMGURL.set(r.id,URL.createObjectURL(r.blob)); }catch(_){} });
       Local.persist();
       bumpRev(); META.curHash=dataHash(); ImgSync.refresh();
@@ -59,11 +101,21 @@ const Store={
   queue(){ bumpRev(); META.changedAt=Date.now(); clearTimeout(this.t); this.t=setTimeout(()=>this.flush(),350); updateSyncUI(); },
   async flush(){
     clearTimeout(this.t); this.t=null;
-    const d=dataForSave();                 /* jedna kopie dat pro otisk i uložení */
-    META.curHash=hashData(d); ImgSync.refresh(d);
-    if(this.broken){ updateSaving(); updateSyncUI(); return; }
-    try{ await Local.saveState(Object.assign(d,{meta:clone(META)})); SAVE_ERR=false; }
-    catch(e){ SAVE_ERR=true; toast(e&&e.name==='QuotaExceededError'?'Úložiště v zařízení je plné. Smaž nějaké obrázky nebo stránky.':'Uložení do zařízení selhalo. Zkus obnovit stránku.'); }
+    if(this.broken){ const d=dataForSave(); META.curHash=hashData(d); ImgSync.refresh(d); updateSaving(); updateSyncUI(); return; }
+    await withLock(async()=>{
+      try{
+        /* zapsalo mezitím jiné okno? nejdřív jeho data spojit s tímhle */
+        const cur=await Local.loadState().catch(()=>null);
+        if(cur&&cur.meta&&(cur.meta.wid||'')!==lastWid&&(cur.meta.wid||lastWid)) takeOther(cur);
+        const d=dataForSave();                 /* jedna kopie dat pro otisk i uložení */
+        META.curHash=hashData(d); ImgSync.refresh(d);
+        META.wid=rid();
+        await Local.saveState(Object.assign({},d,{meta:clone(META)})); SAVE_ERR=false;
+        lastWid=META.wid; lastSeen=d;
+        if(TAB_CH) try{ TAB_CH.postMessage({t:'saved',wid:lastWid}); }catch(_){}
+      }
+      catch(e){ SAVE_ERR=true; toast(e&&e.name==='QuotaExceededError'?'Úložiště v zařízení je plné. Smaž nějaké obrázky nebo stránky.':'Uložení do zařízení selhalo. Zkus obnovit stránku.'); }
+    });
     updateSaving(); updateSyncUI();
   },
   flushAll(){ if(this.t) this.flush(); }
@@ -175,8 +227,9 @@ function applyNormalized(n){
 
 /* posluchače a nastavení při startu (volá main.js ve stejném pořadí jako dřív) */
 export function initStore(){
-  window.addEventListener('pagehide',()=>Store.flushAll());
-  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') Store.flushAll(); });
+  window.addEventListener('pagehide',()=>{ Store.unloading=true; Store.flushAll(); });
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') Store.flushAll(); else if(staleTab) refreshFromOther(); });
+  if(TAB_CH) TAB_CH.onmessage=e=>{ if(e.data&&e.data.t==='saved'&&e.data.wid!==lastWid&&S.ready) refreshFromOther(); };
 }
 
 export { applyData, applyNormalized, canon, DATA_REV, dataForSave, dataHash, hashData, hashOf, IMGURL, isDirty, META, normalizeImport, packData, saveEvent, savePage, saveSettings, stateForStorage, Store, updateSaving };

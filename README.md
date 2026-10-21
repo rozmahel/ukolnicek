@@ -73,7 +73,8 @@ Client ID není tajný klíč, bezpečnost hlídá seznam povolených adres a te
 ## 4. Záloha a přenos dat
 
 ### Google Disk
-- **↑ Nahrát** (ručně) uloží aktuální stav jako novou zálohu. Na Disku se drží posledních 10 verzí.
+- **↑ Nahrát** (ručně) uloží aktuální stav jako novou zálohu. Na Disku se drží posledních 10 verzí. Délka nahrání se zapíše k souboru (`appProperties.dur` v ms, `dev` = zařízení) a ukáže se v seznamu verzí vlevo od velikosti.
+- **Spojení obou verzí** při kolizi jde po stránkách a uvnitř stránky změněné na obou místech po blocích (podle ID bloku a společného základu). Dvakrát zůstane jen blok upravený na obou místech; když se na obou změnila stejná vlastnost stránky (třeba název), zůstane stránka dvakrát jako dřív.
 - **↓ Stáhnout** nahradí data v zařízení zálohou z Disku: buď rovnou nejnovější, nebo vybranou z posledních 10 (podle nastavení).
 - **Po otevření aplikace** se novější verze z Disku stáhne sama, když v zařízení nemáš neuložené změny. Když se změnilo obojí, aplikace se zeptá: verze z Disku, tvoje, nebo obě spojené. Jde to vypnout v **Nastavení → Google Disk**.
 - Mráček v levém panelu (na mobilu nahoře):
@@ -121,10 +122,10 @@ Kód je rozdělený do malých souborů podle oblastí. Prohlížeč je načte s
 | `js/core.js`, `state.js`, `dates.js`, `ui.js`, `router.js`, `sidebar.js`, `pages.js`, `sanitize.js`, `lock.js` | základ: pomůcky, stav v paměti, data a časy, dialogy a oznámení, přepínání pohledů, levý panel, stránky, čištění HTML, zámek |
 | `js/school.js` | školní režim a předměty: výběr předmětu, propojení hodin s předměty, smazání školních dat |
 | `js/theme.js` | barevný motiv: čte `settings.theme`, nastavuje `data-skin` na `<html>` a barvu lišty prohlížeče |
-| `js/store.js` | ukládání do zařízení, otisk dat („neuloženo na Disk“), kontrola dat zvenku |
-| `js/editor/` | editor stránek: vykreslení, klávesy, `/` menu, lišty, menu bloků, odkazy, obrázky, zpět a znovu, výběr textu i celých bloků (`multisel.js`), nabídka @ a zpětné odkazy (`mention.js`), import a export Markdownu (`markdown.js`), rovnice v LaTeXu (`math.js`), blok s kódem (`code.js`) |
+| `js/store.js` | ukládání do zařízení, otisk dat („neuloženo na Disk“), kontrola dat zvenku, víc oken najednou (Web Locks + BroadcastChannel, spojení přes `merge.js`) |
+| `js/editor/` | editor stránek: vykreslení, klávesy, `/` menu, lišty, menu bloků, odkazy, obrázky, zpět a znovu, výběr textu i celých bloků (`multisel.js`), nabídka @ a zpětné odkazy (`mention.js`), import a export Markdownu (`markdown.js`), zobrazení zdroje (`source.js`), rovnice v LaTeXu (`math.js`), blok s kódem (`code.js`) |
 | `js/views/` | pohledy: Dnes, Index, Rozvrh, Úkoly, Hledání, Nastavení |
-| `js/sync/` | synchronizace s Google Diskem (`sync.js`), obrázky na Disku (`images.js`) a spojení dvou verzí při kolizi (`merge.js`) |
+| `js/sync/` | synchronizace s Google Diskem (`sync.js`), obrázky na Disku (`images.js`), spojení dvou verzí při kolizi, i po blocích (`merge.js`), statistika nahrávání (`uplog.js`) |
 | `js/storage.js` | IndexedDB: data, obrázky, místní zálohy |
 | `js/driveSync.js` | přihlášení Google a práce se soubory na Disku |
 | `lib/fonts/` | písma aplikace (Bricolage Grotesque, Onest, JetBrains Mono, Literata, Newsreader; SIL OFL 1.1, z balíčků `@fontsource-variable`, jen latin a latin-ext), načítá je `lib/fonts/fonts.css`, offline je drží `sw.js` |
@@ -147,15 +148,17 @@ npx playwright install chromium
 
 Pak:
 
-- `npm test`: zkontroluje importy mezi moduly a spustí testy v prohlížeči bez okna (synchronizace s napodobeným Diskem včetně obrázků, Úkoly, Index, školní režim, barevné motivy, výběr přes víc bloků a přesouvání projektů, import a export Markdownu, rovnice, blok s kódem a „1.“ jako text, hledání a ⌘S, archiv a sbalené úkoly, widgety na Dnes včetně nastavení a rychlého úkolu, menu bloku a výběr víc bloků, ⌘ú/⌘), kurzor za rovnicí, místo na stránce a kopie hodiny v rozvrhu (`tests/blokmenu.test.js`) a další). Na Google se nic neposílá. Snímky obrazovky z testů jsou v `tests/shots/`. Test kompatibility se starou verzí potřebuje složku `_zaloha-v2.6.0`, bez ní poběží proti současné verzi. Test motivů porovnává Výchozí vzhled se složkou `_zaloha-v3.0.1` (bez ní se to porovnání přeskočí).
+- `npm test`: zkontroluje importy mezi moduly a spustí testy v prohlížeči bez okna (synchronizace s napodobeným Diskem včetně obrázků, Úkoly, Index, školní režim, barevné motivy, výběr přes víc bloků a přesouvání projektů, import a export Markdownu, rovnice, blok s kódem a „1.“ jako text, hledání a ⌘S, archiv a sbalené úkoly, widgety na Dnes včetně nastavení a rychlého úkolu, menu bloku a výběr víc bloků, ⌘ú/⌘), kurzor za rovnicí, místo na stránce a kopie hodiny v rozvrhu (`tests/blokmenu.test.js`), zkratky a ⌘D, typy rámečku, blok → rovnice, zobrazení zdroje, spojení po blocích, dvě okna, čas nahrání a graf (`tests/novinky43.test.js`) a další). Na Google se nic neposílá. Snímky obrazovky z testů jsou v `tests/shots/`. Test kompatibility se starou verzí potřebuje složku `_zaloha-v2.6.0`, bez ní poběží proti současné verzi. Test motivů porovnává Výchozí vzhled se složkou `_zaloha-v3.0.1` (bez ní se to porovnání přeskočí).
 - `npm run fix-imports`: přepočítá řádky `import` a `export` ve všech modulech. Když přesuneš funkci do jiného souboru, stačí ho spustit. Nový modul přidej do seznamu `MODULES` v `tools/fix-imports.js` (určuje pořadí načítání).
 
 ### Vydání nové verze
 
-1. Zvyš `VERSION` na začátku `sw.js` a `APP_VERSION` v `js/views/settings.js`. Jinak si zařízení nechají starou verzi z mezipaměti.
+1. Zvyš `VERSION` na začátku `sw.js` a `APP_VERSION` v `js/views/settings.js`. Jinak si zařízení nechají starou verzi z mezipaměti. Číslo musí vždy růst: `sw.js` odmítne nainstalovat verzi nižší, než už v zařízení je (ochrana proti starým kopiím z CDN GitHub Pages). Návrat ke starší verzi = vydat ji pod vyšším číslem.
 2. Nový soubor (třeba další modul v `js/`) přidej do seznamu `ASSETS` v `sw.js`, jinak nebude fungovat offline.
 3. Novinku dopiš do `navod.html`: zkopíruj blok `<article class="g-rel new">`, postup je v komentáři na začátku souboru.
 4. Pusť `npm test` a nahraj soubory.
+
+Soubory se při instalaci stahují s `?v=verze` (CDN nepošle starou kopii) a ukládají pod adresou bez ní. **Zkontrolovat aktualizace** v Nastavení (`js/update.js`) přečte verzi z `sw.js?check=…` a novější hned nasadí. `uk-ver-max` (jen v zařízení) = nejnovější známá verze; když se načte starší, aplikace si novou stáhne sama.
 
 Nová verze se v zařízeních nasadí sama, při spuštění nebo návratu do aplikace (stránka se jednou krátce obnoví). Když uživatel zrovna píše nebo má otevřený dialog, objeví se jen lišta **„Je dostupná nová verze – Obnovit“**.
 
@@ -173,7 +176,9 @@ Data jsou jeden JSON: `pages`, `events`, `settings`, a když jsou použité, i `
 - **Odkaz v textu (@):** `<a class="mention" data-page="ID">` nebo `data-subj="ID"` uvnitř `html` bloku (i v buňce tabulky). Text je kopie názvu, při vykreslení se obnoví. Starší verze ho ukáží jako obyčejný text. Datum z @ je obyčejný text „12. 10.“.
 - **Předmět:** `{id, code, name, credits, sem, end, color, pts, parts:[{id, name, max, pts}], passed, note}`. `passed` (zápočet udělen) platí pro všechna ukončení a je podmínkou známky; u ukončení `z` se body nezadávají. **Semestr:** `{id, name, target, order}`, volitelně `noStats` (nepočítat do souhrnu) a `hidden` (neukazovat v seznamu Indexu).
 - `settings.taskHidden` (projekty skryté v Úkolech) je v datech jen tehdy, když je něco skryté: pole ID kořenových stránek, hodnota `_due` znamená skrytou sekci S termínem. Sbalené sekce v Úkolech jsou jen v zařízení (`uk-tfold`).
-- Místo na stránce (posunutí) je jen v zařízení: `uk-scroll` = `{ID stránky: scrollTop}`. Délka posledního nahrání na Disk je v místních metadatech `META.lastUpDur` (ms), ne v datech.
+- Místo na stránce (posunutí) je jen v zařízení: `uk-scroll` = `{ID stránky: scrollTop}`. Délka posledního nahrání na Disk je v místních metadatech `META.lastUpDur` (ms), ne v datech. `META.wid` = ID posledního zápisu do IndexedDB (podle něj okno pozná, že mezitím zapsalo jiné okno).
+- Statistika nahrávání je jen v zařízení: IndexedDB `kv` → `uplog` = pole `{id, t, b, ms, dev}` (ID souboru na Disku, čas v ms, velikost v B, délka v ms, zařízení). Maže se jen soubor na Disku (po 10), záznamy zůstávají; soubory se známou délkou ze seznamu záloh (i z jiného zařízení) se doplní. Widget `uploads` (Nahrávání na Disk) z nich kreslí nejdelší nahrání a největší zálohu za den.
+- Typy zvýrazněného bloku (Poznámka, Tip, Důležité, Varování, Pozor) jsou jen předvolba `icon` + `color`, v datech nic nového.
 - `settings.school` je v datech jen tehdy, když je školní režim zapnutý.
 - `settings.dashPc` a `settings.dashMob` (rozložení Dnes pro počítač a pro telefon, tj. okno do 860 px) jsou v datech až po první úpravě rozložení: pole `{id, s, c}` v pořadí skládání, `id` je typ widgetu (`clock`, `sched`, `tomorrow`, `deadlines`, `status`, `week`, `calendar`, `quick`, `study`, `page`, `look`, `data`; dřívější `mentions` a `recent` se ignorují), další kus stejného typu má `id` ve tvaru `typ-xxxxxx`; nepovinné `o` je nastavení widgetu (`page`, `proj`, `sem`), `s` je `s`, `m` nebo `l` (Rychlý úkol jen `s`/`m`, Stránka jen `s`/`l`; jiná uložená velikost se ukáže jako nejbližší povolená), `c` je sloupec zleva od 0 (počítač 4 sloupce, telefon 2; bez `c` se dopočítá). Šířka ve sloupcích plyne z velikosti (`WG[id].w` v `js/views/today.js`). Widget, který v poli chybí, je odebraný. Neznámé `id` se ignoruje.
 - `settings.theme` (`paper`, `forest`, `mist`, `rose` nebo `lavender`) je v datech jen tehdy, když si uživatel vybral jiný barevný motiv než Výchozí. Neznámá hodnota (třeba z novější verze) se bere jako Výchozí a v datech zůstane. Režim světlý / tmavý a velikost textu v datech nejsou, jsou jen v zařízení (`uk-theme`, `uk-fs`). Kopie motivu `uk-skin` v zařízení slouží jen k tomu, aby se motiv nastavil hned při startu, bez poblikání.

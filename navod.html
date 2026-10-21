@@ -44,7 +44,8 @@
     <div class="g-card hl-blue">
       <h3><span class="g-ic">⌨️</span>Rychlé zkratky</h3>
       <ul>
-        <li><kbd>[]</kbd> + mezera úkol, <kbd>-</kbd> + mezera odrážka, <kbd>#</kbd> + mezera nadpis, <kbd>1.</kbd> + mezera číslovaný seznam, <kbd>```</kbd> blok s kódem</li>
+        <li><kbd>[]</kbd> + mezera úkol, <kbd>-</kbd> + mezera odrážka, <kbd>#</kbd> + mezera nadpis, <kbd>1.</kbd> + mezera číslovaný seznam, <kbd>```</kbd> blok s kódem, <kbd>---</kbd> oddělovač. <kbd>⌫</kbd> hned potom vrátí napsaný text.</li>
+        <li><kbd>⌘D</kbd> zduplikuje blok (s vybranými bloky všechny)</li>
         <li><kbd>⌘B</kbd> <kbd>⌘I</kbd> <kbd>⌘U</kbd> formát, <kbd>⌘E</kbd> zvýraznění</li>
         <li><kbd>⌘Z</kbd> zpět, <kbd>⇧⌘Z</kbd> znovu, <kbd>⌘K</kbd> hledat</li>
         <li><kbd>⌘S</kbd> nahrát na Google Disk (v zařízení se ukládá samo)</li>
@@ -63,11 +64,12 @@
       <h3><span class="g-ic">📥</span>Markdown</h3>
       <p><b>Import:</b> napiš <kbd>/markdown</kbd> a vyber soubor <code>.md</code> (třeba z Obsidianu). Nadpisy, odrážky, číslované seznamy, úkoly <code>- [ ]</code>, citace, rámečky <code>&gt; [!NOTE]</code>, oddělovače, tabulky a tučné, kurzíva, kód, odkazy a <code>==zvýraznění==</code> se převedou na bloky. Stránka bez názvu ho dostane z prvního nadpisu <code>#</code> nebo ze jména souboru. Vrátíš to <kbd>⌘Z</kbd>.</p>
       <p><b>Export:</b> tlačítko ⤓ vedle zámku stáhne stránku jako <code>.md</code>. Podstránky jsou v něm jen jako název, obrázky jen jako popisek.</p>
+      <p><b>Zdroj:</b> tlačítko <b>&lt;/&gt;</b> vedle zámku ukáže stránku jako Markdown a dá se v něm psát. Dalším klikem se vrátíš na bloky. Obrázek, tabulka, podstránka a předmět jsou v textu jako řádek <code>&lt;!-- uk:… --&gt;</code>: jde ho přesunout nebo smazat, upravit jen v blocích. Prázdný řádek je <code>&lt;br&gt;</code>. <kbd>Tab</kbd> odsadí, <kbd>Enter</kbd> v seznamu pokračuje značkou. Bloky, na které nesáhneš, zůstanou přesně jak byly. V upraveném bloku se z odkazu @ stane text a barevné zvýraznění bude žluté.</p>
     </div>
 
     <div class="g-card hl-purple">
       <h3><span class="g-ic">∑</span>Rovnice</h3>
-      <p>Píšou se v LaTeXu. <kbd>/rovnice</kbd> v prázdném řádku vloží rovnici na samostatný řádek, uprostřed textu ji vloží do věty. Rychleji: napiš <code>$v_0$</code> a po druhém <code>$</code> se z toho stane rovnice. Nebo označ text a v liště klikni na <b>∑</b>.</p>
+      <p>Píšou se v LaTeXu. <kbd>/rovnice</kbd> v prázdném řádku vloží rovnici na samostatný řádek, uprostřed textu ji vloží do věty. Rychleji: napiš <code>$v_0$</code> a po druhém <code>$</code> se z toho stane rovnice. Nebo označ text a v liště klikni na <b>∑</b>. Celý blok s LaTeXem (třeba kód z importovaného <code>.md</code>) převedeš v menu ⋮⋮ → Převést na → <b>Rovnice</b>; obal <code>$$…$$</code> se zahodí.</p>
       <p>Kliknutím na rovnici ji upravíš: <kbd>Enter</kbd> hotovo, <kbd>Shift+Enter</kbd> nový řádek, <kbd>Esc</kbd> zrušit, prázdná se smaže. Hodí se i na jednotky a veličiny: <code>5\,\text{m/s}</code>, <code>20^\circ\text{C}</code>, <code>\frac{a}{b}</code>. Import a export Markdownu zná <code>$…$</code> i <code>$$…$$</code>.</p>
     </div>
 
@@ -96,7 +98,7 @@
       <p>Dnes skládáš z widgetů: Hodiny, Dnes v rozvrhu, Zítra, Blížící se termíny a Stav úkolů (rozvrhové jen ve školním režimu). Každý má velikost <b>Malý</b>, <b>Střední</b> nebo <b>Velký</b> a podle ní ukazuje víc či míň.</p>
       <p>Při odemčeném zámku je v rohu widgetu <b>⋮⋮</b>: klikem nastavíš velikost, posuneš ho šipkami nebo ho odebereš, tažením ho přesuneš (obrys ukáže, kam dopadne). Každý widget stojí ve svém sloupci a skládá se pod widgety nad sebou. <b>＋ Widget</b> nahoře přidá odebraný widget a nabídne návrat k výchozímu rozložení.</p>
       <p>Telefon (úzké okno) a počítač mají <b>každý své rozložení</b>, obě se ukládají do dat a synchronizují s Diskem.</p>
-      <p>Widgety: Hodiny, Dnes v rozvrhu, Zítra, Týden, Kalendář, Blížící se termíny, Stav úkolů, Rychlý úkol, Stránka, Studium, Vzhled a Zálohy. Výšky jsou násobky půl řádku, takže widgety vedle sebe i pod sebou lícují: některé malé widgety jsou poloviční a dva pod sebou mají výšku jednoho. Termíny a velký Týden mají pevnou výšku a posouvají se uvnitř. Některé mají v ⋮⋮ <b>⚙ Nastavit</b> (třeba kterou stránku ukazovat). Nastavení patří k rozložení, takže na telefonu a na počítači je zvlášť.</p>
+      <p>Widgety: Hodiny, Dnes v rozvrhu, Zítra, Týden, Kalendář, Blížící se termíny, Stav úkolů, Rychlý úkol, Stránka, Studium, Vzhled, Zálohy a Nahrávání na Disk (graf, jak dlouho trvá nahrání a jak velké jsou zálohy; střední 30 dní, velký 90 dní na celou šířku). Výšky jsou násobky půl řádku, takže widgety vedle sebe i pod sebou lícují: některé malé widgety jsou poloviční a dva pod sebou mají výšku jednoho. Termíny a velký Týden mají pevnou výšku a posouvají se uvnitř. Některé mají v ⋮⋮ <b>⚙ Nastavit</b> (třeba kterou stránku ukazovat). Nastavení patří k rozložení, takže na telefonu a na počítači je zvlášť.</p>
     </div>
 
     <div class="g-card hl-purple">
@@ -148,6 +150,37 @@
 <section data-tab="novinky" data-title="Novinky">
 
   <article class="g-rel new">
+    <h3>Opravy zobrazení zdroje <span class="v">4.3.2</span> <time datetime="2026-10-21">21. 10. 2026</time></h3>
+    <ul>
+      <li>Psaní ve zdroji už neposouvá stránku nahoru.</li>
+      <li>Znaky jako <code>###</code> se při psaní nepřeskupují (písmo bez ligatur).</li>
+      <li><kbd>Tab</kbd> odsadí řádek (s výběrem všechny označené), <kbd>⇧Tab</kbd> ho vrátí. <kbd>Enter</kbd> v seznamu, úkolu nebo citaci pokračuje stejnou značkou, na prázdné položce seznam ukončí.</li>
+      <li>Kurzor zůstane na místě i po ⌘Z tlačítkem nebo načtení změn z jiného okna. Když se stránka mezitím změnila jinde, zdroj se načte znovu a rozepsané ji nepřepíše.</li>
+    </ul>
+  </article>
+
+  <article class="g-rel">
+    <h3>Žádné skákání mezi verzemi <span class="v">4.3.1</span> <time datetime="2026-10-21">21. 10. 2026</time></h3>
+    <ul>
+      <li>Starší verze aplikace se už nenačte místo novější. Po vydání nové verze ji server GitHubu chvíli posílá jen z části serverů, starší kopii teď aplikace odmítne.</li>
+      <li><b>Zkontrolovat aktualizace</b> dole v Nastavení: zjistí verzi na serveru a novější hned stáhne a nasadí.</li>
+    </ul>
+  </article>
+
+  <article class="g-rel">
+    <h3>Zdroj stránky, spojování po blocích, graf nahrávání <span class="v">4.3.0</span> <time datetime="2026-10-21">21. 10. 2026</time></h3>
+    <ul>
+      <li><b>Zdroj:</b> tlačítko &lt;/&gt; vedle zámku ukáže stránku jako Markdown a dá se v něm psát.</li>
+      <li><b>Zvýrazněný blok</b> má typy Poznámka, Tip, Důležité, Varování a Pozor (v menu po kliknutí na ikonu).</li>
+      <li><b>Blok → rovnice:</b> v menu ⋮⋮ → Převést na → Rovnice. LaTeX z bloku (i z kódu) se rovnou vykreslí.</li>
+      <li><kbd>⌫</kbd> hned po zkratce (<kbd>-</kbd>, <kbd>#</kbd>, <kbd>---</kbd>…) vrátí napsaný text. <kbd>⌘D</kbd> zduplikuje blok.</li>
+      <li><b>Spojování po blocích:</b> když se stejná stránka změní tady i na Disku, vezmou se změny z obou. Dvakrát zůstane jen blok upravený na obou místech, ne celá stránka.</li>
+      <li><b>Dvě okna najednou</b> (aplikace i karta v prohlížeči) si změny předávají a nepřepíšou se.</li>
+      <li><b>Čas nahrání</b> u každé zálohy v seznamu verzí. Statistika nahrávání se ukládá v zařízení a ukáže ji nový widget <b>Nahrávání na Disk</b>.</li>
+    </ul>
+  </article>
+
+  <article class="g-rel">
     <h3>Rychlejší menu bloku a drobnosti <span class="v">4.2.0</span> <time datetime="2026-10-21">21. 10. 2026</time></h3>
     <ul>
       <li><b>Menu ⋮⋮ u bloku:</b> posun nahoru, dolů, doleva, doprava, kopírovat, duplikovat a smazat jsou čtverečky nahoře. Popisek ukáže najetí myší.</li>

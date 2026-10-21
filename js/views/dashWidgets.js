@@ -18,6 +18,7 @@ import { fmtAvg, fmtNum, gradeChip, GRADES, partsOpen, subjCr, subjDone, subjMax
 import { allTasks, taskRow } from './tasks.js';
 import { applyFontScale, applyTheme, exportData, FS_STEPS, importFile, openSettings } from './settings.js';
 import { Sync } from '../sync/sync.js';
+import { fmtSec, UpLog } from '../sync/uplog.js';
 
 const DW_UI={};
 const DW_MONTHS=['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
@@ -210,7 +211,7 @@ function wLook(s){
 let dzFiles=null, dzAt=0, dzBusy=false;
 function dzLoad(){
   if(dzBusy) return; dzBusy=true;
-  window.DriveSync.list().then(f=>{ dzFiles=f||[]; }).catch(()=>{ dzFiles=dzFiles||[]; })
+  window.DriveSync.list().then(f=>{ dzFiles=f||[]; return UpLog.load().then(()=>UpLog.harvest(dzFiles)); }).catch(()=>{ dzFiles=dzFiles||[]; })
     .finally(()=>{ dzAt=Date.now(); dzBusy=false; if(S.view.kind==='today') renderMain(); });
 }
 const fmtDur=ms=>{ const s=ms/1000; return (s<10?s.toFixed(1).replace('.',','):String(Math.round(s)))+' s'; };
@@ -228,9 +229,29 @@ function wData(s){
   let list='';
   if(ds==='ok'){
     if(!dzBusy&&(!dzAt||Date.now()-dzAt>6e5||(META.lastUpload||0)>dzAt)) dzLoad();
-    list=dzFiles==null?'<div class="empty">Načítám…</div>':dzFiles.length?dzFiles.slice(0,6).map(f=>`<button class="dz-v" data-act="wg-do" data-v="dl"><span>${esc(fmtTime(Date.parse(f.createdTime)))}</span><small>${f.size?Math.max(1,Math.round(f.size/1024))+' kB':''}</small></button>`).join(''):'<div class="empty">Na Disku nic není.</div>';
+    list=dzFiles==null?'<div class="empty">Načítám…</div>':dzFiles.length?dzFiles.slice(0,6).map(f=>`<button class="dz-v" data-act="wg-do" data-v="dl"><span>${esc(fmtTime(Date.parse(f.createdTime)))}</span><small>${UpLog.durOf(f)?`<span class="dz-dv">${fmtSec(UpLog.durOf(f))}</span>`:''}${f.size?Math.max(1,Math.round(f.size/1024))+' kB':''}</small></button>`).join(''):'<div class="empty">Na Disku nic není.</div>';
   }
   return {title:'Zálohy',body:`<div class="dz-cols"><div>${main}${dur}</div><div class="dz-list"><div class="wg-grp">Na Disku</div>${list||'<div class="empty">Disk nepřipojen.</div>'}</div></div>`};
+}
+/* ================= Nahrávání na Disk: nejdelší nahrání a největší záloha za každý den =================
+   střední = 30 dní (půl šířky), velký = 90 dní (celá šířka); dva grafy pod sebou se stejnými dny (každý svou stupnicí) */
+let upReady=false;
+const fmtKb=b=>{ const k=b/1024; return (k<10?k.toFixed(1).replace('.',','):String(Math.round(k)))+' kB'; };
+function wUploads(s){
+  const title='Nahrávání na Disk';
+  if(!upReady){ UpLog.load().then(()=>{ upReady=true; if(S.view.kind==='today') renderMain(); }); return {title,body:'<div class="empty">Načítám…</div>'}; }
+  const days=s==='l'?90:30, end=new Date(); end.setHours(0,0,0,0);
+  const start=dwAdd(end,-(days-1)), t0=start.getTime(), map=new Map(); let n=0;
+  UpLog.all().forEach(e=>{ if(e.t<t0) return; n++; const k=ymd(new Date(e.t)), v=map.get(k)||{ms:0,b:0,n:0}; v.ms=Math.max(v.ms,e.ms); v.b=Math.max(v.b,e.b); v.n++; map.set(k,v); });
+  if(!n) return {title,body:`<div class="empty">Za posledních ${days} dní nic nenahráno.</div>`};
+  const cols=[]; for(let i=0;i<days;i++){ const d=dwAdd(start,i); cols.push({d,v:map.get(ymd(d))}); }
+  const tip=c=>c.v?`${shortDate(c.d)} · nejdéle ${fmtSec(c.v.ms)} · nejvíc ${fmtKb(c.v.b)}${c.v.n>1?` · ${c.v.n}× nahráno`:''}`:`${shortDate(c.d)} · nic`;
+  const chart=(k,fmt,label)=>{
+    const max=Math.max(...cols.map(c=>c.v?c.v[k]:0))||1;
+    return `<div class="up-ch"><div class="up-h"><span>${label}</span><span>nejvíc <b>${fmt(max)}</b></span></div>
+      <div class="up-bars" style="--n:${days}">${cols.map(c=>`<i title="${esc(tip(c))}"${c.v?` style="--h:${Math.max(3,Math.round(c.v[k]/max*100))}%"`:' class="no"'}></i>`).join('')}</div></div>`;
+  };
+  return {title,sub:`${n}× za ${days} dní`,body:`<div class="up">${chart('ms',fmtSec,'Čas nahrání')}${chart('b',fmtKb,'Velikost zálohy')}<div class="up-x"><span>${shortDate(start)}</span><span>dnes</span></div></div>`};
 }
 /* tlačítka ve Vzhledu a Zálohách */
 function wgDo(a){
@@ -256,4 +277,4 @@ function wgUi(a){
   renderMain();
 }
 
-export { quickAdd, wCal, wData, wgDo, wgUi, wLook, wPage, wQuick, wStudy, wWeek };
+export { quickAdd, wCal, wData, wgDo, wgUi, wLook, wPage, wQuick, wStudy, wUploads, wWeek };

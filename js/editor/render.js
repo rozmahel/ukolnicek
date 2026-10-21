@@ -10,6 +10,7 @@ import { imgSrc, isBlank, sanitize } from '../sanitize.js';
 import { hideImgSel, imgSel } from './images.js';
 import { codeNorm } from './code.js';
 import { backlinksHtml } from './mention.js';
+import { fitSource, flushSource, sourceHtml } from './source.js';
 
 /* ================= page editor ================= */
 /* blok předmětu (/předmět) se chová jako nadpis H1: sbaluje se a ukončí ho další H1 nebo předmět */
@@ -21,6 +22,8 @@ function numLabel(blocks,i){
   return lv%2?('abcdefghijklmnopqrstuvwxyz'[(n-1)%26]+'.'):n+'.';
 }
 function renderPage(pg){
+  flushSource(true);
+  const src=sourceHtml(pg);
   const crumbs=[]; let p=S.pages[pg.parent];
   while(p){ crumbs.unshift(p); p=S.pages[p.parent]; }
   const isEmpty=(pg.blocks||[]).length<=1&&isBlank((pg.blocks[0]||{}).html)&&!(pg.props||[]).length&&(!pg.blocks[0]||TEXT_TYPES.includes(pg.blocks[0].type));
@@ -33,6 +36,7 @@ function renderPage(pg){
         <button class="icon-btn" id="undo-btn" data-act="undo" title="Zpět (⌘Z)" aria-label="Zpět"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
         <button class="icon-btn" id="redo-btn" data-act="redo" title="Znovu (⇧⌘Z)" aria-label="Znovu"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
         <button class="icon-btn" id="md-btn" data-act="mdexport" title="Stáhnout stránku jako Markdown (.md)" aria-label="Stáhnout jako Markdown"><svg viewBox="0 0 24 24"><path d="M12 3.5v11"/><path d="m7.5 10.5 4.5 4.5 4.5-4.5"/><path d="M4.5 16v2.5a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V16"/></svg></button>
+        <button class="icon-btn src-btn${src!=null?' on':''}" id="src-btn" data-act="source" title="${src!=null?'Zpět na bloky':'Zobrazit zdroj (Markdown)'}" aria-label="Zobrazit zdroj v Markdownu" aria-pressed="${src!=null}"><svg viewBox="0 0 24 24"><path d="m8.5 7-5 5 5 5"/><path d="m15.5 7 5 5-5 5"/></svg></button>
         <button class="icon-btn lock-btn" id="lock-btn" data-act="lock"></button>
       </div>
     </div>
@@ -41,12 +45,12 @@ function renderPage(pg){
       <div class="title-row">${pg.icon?`<button class="page-icon" data-act="icon" data-popanchor aria-label="Změnit ikonu">${esc(pg.icon)}</button>`:''}<h1 class="page-title" id="page-title" contenteditable="true" spellcheck="false" data-ph="Bez názvu">${esc(pg.title)}</h1></div>
       <div class="props" id="props">${renderProps(pg)}</div>
     </div>
-    ${isEmpty?`<div class="tpl"><span>Začít šablonou:</span><button data-act="tpl" data-v="subject">Předmět</button><button data-act="tpl" data-v="weeks">Přehled týdnů</button><button data-act="tpl" data-v="info">Obecné informace</button></div>`:''}
-    <div class="blocks" id="blocks">${renderBlocks(pg)}</div>
+    ${isEmpty&&src==null?`<div class="tpl"><span>Začít šablonou:</span><button data-act="tpl" data-v="subject">Předmět</button><button data-act="tpl" data-v="weeks">Přehled týdnů</button><button data-act="tpl" data-v="info">Obecné informace</button></div>`:''}
+    ${src!=null?src+'<div class="blocks" id="blocks" hidden></div>':`<div class="blocks" id="blocks">${renderBlocks(pg)}</div>`}
     ${backlinksHtml(pg)}
     <div class="doc-tail" data-act="tail"></div>
   </article>`;
-  hist(pg); updateUndoBtns(); applyLock();
+  hist(pg); updateUndoBtns(); applyLock(); if(src!=null) fitSource();
 }
 function renderProps(pg){
   const props=pg.props||[];

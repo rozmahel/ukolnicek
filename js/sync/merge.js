@@ -10,6 +10,51 @@ import { deviceName } from './sync.js';
    Co se změnilo jen na jedné straně, převezme se; co se změnilo na obou, zůstane dvakrát (tvoje jako kopie). */
 function pageSig(p){ if(!p) return ''; const c=clone(p); delete c.updated; (c.blocks||[]).forEach(b=>{ delete b.collapsed; }); return canon(c); }
 function evSig(e){ return e?canon(e):''; }
+/* ---- jedna stránka změněná na obou stranách: spojení po blocích (se společným základem B) ----
+   vlastnosti stránky po položkách; bloky podle ID: změněný jen na jedné straně se převezme, smazaný na jedné
+   a nezměněný na druhé zmizí, změněný na obou různě zůstane dvakrát (verze z Disku / jiného okna a pod ní tvoje kopie).
+   Pořadí podle strany, která pořadí měnila. Vrací {page,copies}, nebo null, když se na obou změnila stejná vlastnost stránky. */
+const blkSig=b=>{ if(!b) return ''; const c=clone(b); delete c.collapsed; return canon(c); };
+function mergePage(L,R,B){
+  const out=clone(R);
+  for(const k of new Set([...Object.keys(L),...Object.keys(R),...Object.keys(B)])){
+    if(k==='blocks'||k==='updated'||k==='id') continue;
+    const l=canon(L[k]), r=canon(R[k]), b=canon(B[k]);
+    if(l===r||l===b) continue;
+    if(r===b){ if(L[k]===undefined) delete out[k]; else out[k]=clone(L[k]); continue; }
+    return null;
+  }
+  const bl=L.blocks||[], br=R.blocks||[], bb=B.blocks||[];
+  const mL=new Map(bl.map(x=>[x.id,x])), mR=new Map(br.map(x=>[x.id,x])), mB=new Map(bb.map(x=>[x.id,x]));
+  const keep=new Map(), extra=new Map(); let copies=0;
+  new Set([...mL.keys(),...mR.keys()]).forEach(id=>{
+    const l=mL.get(id), r=mR.get(id), b=mB.get(id), sb=blkSig(b);
+    if(l&&r){
+      const sl=blkSig(l), sr=blkSig(r);
+      if(sl===sr||sl===sb) keep.set(id,r);
+      else if(sr===sb) keep.set(id,l);
+      else { keep.set(id,r); const c=clone(l); c.id=rid(); delete c.until; delete c.untilVis; extra.set(id,c); copies++; }
+      return;
+    }
+    const v=l||r;
+    if(b&&blkSig(v)===sb) return;   /* smazaný na druhé straně, tady beze změny */
+    keep.set(id,v);                 /* nový, nebo změněný a na druhé straně smazaný: zůstane */
+  });
+  const common=bb.map(x=>x.id).filter(id=>mL.has(id)&&mR.has(id)), cs=new Set(common);
+  const ord=a=>a.map(x=>x.id).filter(id=>cs.has(id)).join(','), oB=common.join(',');
+  const [pri,sec]=ord(br)===oB&&ord(bl)!==oB?[bl,br]:[br,bl];
+  const seq=pri.map(x=>x.id).filter(id=>keep.has(id)), inSeq=new Set(seq);
+  sec.forEach((x,i)=>{
+    if(!keep.has(x.id)||inSeq.has(x.id)) return;
+    let at=0; for(let j=i-1;j>=0;j--){ const p=seq.indexOf(sec[j].id); if(p>=0){ at=p+1; break; } }
+    seq.splice(at,0,x.id); inSeq.add(x.id);
+  });
+  out.blocks=[]; seq.forEach(id=>{ out.blocks.push(clone(keep.get(id))); if(extra.has(id)) out.blocks.push(extra.get(id)); });
+  const ids=new Set(out.blocks.map(x=>x.id));
+  out.blocks.forEach(x=>{ if(x.until&&!ids.has(x.until)){ delete x.until; delete x.untilVis; } });
+  out.updated=Math.max(L.updated||0,R.updated||0);
+  return {page:out,copies};
+}
 function syncDiff(L,R,B){
   const out={here:[],drive:[],both:[],differ:[],copies:0};
   const name=(k,lv,rv,inBase)=>{
@@ -26,7 +71,9 @@ function syncDiff(L,R,B){
         const sb=sig(b[id]);
         if(sl===sb){ out.drive.push(name(k,lv,rv,!!b[id])); return; }
         if(sr===sb){ out.here.push(name(k,lv,rv,!!b[id])); return; }
-        out.both.push(name(k,lv,rv,!!b[id])); if(lv&&rv&&k!=='semesters') out.copies++; return;
+        out.both.push(name(k,lv,rv,!!b[id]));
+        if(k==='pages'&&lv&&rv&&b[id]){ const m=mergePage(lv,rv,b[id]); out.copies+=m?m.copies:1; return; }
+        if(lv&&rv&&k!=='semesters') out.copies++; return;
       }
       out.differ.push(name(k,lv,rv,null)); if(lv&&rv&&k!=='semesters') out.copies++;
     });
@@ -51,6 +98,7 @@ function mergeData(L,R,B){
         const sb=sig(b[id]);
         if(sl===sb){ if(rv) out[k][id]=clone(rv); return; }   /* změněno (nebo smazáno) jen na Disku */
         if(sr===sb){ if(lv) out[k][id]=clone(lv); return; }   /* změněno (nebo smazáno) jen tady */
+        if(k==='pages'&&lv&&rv&&b[id]){ const m=mergePage(lv,rv,b[id]); if(m){ out[k][id]=m.page; copies+=m.copies; return; } }   /* změněno na obou: po blocích */
       }
       if(rv) out[k][id]=clone(rv);
       if(!lv) return;

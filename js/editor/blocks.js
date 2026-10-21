@@ -40,6 +40,12 @@ function applyTemplate(pg,k){
 const typedNum=new Map(), numOff=new Set();
 const rememberTypedNum=(id,s)=>typedNum.set(id,s.replace(/[\s ]+$/,'')+' ');
 const numShortcutOff=id=>numOff.has(id);
+/* Zkratka právě použitá („- “, „# “, „> “, „```“…): Backspace hned potom ji vrátí na napsaný text.
+   Platí jen do další klávesy, kliknutí nebo jiné úpravy (lastSc se maže v events.js). Jen v paměti. */
+let lastSc=null;
+const noteShortcut=(key,pre,type,extra)=>{ lastSc=Object.assign({key,pre:String(pre).replace(/ /g,' '),type},extra||{}); };
+const clearShortcut=()=>{ lastSc=null; };
+const takeShortcut=(key,type)=>{ const s=lastSc; lastSc=null; return s&&s.key===key&&s.type===type?s:null; };
 /* vrací počet znaků „1. “ vrácených do textu (kam dát kurzor) */
 function setType(pg,b,k,backToText){
   if(!TEXT_TYPES.includes(k)) return 0;
@@ -92,4 +98,4 @@ function toSubject(pg,b,su){ b.type='subj'; b.subj=su.id; b.html=esc(subjLabel(s
 /* blok předmětu → obyčejný nadpis H1 s názvem předmětu */
 function subjToH1(pg,b){ subjAsH1(b); savePage(pg); rerenderBlocks(); focusBlock(b.id,'end'); }
 
-export { applyTemplate, insertSubjAt, insertTypeAt, numShortcutOff, rememberTypedNum, setType, subjToH1, toSubject };
+export { applyTemplate, clearShortcut, insertSubjAt, insertTypeAt, noteShortcut, numShortcutOff, rememberTypedNum, setType, subjToH1, takeShortcut, toSubject };

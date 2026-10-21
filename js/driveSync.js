@@ -130,7 +130,7 @@
     /* seznam záloh, nejnovější první */
     async list() {
       const q = encodeURIComponent(`name contains '${PREFIX}' and trashed = false`);
-      const url = `${API}?spaces=appDataFolder&q=${q}&orderBy=${encodeURIComponent('createdTime desc')}&pageSize=100&fields=${encodeURIComponent('files(id,name,createdTime,size)')}`;
+      const url = `${API}?spaces=appDataFolder&q=${q}&orderBy=${encodeURIComponent('createdTime desc')}&pageSize=100&fields=${encodeURIComponent('files(id,name,createdTime,size,appProperties)')}`;
       const j = await (await this.api(url)).json();
       return (j.files || []).filter((f) => f.name.indexOf(PREFIX) === 0);
     },
@@ -156,6 +156,15 @@
         body
       });
       return await r.json();
+    },
+
+    /* vlastnosti souboru (appProperties), u zálohy délka nahrání: { dur: '2600', dev: 'Mac' } */
+    async setProps(id, props) {
+      await this.api(`${API}/${encodeURIComponent(id)}?fields=id`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+        body: JSON.stringify({ appProperties: props })
+      });
     },
 
     async download(id, opt) {

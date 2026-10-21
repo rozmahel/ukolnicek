@@ -14,9 +14,10 @@ import { HOUR_SCALES } from './schedule.js';
 import { autoPull, autoPush, cloudSvg, Sync, updateSyncUI } from '../sync/sync.js';
 import { ImgSync, withImgs } from '../sync/images.js';
 import { placeFrame } from '../editor/images.js';
+import { checkUpdate } from '../update.js';
 
 /* ================= settings ================= */
-const APP_VERSION='4.2.0';
+const APP_VERSION='4.3.2';
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
 const FS_STEPS=[1,1.15,1.3,1.45,1.6];
 function applyTheme(){
@@ -128,7 +129,7 @@ async function openSettings(focus){
       <button type="button" class="guide-link" data-guide="navod"><span class="gl-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H14a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z"/></svg></span><span><b>Návod</b><small>Základní funkce v kostce</small></span><span class="gl-arr" aria-hidden="true">›</span></button>
       <button type="button" class="guide-link" data-guide="novinky"><span class="gl-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="8.5"/></svg></span><span><b>Novinky</b><small>Co přibylo v posledních verzích</small></span><span class="gl-arr" aria-hidden="true">›</span></button>
     </section>
-    <p class="set-foot">Úkolníček ${APP_VERSION} · <a href="#" class="set-news" id="st-news">co je nového</a></p>
+    <p class="set-foot">Úkolníček ${APP_VERSION} · <a href="#" class="set-news" id="st-news">co je nového</a> · <a href="#" class="set-news" id="st-upd">zkontrolovat aktualizace</a></p>
     </form></div>`,'set-m');
 
   /* přepínání kategorií */
@@ -178,6 +179,7 @@ async function openSettings(focus){
   $('#st-autoup',m).addEventListener('change',e=>lsSet('uk-auto-push',e.target.checked));
   $('#st-auto',m).addEventListener('change',e=>{ lsSet('uk-auto-pull',e.target.checked); if(e.target.checked){ Sync.lastCheck=0; Sync.check('setting'); } else Sync.disarm(); });
   $('#st-news',m).addEventListener('click',e=>{ e.preventDefault(); openGuide('novinky'); });
+  $('#st-upd',m).addEventListener('click',e=>{ e.preventDefault(); checkUpdate(); });
   const conn=$('#st-conn',m); if(conn) conn.addEventListener('click',async()=>{
     saveCid(); DriveSync.setAccount($('#st-acc',m).value);
     if(!DriveSync.clientId()){ toast('Nejdřív vlož Client ID.'); $('#st-cid',m).focus(); return; }
@@ -258,4 +260,4 @@ export function initSettings(){
   try{ matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme); }catch(_){}
 }
 
-export { applyFontScale, applyTheme, exportData, FS_STEPS, importFile, openSettings };
+export { APP_VERSION, applyFontScale, applyTheme, exportData, FS_STEPS, importFile, openSettings };

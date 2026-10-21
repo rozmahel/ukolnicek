@@ -1,12 +1,12 @@
 /* Úkolníček – Klávesy v blocích a v buňkách tabulky (Enter, Backspace, Tab, šipky) */
-import { $$, clamp, LIST_TYPES, plain, TEXT_TYPES } from '../core.js';
+import { $$, clamp, esc, LIST_TYPES, plain, TEXT_TYPES } from '../core.js';
 import { LOCK } from '../lock.js';
 import { savePage } from '../store.js';
 import { emptyCell, newBlock } from '../pages.js';
 import { isBlank, isBlankEl, sanitize } from '../sanitize.js';
 import { caretAtEnd, caretAtStart, caretOffset, focusBlock, focusEl, focusLine, onFirstLine, onLastLine, splitAtCaret } from './caret.js';
 import { isHeading, rerenderBlocks, sectionEnd } from './render.js';
-import { setType } from './blocks.js';
+import { setType, takeShortcut } from './blocks.js';
 import { caretPos, codeHtml, dedent, domText, insertCode, newLine } from './code.js';
 
 /* ---- key handling ---- */
@@ -53,6 +53,14 @@ function blockKeys(e,x,t){
     savePage(pg); rerenderBlocks(); focusBlock(nb.id,0); return;
   }
   if(e.key==='Backspace'&&caretAtStart(t)){
+    /* hned po zkratce („- “, „# “, „---“…) vrátí Backspace napsaný text */
+    const sc=takeShortcut(b.id,b.type==='p'?'divider':b.type);
+    if(sc&&sc.type==='divider'){
+      const d=pg.blocks.find(q=>q.id===sc.div);
+      if(d&&d.type==='divider'){ e.preventDefault(); d.type='p'; d.html='---'; if(sc.made&&isBlankEl(t)) pg.blocks.splice(pg.blocks.indexOf(b),1); savePage(pg); rerenderBlocks(); focusBlock(d.id,3); return; }
+    } else if(sc&&sc.type!=='num'){
+      e.preventDefault(); setType(pg,b,'p'); b.html=esc(sc.pre)+(isBlankEl(t)?'':(b.html||'')); savePage(pg); rerenderBlocks(); focusBlock(b.id,sc.pre.length); return;
+    }
     if(b.type!=='p'){ e.preventDefault(); const kept=setType(pg,b,'p',true); savePage(pg); rerenderBlocks(); focusBlock(b.id,kept); return; }   /* číslovaný seznam ze zkratky „1. “ vrátí „1. “ do textu */
     if((b.level||0)>0){ e.preventDefault(); b.level--; savePage(pg); rerenderBlocks(); focusBlock(b.id,0); return; }
     const prevEl=blkEl.previousElementSibling&&blkEl.previousElementSibling.classList.contains('blk')?blkEl.previousElementSibling:(blkEl.previousElementSibling&&blkEl.previousElementSibling.previousElementSibling);
@@ -92,6 +100,8 @@ function lineKeys(e,x,t){
     savePage(pg); rerenderBlocks(); focusLine(b.id,r,c,l+1,0); return;
   }
   if(e.key==='Backspace'&&caretAtStart(t)){
+    const sc=takeShortcut(`${b.id}:${r}:${c}:${l}`,line.t);
+    if(sc){ e.preventDefault(); line.t='p'; delete line.done; line.html=esc(sc.pre)+(isBlankEl(t)?'':(line.html||'')); savePage(pg); rerenderBlocks(); focusLine(b.id,r,c,l,sc.pre.length); return; }
     if(line.t!=='p'){ e.preventDefault(); line.t='p'; delete line.done; savePage(pg); rerenderBlocks(); focusLine(b.id,r,c,l,0); return; }
     if(l>0){ e.preventDefault(); const prev=cell.lines[l-1]; const len=plain(prev.html).length; prev.html=(prev.html||'')+(line.html||''); cell.lines.splice(l,1); savePage(pg); rerenderBlocks(); focusLine(b.id,r,c,l-1,len); }
     return;
