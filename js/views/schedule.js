@@ -110,7 +110,7 @@ function evRow(ev,d){
   const rep=ev.repeat==='count'&&d&&occIndex(ev,d)?`${occIndex(ev,d)}. z ${+ev.count||1}`:'';
   return `<button class="ev-row hl-${evColor(ev)}" data-act="ev" data-id="${ev.id}"><span class="t">${esc(ev.start)} – ${esc(ev.end)}</span><span class="dot"></span><span><b>${esc(evTitle(ev))}</b><small>${[TYPE_SHORT[ev.type]?ev.type:'',rep,ev.place,ev.who].filter(Boolean).map(esc).join(' · ')}</small></span></button>`;
 }
-function openEventModal(ev,preset){
+function openEventModal(ev,preset,copy){
   const isNew=!ev;
   ev=ev?clone(ev):Object.assign({id:rid(),title:'',type:'Přednáška',day:0,start:'08:00',end:'09:50',repeat:'weekly',date:ymd(new Date()),count:4,place:'',who:'',note:'',color:''},preset||{});
   if(!ev.date) ev.date=ymd(new Date()); if(!ev.count) ev.count=4;
@@ -119,7 +119,7 @@ function openEventModal(ev,preset){
   const ix=isIndex(), subs=ix?subjList():[], subOf=v=>v?S.subjects[v]||null:null;
   const su0=evSubj(ev);
   const subSel=!ix&&su0?`<div class="fld"><span class="lbl">Předmět</span><p class="note">${esc(subjLabel(su0))}. Název a barva jsou z Indexu, který je teď v nastavení skrytý.</p></div>`:subs.length?`<div class="fld"><label for="ev-subj">Předmět</label><select id="ev-subj"><option value="">Bez předmětu (vlastní název)</option>${[...semList(),null].map(sm=>{ const l=subjsOf(sm?sm.id:null); return l.length?`<optgroup label="${esc(sm?sm.name:'Bez semestru')}">${l.map(su=>`<option value="${su.id}" ${su0===su?'selected':''}>${esc(subjLabel(su))}</option>`).join('')}</optgroup>`:''; }).join('')}</select></div>`:'';
-  const m=openModal(isNew?'Nová událost':'Upravit událost',`<form class="m-body" id="evf" novalidate>
+  const m=openModal(copy?'Kopie události':isNew?'Nová událost':'Upravit událost',`<form class="m-body" id="evf" novalidate>
     ${subSel}
     <div class="fld" id="f-title"><label for="ev-title">Co</label><input id="ev-title" value="${esc(su0?'':ev.title)}" placeholder="${subs.length?'Konzultace, schůzka, akce…':'Předmět nebo akce'}" autocomplete="off">${subs.length||!ix?'':'<p class="note">Předměty pro rozvrh se zakládají v Indexu.</p>'}</div>
     <div class="fld"><span class="lbl">Typ</span><div class="seg" id="ev-type">${TYPES.map(t=>`<button type="button" class="${t===ev.type?'on':''}" data-t="${t}">${t}</button>`).join('')}</div></div>
@@ -135,7 +135,7 @@ function openEventModal(ev,preset){
     <div class="fld"><span class="lbl">Barva</span><div class="swatches" id="ev-color" style="padding-left:0"><button type="button" class="sw-auto" data-c="" title="Barva se mění s předmětem v Indexu"><span class="ti-dot"></span>Podle předmětu</button>${COLORS.map(c=>`<button type="button" class="sw hl-${c}" data-c="${c}" aria-label="${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}</div></div>
     <div class="fld"><label for="ev-note">Poznámky</label><textarea id="ev-note" rows="3" placeholder="Co si vzít, co se probírá…">${esc(ev.note)}</textarea></div>
     <p class="err" id="ev-err" hidden></p>
-    <div class="m-actions">${isNew?'':'<button type="button" class="btn danger" id="ev-del">Smazat</button>'}<span class="sp"></span><button type="button" class="btn" id="ev-ix" hidden>Otevřít v Indexu</button><button type="button" class="btn" data-close>Zrušit</button><button type="submit" class="btn pri">${isNew?'Přidat':'Uložit'}</button></div>
+    <div class="m-actions">${isNew?'':'<button type="button" class="btn danger" id="ev-del">Smazat</button><button type="button" class="btn" id="ev-copy" title="Nová událost se stejnými údaji, upravíš jen den nebo čas">Kopírovat</button>'}<span class="sp"></span><button type="button" class="btn" id="ev-ix" hidden>Otevřít v Indexu</button><button type="button" class="btn" data-close>Zrušit</button><button type="submit" class="btn pri">${isNew?'Přidat':'Uložit'}</button></div>
   </form>`);
   /* barva: '' = podle předmětu (jen u hodiny s předmětem), jinak vlastní */
   let type=ev.type, color=su0?(ev.color||''):evColor(ev);
@@ -177,6 +177,8 @@ function openEventModal(ev,preset){
   syncSubj();
   $('#ev-ix',m).addEventListener('click',()=>{ const su=curSu(); if(!su) return; closeModal(); gotoSubject(su.id); });
   $('#ev-start',m).addEventListener('change',e=>{ const s=toMin(e.target.value), en=toMin($('#ev-end',m).value); if(e.target.value&&en<=s) $('#ev-end',m).value=fromMin(Math.min(s+110,23*60+59)); });
+  /* kopie: otevře novou událost se stejnými údaji (uloženými, bez rozepsaných změn) */
+  const cp=$('#ev-copy',m); if(cp) cp.addEventListener('click',()=>{ const pre=clone(S.events[ev.id]||ev); delete pre.id; closeModal(); openEventModal(null,pre,true); });
   const del=$('#ev-del',m); if(del) del.addEventListener('click',()=>{ const old=S.events[ev.id]; delete S.events[ev.id]; saveEvent({id:ev.id}); closeModal(); renderMain(); toast('Událost smazána','Vrátit',()=>{ S.events[old.id]=old; saveEvent(old); renderMain(); }); });
   $('#evf',m).addEventListener('submit',e=>{
     e.preventDefault();

@@ -92,3 +92,11 @@
 /* tlačítko pro nevratné akce (smazání školních dat) */
 .btn.pri.danger-pri{background:var(--danger);border-color:var(--danger);color:var(--on-danger)}
 .btn:disabled{opacity:.5;cursor:default}
+/* ⋮⋮ menu bloku: řada čtverečků nahoře */
+.pop.bm-pop{min-width:264px}
+.bm-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(30px,1fr));gap:4px;padding:2px 2px 4px}
+.bm-ic{height:34px;display:grid;place-items:center;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg2);font:600 calc(15px*var(--fs)) var(--f-body)}
+.bm-ic:hover{background:var(--hover);color:var(--fg)}
+.bm-ic.danger{color:var(--danger)}
+.bm-ic:disabled{opacity:.35;cursor:default;background:var(--bg)}
+.bm-ic svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}

@@ -26,7 +26,7 @@ const EMOJI=['📘','📗','📙','📕','📓','📒','🎓','⚛️','⚙️',
 const CALLOUT_IC=['💡','📌','⚠️','🗓️','✅','❗','📎','🔴'];
 const TEXT_TYPES=['p','h1','h2','h3','bullet','num','todo','quote','callout','code'];
 const LIST_TYPES=['bullet','num','todo'];
-const TYPE_ICON={link:'🔗',p:'T',h1:'H1',h2:'H2',h3:'H3',bullet:'•',num:'1.',todo:'☐',quote:'❝',callout:'!',code:'</>',table:'▦',divider:'—',page:'↗',image:'▣',subj:'🎓',mdimport:'M↓',eq:'∑'};
+const TYPE_ICON={link:'🔗',p:'T',h1:'H1',h2:'H2',h3:'H3',bullet:'•',num:'1.',todo:'☐',quote:'❝',callout:'!',code:'&lt;/&gt;',table:'▦',divider:'—',page:'↗',image:'▣',subj:'🎓',mdimport:'M↓',eq:'∑'};
 const TYPE_LABEL={link:'Odkaz',p:'Text',h1:'Nadpis 1',h2:'Nadpis 2',h3:'Nadpis 3',bullet:'Odrážky',num:'Číslovaný seznam',todo:'Úkol',quote:'Citace',callout:'Zvýrazněný blok',code:'Kód',table:'Tabulka',divider:'Oddělovač',page:'Podstránka',image:'Obrázek',subj:'Předmět',mdimport:'Import Markdownu',eq:'Rovnice'};
 const SLASH=[
   {k:'p',hint:'Obyčejný odstavec',kw:'text odstavec paragraph'},

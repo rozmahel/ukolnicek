@@ -88,7 +88,7 @@ export function initToolbar(){
   document.addEventListener('dragover',e=>{ if(hasFiles(e)) e.preventDefault(); });
   document.addEventListener('drop',e=>{ if(hasFiles(e)) e.preventDefault(); });
   viewEl.addEventListener('error',e=>{ if(e.target.tagName==='IMG') e.target.classList.add('broken'); },true);
-  $('#main').addEventListener('scroll',()=>{ $('#main').classList.toggle('scrolled',$('#main').scrollTop>4); placeFrame(); if(!fmt.hidden) updateFmt(); if(slash.open) drawSlash(); },{passive:true});
+  $('#main').addEventListener('scroll',()=>{ $('#main').classList.toggle('scrolled',$('#main').scrollTop>4); placeFrame(); if(!fmt.hidden) updateFmt(); if(slash.open) drawSlash(); if(cellTarget&&!cellbar.hidden) showCellbar(cellTarget); },{passive:true});
 }
 
 export { applyMark, hideCellbar, hideFmt, showCellbar };

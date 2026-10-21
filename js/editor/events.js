@@ -1,5 +1,5 @@
 /* Úkolníček – Události editoru: psaní, vkládání, přetahování bloků a obrázků */
-import { $, $$, esc, plain, TEXT_TYPES } from '../core.js';
+import { $, $$, clamp, esc, plain, TEXT_TYPES } from '../core.js';
 import { LOCK } from '../lock.js';
 import { savePage } from '../store.js';
 import { setTypingNow } from './history.js';
@@ -75,6 +75,12 @@ export function initEvents(){
     if(blockEsc(e,t)) return;
     if((e.metaKey||e.ctrlKey)&&!e.altKey){
       const k=e.key.toLowerCase();
+      /* ⌘ú / ⌘) (na anglické klávesnici ⌘[ / ⌘]): posun bloku doleva/doprava, podle místa klávesy, ne znaku */
+      if(e.code==='BracketLeft'||e.code==='BracketRight'){
+        e.preventDefault(); const x=ctxOf(t); if(!x||x.line||LOCK||x.b.type==='image') return;
+        const off=caretOffset(t); x.b.level=clamp((x.b.level||0)+(e.code==='BracketLeft'?-1:1),0,4);
+        savePage(x.pg); rerenderBlocks(); focusBlock(x.b.id,off); return;
+      }
       if(t.closest('.b-code')&&(k==='b'||k==='i'||k==='u'||k==='e')){ e.preventDefault(); return; }   /* v kódu se nic nezvýrazňuje */
       if(k==='b'||k==='i'||k==='u'){ e.preventDefault(); document.execCommand({b:'bold',i:'italic',u:'underline'}[k]); return; }
       if(k==='e'&&e.shiftKey){ e.preventDefault(); eqFromSelection(); return; }

@@ -105,7 +105,7 @@ function openEqEditor(el,fresh){
     if(COARSE.matches){ const vv=window.visualViewport; p.style.left='8px'; p.style.right='8px'; p.style.top=((vv?vv.offsetTop:0)+8)+'px'; p.style.maxWidth='none'; }
     else placePop(p,el.getBoundingClientRect());
   };
-  let state='open';
+  let state='open', byKey=false;   /* zavřeno klávesou nebo tlačítkem: kurzor se vrátí za rovnici */
   const show=()=>{
     const tex=ta.value;
     loadKatex().then(()=>{ prev.innerHTML=toHtml(tex,true); if(isBlock) drawBlock(el,tex); else drawInline(el,tex); },()=>{ prev.textContent='Rovnice se nepodařilo načíst (lib/katex).'; });
@@ -115,11 +115,11 @@ function openEqEditor(el,fresh){
   setTimeout(()=>{ ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length); },20);
   ta.addEventListener('input',()=>{ ta.style.height='auto'; ta.style.height=Math.min(160,ta.scrollHeight)+'px'; show(); });
   ta.addEventListener('keydown',e=>{
-    if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){ e.preventDefault(); closePop(); }
-    else if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); state='cancel'; closePop(); }
+    if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){ e.preventDefault(); byKey=true; closePop(); }
+    else if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); state='cancel'; byKey=true; closePop(); }
   });
   p.addEventListener('mousedown',e=>{ if(!e.target.closest('textarea')) e.preventDefault(); });
-  p.addEventListener('click',e=>{ const b=e.target.closest('[data-v]'); if(!b) return; if(b.dataset.v==='del') ta.value=''; closePop(); });
+  p.addEventListener('click',e=>{ const b=e.target.closest('[data-v]'); if(!b) return; if(b.dataset.v==='del') ta.value=''; byKey=true; closePop(); });
   /* okénko zavře cokoli (Hotovo, Enter, klik vedle, Esc); uloží se jednou při zavření */
   const mo=new MutationObserver(()=>{ if(document.body.contains(p)) return; mo.disconnect(); finish(state==='cancel'?orig:ta.value); });
   mo.observe(document.body,{childList:true});
@@ -129,20 +129,52 @@ function openEqEditor(el,fresh){
     if(isBlock){
       const x=ctxOf(el); if(!x) return;
       if(!tex.trim()&&!(state==='cancel'&&!fresh)){ x.b.type='p'; x.b.html=''; savePage(x.pg); rerenderBlocks(); focusBlock(x.b.id,0); return; }
-      if(tex===orig&&!fresh){ drawBlock(el,tex); return; }
+      if(tex===orig&&!fresh){ drawBlock(el,tex); if(byKey) nextText(x); return; }
       x.b.html=esc(tex); el.dataset.tex=tex; drawBlock(el,tex); savePage(x.pg);
-      if(fresh){ const nx=x.pg.blocks[x.pg.blocks.indexOf(x.b)+1]; if(nx&&TEXT_TYPES.includes(nx.type)) focusBlock(nx.id,0); }
+      if(fresh||byKey) nextText(x);
       return;
     }
     const host=el.closest('.txt');
     if(!tex.trim()){
-      if(state==='cancel'&&!fresh&&orig.trim()){ drawInline(el,orig); return; }
+      if(state==='cancel'&&!fresh&&orig.trim()){ drawInline(el,orig); if(byKey) caretAfter(el); return; }
       const nx=el.nextSibling; if(nx&&nx.nodeType===3&&nx.nodeValue===' ') nx.remove();
-      el.remove(); if(host) host.dispatchEvent(new Event('input',{bubbles:true})); return;
+      const at=document.createRange(); at.setStartBefore(el); at.collapse(true);
+      el.remove(); if(host) host.dispatchEvent(new Event('input',{bubbles:true}));
+      if(byKey&&host){ host.focus({preventScroll:true}); const s=getSelection(); s.removeAllRanges(); s.addRange(at); }
+      return;
     }
     el.textContent=tex; drawInline(el,tex);
-    if(tex!==orig&&host) host.dispatchEvent(new Event('input',{bubbles:true}));
+    const grew=byKey&&caretAfter(el);
+    if((tex!==orig||grew)&&host) host.dispatchEvent(new Event('input',{bubbles:true}));
   }
+}
+
+/* blok rovnice zavřený Enterem: psaní pokračuje v řádku pod ní */
+function nextText(x){ const nx=x.pg.blocks[x.pg.blocks.indexOf(x.b)+1]; if(nx&&TEXT_TYPES.includes(nx.type)) focusBlock(nx.id,0); }
+/* kurzor hned za rovnici v textu. Když za ní na konci řádku nic není, přidá se mezera,
+   jinak by se za needitovatelnou rovnici kurzor nedostal. Vrací true, když se mezera přidala. */
+const isEmptyTail=n=>{ while(n){ if(!(n.nodeType===3&&!n.nodeValue)&&n.nodeName!=='BR') return false; n=n.nextSibling; } return true; };
+function caretAfter(el){
+  const host=el&&el.isConnected&&el.closest('.txt'); if(!host||host.getAttribute('contenteditable')!=='true') return false;
+  let nx=el.nextSibling, added=false;
+  while(nx&&nx.nodeType===3&&!nx.nodeValue){ const d=nx; nx=nx.nextSibling; d.remove(); }
+  const r=document.createRange();
+  if(isEmptyTail(nx)){ const sp=document.createTextNode(' '); el.after(sp); r.setStart(sp,1); added=true; }
+  else if(nx.nodeType===3) r.setStart(nx,nx.nodeValue===' '&&isEmptyTail(nx.nextSibling)?1:0);   /* mezera na konci řádku: kurzor za ni */
+  else r.setStartAfter(el);
+  r.collapse(true); host.focus({preventScroll:true});
+  const s=getSelection(); s.removeAllRanges(); s.addRange(r);
+  return added;
+}
+/* rovnice hned za kurzorem (nebo kurzor omylem uvnitř skrytého TeXu rovnice) */
+function eqAtCaret(){
+  const s=getSelection(); if(!s.rangeCount||!s.isCollapsed) return null;
+  const {startContainer:n,startOffset:o}=s.getRangeAt(0);
+  const inEq=(n.nodeType===1?n:n.parentElement)?.closest('span.eq'); if(inEq) return inEq;
+  if(n.nodeType===3&&o<n.nodeValue.length) return null;
+  let nx=n.nodeType===3?n.nextSibling:n.childNodes[o]||null;
+  while(nx&&nx.nodeType===3&&!nx.nodeValue) nx=nx.nextSibling;
+  return nx&&nx.nodeType===1&&nx.matches('span.eq')?nx:null;
 }
 
 /* blok rovnice: /rovnice v prázdném řádku (blok se převede a hned se otevře úprava) */
@@ -159,6 +191,24 @@ function toEqBlock(pg,b){
 export function initMath(){
   const v=$('#view'); if(!v) return;
   new MutationObserver(()=>mathPass(v)).observe(v,{childList:true,subtree:true});
+  /* klik vpravo od rovnice na stejném řádku: kurzor za ni (prohlížeč ho jinak nechá před ní) */
+  v.addEventListener('click',e=>{
+    const t=e.target.closest&&e.target.closest('#doc .txt'); if(!t||e.target.closest('.eq')||t.getAttribute('contenteditable')!=='true') return;
+    const s=getSelection(); if(!s.rangeCount||!s.isCollapsed) return;
+    let best=null;
+    t.querySelectorAll('span.eq').forEach(q=>{ const rs=q.getClientRects(), rc=rs[rs.length-1]; if(rc&&e.clientY>=rc.top-3&&e.clientY<=rc.bottom+3&&e.clientX>=rc.right-1&&(!best||rc.right>best.r)) best={q,r:rc.right}; });
+    if(!best) return;
+    const cur=s.getRangeAt(0), aft=document.createRange(); aft.setStartAfter(best.q);
+    const c=best.q.contains(cur.startContainer)?-1:cur.compareBoundaryPoints(Range.START_TO_START,aft);
+    if(c>0||(c===0&&!isEmptyTail(best.q.nextSibling))) return;
+    caretAfter(best.q);
+  });
+  /* → před rovnicí ji přeskočí; End / ⌘→ skončí až za rovnicí na konci řádku */
+  v.addEventListener('keydown',e=>{
+    if(!e.target.closest||!e.target.closest('#doc .txt')||e.shiftKey||e.altKey) return;
+    if(e.key==='ArrowRight'&&!e.metaKey&&!e.ctrlKey){ const q=eqAtCaret(); if(q){ e.preventDefault(); caretAfter(q); } return; }
+    if(e.key==='End'||(e.key==='ArrowRight'&&e.metaKey)) setTimeout(()=>{ const q=eqAtCaret(); if(q&&isEmptyTail(q.nextSibling)) caretAfter(q); },0);
+  });
 }
 
 export { dollarInput, eqFromSelection, insertEq, openEqEditor, toEqBlock };

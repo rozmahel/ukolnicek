@@ -10,8 +10,9 @@ import { renderSidebar } from '../sidebar.js';
 import { go } from '../router.js';
 import { defaultEnd, hLevel, isHeading, renderPage, rerenderBlocks } from './render.js';
 import { setType, subjToH1, toSubject } from './blocks.js';
-import { closePop, openPop, toast } from '../ui.js';
+import { closePop, openPop, placePop, toast } from '../ui.js';
 import { openEqEditor } from './math.js';
+import { bselCount, bulk, copyOne } from './multisel.js';
 
 /* ================= menus ================= */
 function openBlockMenu(anchor,pg,b){
@@ -24,18 +25,35 @@ function openBlockMenu(anchor,pg,b){
     openPop(anchor,h,v=>{ if(v.startsWith('color:')) b.color=v.slice(6); else if(v.startsWith('icon:')) b.icon=v.slice(5); savePage(pg); rerenderBlocks(); });
     return;
   }
-  if(TEXT_TYPES.includes(b.type)) h+=`<div class="pop-h">Převést na</div>`+TEXT_TYPES.map(k=>`<button class="pop-item ${b.type===k?'act':''}" data-v="type:${k}"><span class="pi-ic">${TYPE_ICON[k]}</span>${TYPE_LABEL[k]}</button>`).join('')
+  /* nahoře řada čtverečků (posun, kopírovat, duplikovat, smazat); s výběrem víc bloků platí menu pro všechny */
+  const multi=bselCount(b.id), noLvl=b.type==='image'&&!multi;
+  const ib=(v,ic,t,dis)=>`<button class="bm-ic${v==='del'?' danger':''}" data-v="${v}" title="${t}" aria-label="${t}"${dis?' disabled':''}>${ic}</button>`;
+  h+=`<div class="bm-row">${ib('up','↑','Posunout nahoru (⌥⇧↑)')}${ib('down','↓','Posunout dolů (⌥⇧↓)')}`
+    +(noLvl?'':ib('left','←','Posunout doleva (⌘ú)',!multi&&!((b.level||0)>0))+ib('right','→','Posunout doprava (⌘))',!multi&&(b.level||0)>=4))
+    +`${ib('copy',BM_SVG.copy,'Kopírovat')}${ib('dup',BM_SVG.dup,'Duplikovat')}${ib('del',BM_SVG.del,'Smazat')}</div>`;
+  if(multi){
+    h+=`<div class="pop-h">Vybrané bloky: ${multi}</div><div class="pop-h">Převést na</div>`+TEXT_TYPES.map(k=>`<button class="pop-item" data-v="type:${k}"><span class="pi-ic">${TYPE_ICON[k]}</span>${TYPE_LABEL[k]}</button>`).join('');
+    const p=openPop(anchor,h,v=>{
+      if(v.startsWith('type:')) bulk.type(v.slice(5));
+      else if(v==='up'||v==='down') bulk.move(v==='up'?-1:1);
+      else if(v==='left'||v==='right') bulk.indent(v==='left'?-1:1);
+      else if(v==='copy'||v==='dup'||v==='del') bulk[v]();
+    });
+    p.classList.add('bm-pop'); placePop(p,anchor.getBoundingClientRect());
+    return;
+  }
+  if(TEXT_TYPES.includes(b.type)) h+=`<div class="pop-sep"></div><div class="pop-h">Převést na</div>`+TEXT_TYPES.map(k=>`<button class="pop-item ${b.type===k?'act':''}" data-v="type:${k}"><span class="pi-ic">${TYPE_ICON[k]}</span>${TYPE_LABEL[k]}</button>`).join('')
     +(b.type==='h1'&&isIndex()?`<button class="pop-item" data-v="tosubj"><span class="pi-ic">${TYPE_ICON.subj}</span><span>Předmět…<small>Nadpis nahradí předmět z Indexu</small></span></button>`:'');
   if(b.type==='subj'){
     const su=S.subjects[b.subj];
-    h+=`<div class="pop-h">Předmět</div>${isIndex()?`${su?'<button class="pop-item" data-v="subj-ix"><span class="pi-ic">🎓</span>Otevřít v Indexu</button>':''}<button class="pop-item" data-v="subj-pick"><span class="pi-ic">⇄</span>${su?'Změnit předmět…':'Vybrat předmět…'}</button>`:''}<button class="pop-item" data-v="subj-h1"><span class="pi-ic">H1</span><span>Převést na nadpis H1<small>S názvem předmětu, bez vazby na Index</small></span></button>`;
+    h+=`<div class="pop-sep"></div><div class="pop-h">Předmět</div>${isIndex()?`${su?'<button class="pop-item" data-v="subj-ix"><span class="pi-ic">🎓</span>Otevřít v Indexu</button>':''}<button class="pop-item" data-v="subj-pick"><span class="pi-ic">⇄</span>${su?'Změnit předmět…':'Vybrat předmět…'}</button>`:''}<button class="pop-item" data-v="subj-h1"><span class="pi-ic">H1</span><span>Převést na nadpis H1<small>S názvem předmětu, bez vazby na Index</small></span></button>`;
   }
   if(b.type==='callout'){
-    h+=`<div class="pop-h">Ikona</div><div class="swatches">${CALLOUT_IC.map(ic=>`<button class="pop-item" style="width:auto;padding:4px 6px;font-size:17px" data-v="icon:${ic}">${ic}</button>`).join('')}</div>`;
+    h+=`<div class="pop-sep"></div><div class="pop-h">Ikona</div><div class="swatches">${CALLOUT_IC.map(ic=>`<button class="pop-item" style="width:auto;padding:4px 6px;font-size:17px" data-v="icon:${ic}">${ic}</button>`).join('')}</div>`;
     h+=`<div class="pop-h">Barva</div><div class="swatches">${COLORS.map(c=>`<button class="sw hl-${c} ${b.color===c?'on':''}" data-v="color:${c}" aria-label="${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}</div>`;
   }
-  if(b.type==='eq') h+=`<button class="pop-item" data-v="eq-edit"><span class="pi-ic">${TYPE_ICON.eq}</span>Upravit rovnici</button><button class="pop-item" data-v="eq-txt"><span class="pi-ic">T</span><span>Převést na text<small>Zdroj LaTeX jako obyčejný odstavec</small></span></button>`;
-  if(b.type==='table') h+=`<div class="pop-h">Tabulka</div><button class="pop-item" data-v="hrow"><span class="pi-ic">${b.hrow?'✓':''}</span>První řádek jako záhlaví</button><button class="pop-item" data-v="hcol"><span class="pi-ic">${b.hcol?'✓':''}</span>První sloupec jako záhlaví</button>`;
+  if(b.type==='eq') h+=`<div class="pop-sep"></div><button class="pop-item" data-v="eq-edit"><span class="pi-ic">${TYPE_ICON.eq}</span>Upravit rovnici</button><button class="pop-item" data-v="eq-txt"><span class="pi-ic">T</span><span>Převést na text<small>Zdroj LaTeX jako obyčejný odstavec</small></span></button>`;
+  if(b.type==='table') h+=`<div class="pop-sep"></div><div class="pop-h">Tabulka</div><button class="pop-item" data-v="hrow"><span class="pi-ic">${b.hrow?'✓':''}</span>První řádek jako záhlaví</button><button class="pop-item" data-v="hcol"><span class="pi-ic">${b.hcol?'✓':''}</span>První sloupec jako záhlaví</button>`;
   {
     const bl=pg.blocks, xi=bl.indexOf(b); let sec='';
     for(let i=xi-1;i>=0;i--){
@@ -55,11 +73,11 @@ function openBlockMenu(anchor,pg,b){
                :`<button class="pop-item" data-v="until:${hb.id}"><span class="pi-ic">⤓</span><span>Sbalovat „${nm}“ až sem<small>Tento blok se schová, další zůstanou vidět</small></span></button>`;
     }
     if(isHeading(b.type)&&b.until){ sec+=`<button class="pop-item" data-v="until-x:${b.id}"><span class="pi-ic">↺</span><span>Sbalovat automaticky<small>Až po další nadpis stejné úrovně</small></span></button>`; }
-    if(sec) h+=`${h?'<div class="pop-sep"></div>':''}<div class="pop-h">Sbalování sekce</div>`+sec;
+    if(sec) h+=`<div class="pop-sep"></div><div class="pop-h">Sbalování sekce</div>`+sec;
   }
-  h+=`${h?'<div class="pop-sep"></div>':''}<button class="pop-item" data-v="up"><span class="pi-ic">↑</span>Posunout nahoru</button><button class="pop-item" data-v="down"><span class="pi-ic">↓</span>Posunout dolů</button>${b.type!=='image'?`<button class="pop-item" data-v="left"${(b.level||0)>0?'':' disabled'}><span class="pi-ic">←</span>Posunout doleva</button><button class="pop-item" data-v="right"${(b.level||0)<4?'':' disabled'}><span class="pi-ic">→</span>Posunout doprava</button>`:''}<button class="pop-item" data-v="dup"><span class="pi-ic">⧉</span>Duplikovat</button><button class="pop-item danger" data-v="del"><span class="pi-ic">×</span>Smazat</button>`;
-  openPop(anchor,h,v=>{
+  const pop=openPop(anchor,h,v=>{
     const bi=pg.blocks.indexOf(b); if(bi<0) return;
+    if(v==='copy'){ copyOne(b); return; }
     if(v==='tosubj'||v==='subj-pick'){ openSubjPicker(anchor,su=>toSubject(pg,b,su),b.subj); return true; }
     if(v==='subj-ix'){ gotoSubject(b.subj); return; }
     if(v==='subj-h1'){ subjToH1(pg,b); return; }
@@ -85,7 +103,13 @@ function openBlockMenu(anchor,pg,b){
     savePage(pg); rerenderBlocks();
     if(TEXT_TYPES.includes(b.type)) focusBlock(b.id,'end');
   });
+  pop.classList.add('bm-pop'); placePop(pop,anchor.getBoundingClientRect());
 }
+const BM_SVG={
+  copy:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4.5H7.5a2 2 0 0 0-2 2v12.5a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V6.5a2 2 0 0 0-2-2H15"/><rect x="9" y="3" width="6" height="3.5" rx="1"/></svg>',
+  dup:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/><path d="M14 11.5v5M11.5 14h5"/></svg>',
+  del:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7h15M10 11v6M14 11v6M6.5 7l.9 12.1a2 2 0 0 0 2 1.9h5.2a2 2 0 0 0 2-1.9L17.5 7M9.5 7V4.5h5V7"/></svg>'
+};
 /* klik na nadpis předmětu: do Indexu, jiný předmět; odemčeno i vlastní emoji a formát nadpisu.
    Se skrytým Indexem jen formát nadpisu (a zamčeno nic). */
 function openSubjBlockMenu(anchor,pg,b){

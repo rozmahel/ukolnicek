@@ -11,6 +11,7 @@ function placePop(p,rc){
   let x=clamp(rc.left,8,innerWidth-w-8), y=rc.bottom+6;
   if(y+h>innerHeight-8) y=Math.max(8,rc.top-h-6);
   p.style.left=x+'px'; p.style.top=y+'px';
+  p._fol={x:rc.left,y:rc.top,pl:x,pt:y};   /* při posunu stránky jede bublina s tlačítkem, ze kterého se otevřela */
 }
 function openPop(anchor,html,handler){
   closePop();
@@ -55,6 +56,12 @@ export function initUi(){
     if(S.pop&&!inFrame&&!S.pop.contains(e.target)&&!(S.popAnchor&&S.popAnchor.contains(e.target))) closePop();
     if(imgSel&&!inFrame&&e.target!==imgSel.img&&!(S.pop&&S.pop.contains(e.target))) hideImgSel();
     if(slash.open&&!e.target.closest('#slash')&&e.target!==slash.el) closeSlash();
+  },true);
+  document.addEventListener('scroll',()=>{
+    const p=S.pop, a=S.popAnchor, f=p&&p._fol; if(!f||!a||!a.isConnected||!a.closest('#main')) return;
+    const r=a.getBoundingClientRect(), top=$('#main').getBoundingClientRect().top;
+    if(r.bottom<top||r.top>innerHeight){ closePop(); return; }
+    p.style.top=(f.pt+r.top-f.y)+'px'; p.style.left=(f.pl+r.left-f.x)+'px';
   },true);
 }
 

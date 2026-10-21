@@ -5,7 +5,7 @@ import { applySkin } from './theme.js';
 import { HIST, recordHistory } from './editor/history.js';
 import { isIndex, isSchool } from './school.js';
 import { renderSidebar } from './sidebar.js';
-import { renderMain } from './router.js';
+import { renderMain, restoreScroll } from './router.js';
 import { closePop, toast } from './ui.js';
 import { Sync, updateSyncUI } from './sync/sync.js';
 import { ImgSync } from './sync/images.js';
@@ -160,7 +160,7 @@ function saveSettings(){ Store.queue(); }
 function onDataReady(){
   S.ready=true;
   applySkin();
-  renderSidebar(); renderMain();
+  renderSidebar(); renderMain(); restoreScroll();
 }
 function applyData(d){ applyNormalized(normalizeImport(d)); }
 function applyNormalized(n){

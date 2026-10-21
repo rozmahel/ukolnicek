@@ -213,6 +213,7 @@ function dzLoad(){
   window.DriveSync.list().then(f=>{ dzFiles=f||[]; }).catch(()=>{ dzFiles=dzFiles||[]; })
     .finally(()=>{ dzAt=Date.now(); dzBusy=false; if(S.view.kind==='today') renderMain(); });
 }
+const fmtDur=ms=>{ const s=ms/1000; return (s<10?s.toFixed(1).replace('.',','):String(Math.round(s)))+' s'; };
 function wData(s){
   const D=window.DriveSync, ds=D&&D.clientId()?D.state():'off';
   const st=ds==='off'?'Disk nepřipojen':ds==='expired'?'Přihlášení k Disku vypršelo':META.lastUpload?`Nahráno ${esc(dwAgo(META.lastUpload))}`:'Zatím nenahráno';
@@ -223,12 +224,13 @@ function wData(s){
   const drive=`<div class="dz-row">${ds==='ok'?'<button class="btn" data-act="wg-do" data-v="up">↑ Nahrát</button><button class="btn" data-act="wg-do" data-v="dl">Zálohy na Disku</button>':'<button class="btn" data-act="wg-do" data-v="drive">Připojit Disk</button>'}</div>`;
   const main=`<div class="dz">${stat}${drive}${file}</div>`;
   if(s==='m') return {title:'Zálohy',body:main};
+  const dur=META.lastUpDur>0?`<div class="dz-dur"><b>${fmtDur(META.lastUpDur)}</b><span>trvalo poslední nahrání</span></div>`:'';
   let list='';
   if(ds==='ok'){
     if(!dzBusy&&(!dzAt||Date.now()-dzAt>6e5||(META.lastUpload||0)>dzAt)) dzLoad();
     list=dzFiles==null?'<div class="empty">Načítám…</div>':dzFiles.length?dzFiles.slice(0,6).map(f=>`<button class="dz-v" data-act="wg-do" data-v="dl"><span>${esc(fmtTime(Date.parse(f.createdTime)))}</span><small>${f.size?Math.max(1,Math.round(f.size/1024))+' kB':''}</small></button>`).join(''):'<div class="empty">Na Disku nic není.</div>';
   }
-  return {title:'Zálohy',body:`<div class="dz-cols">${main}<div class="dz-list"><div class="wg-grp">Na Disku</div>${list||'<div class="empty">Disk nepřipojen.</div>'}</div></div>`};
+  return {title:'Zálohy',body:`<div class="dz-cols"><div>${main}${dur}</div><div class="dz-list"><div class="wg-grp">Na Disku</div>${list||'<div class="empty">Disk nepřipojen.</div>'}</div></div>`};
 }
 /* tlačítka ve Vzhledu a Zálohách */
 function wgDo(a){

@@ -255,6 +255,7 @@ const Sync={
     if(this.busy) return;
     if(!auto&&!await this.ensure()) return;
     this.setBusy(true);
+    const t0=performance.now();   /* délka nahrání (bez přihlášení) – ukáže ji velký widget Zálohy */
     try{
       const files=await DriveSync.list(); const top=files[0];
       if(!force&&newerOnDrive(top)){ this.setBusy(false); if(auto){ this.remoteNewer=true; updateSyncUI(); return; } return confirmNewerRemote(top); }
@@ -265,7 +266,7 @@ const Sync={
       if(withImgs()){ try{ ir=await ImgSync.push(t=>this.progress(t)); }catch(e){ ir={done:0,left:ImgSync.up.length,err:e}; } this.progress(''); }
       const sent=dataForSave(), sentHash=hashData(clone(sent));
       const f=await DriveSync.upload(Object.assign({app:'ukolnicek',version:2,savedAt:new Date().toISOString(),device:deviceName()},sent));
-      META.remoteAt=f.createdTime||new Date().toISOString(); META.remoteName=f.name; META.syncedAt=META.changedAt; META.syncedHash=sentHash; META.lastUpload=Date.now(); this.remoteNewer=false;
+      META.remoteAt=f.createdTime||new Date().toISOString(); META.remoteName=f.name; META.syncedAt=META.changedAt; META.syncedHash=sentHash; META.lastUpload=Date.now(); META.lastUpDur=Math.round(performance.now()-t0); this.remoteNewer=false;
       await Store.flush();
       Local.saveBase(sent).catch(()=>{});
       await DriveSync.rotate(10).catch(()=>0);

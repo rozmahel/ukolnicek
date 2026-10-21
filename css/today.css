@@ -301,6 +301,9 @@ button.wg-more{color:var(--accent)}
 .dz-two .btn{flex:1 1 0;min-width:0;display:inline-flex;align-items:center;justify-content:center;padding:5px 8px;cursor:pointer}
 .dz-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 .dz-list{border-left:1px solid var(--line);padding-bottom:6px}
+.dz-dur{padding:2px 14px 12px;display:grid;gap:2px}
+.dz-dur b{font:600 calc(28px*var(--fs))/1.1 var(--f-display);font-variant-numeric:tabular-nums;color:var(--fg)}
+.dz-dur span{font-size:calc(12.5px*var(--fs));color:var(--muted)}
 .dz-list .wg-grp{padding-top:2px}
 .dz-v{display:flex;justify-content:space-between;gap:8px;width:100%;padding:5px 16px;text-align:left;font-size:calc(13.5px*var(--fs))}
 .dz-v:hover{background:var(--hover)}

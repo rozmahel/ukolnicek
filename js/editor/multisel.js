@@ -192,12 +192,17 @@ function moveRange(pg,i0,i1,lo,hi,vis,dir){
   pg.blocks.splice(t,0,...part); savePage(pg); rerenderBlocks(); return true;
 }
 const moveBlocks=after((r,dir)=>{ if(guard()) return; if(moveRange(r.pg,r.i0,r.i1,r.lo,r.hi,r.vis,dir)){ markSel(); const el=$('#blocks > .blk.bsel'); if(el){ const rc=el.getBoundingClientRect(); if(rc.top<70||rc.bottom>innerHeight-40) el.scrollIntoView({block:'center'}); placeBar(); } } });
-async function copyBlocks(r){
-  const c=toClipboard(blockItems(r));
+async function copyBlocks(r){ return copyItems(blockItems(r)); }
+async function copyItems(items){
+  const c=toClipboard(items);
   try{ await navigator.clipboard.write([new ClipboardItem({'text/plain':new Blob([c.text],{type:'text/plain'}),'text/html':new Blob([c.html],{type:'text/html'})})]); }
   catch(_){ try{ await navigator.clipboard.writeText(c.text); }catch(__){ return toast('Kopírování se nepovedlo. Zkus ⌘C.'); } }
   toast('Zkopírováno');
 }
+/* ⋮⋮ menu bloku: patří blok do výběru víc celých bloků? Pak se akce z menu použijí na všechny vybrané */
+export function bselCount(id){ const r=bs&&bRange(); return r&&r.ids.length>1&&r.ids.includes(id)?r.ids.length:0; }
+export const bulk={type:k=>typeBlocks(k),indent:d=>indentBlocks(d),move:d=>moveBlocks(d),dup:()=>dupBlocks(),del:()=>delBlocks(),copy:()=>{ const r=bRange(); if(r) copyBlocks(r); }};
+export function copyOne(b){ return copyItems([{b,el:$(`#blocks > .blk[data-id="${b.id}"]`),part:null}]); }
 /* Esc v textu vybere celý blok, ⌥⇧↑/↓ posune blok, ⌘A podruhé vybere všechny bloky (volá events.js) */
 export function blockEsc(e,t){
   const blk=topBlk(t); if(!blk) return false;
@@ -236,6 +241,13 @@ export function initMultiSel(){
     if(e.shiftKey){
       const blk=topBlk(e.target), ae=document.activeElement, from=bs?bs.a:(ae&&ae.closest&&topBlk(ae)?topBlk(ae).dataset.id:null);
       if(blk&&from&&from!==blk.dataset.id){ e.preventDefault(); selectBlocks(from,blk.dataset.id); return; }
+    }
+    /* klik na ⋮⋮ u vybraného bloku výběr nezruší; výběr textu přes víc bloků se změní na výběr celých bloků */
+    const grip=e.target.closest&&e.target.closest('#blocks > .blk .g-drag'), gb=grip&&topBlk(grip);
+    if(gb){
+      if(bselCount(gb.dataset.id)) return;
+      const rg=active&&curRange(), its=rg?picked(rg):[];
+      if(its.length>1&&its.some(i=>i.el===gb)){ selectBlocks(its[0].el.dataset.id,its[its.length-1].el.dataset.id); return; }
     }
     clearBsel();
     /* tažení z prázdného místa (okraj, mezera mezi bloky): rámeček vybírá celé bloky */
@@ -295,6 +307,7 @@ export function initMultiSel(){
     if(k==='Backspace'||k==='Delete'){ stop(); delBlocks(); return; }
     if(k==='Tab'){ stop(); indentBlocks(e.shiftKey?-1:1); return; }
     if(mod&&k.toLowerCase()==='d'){ stop(); dupBlocks(); return; }
+    if(mod&&!e.altKey&&(e.code==='BracketLeft'||e.code==='BracketRight')){ stop(); indentBlocks(e.code==='BracketLeft'?-1:1); return; }
     if(mod&&k.toLowerCase()==='a'){ stop(); bs={a:r.vis[0],f:r.vis[r.vis.length-1]}; markSel(); return; }
     clearBsel();   /* cokoli jiného (⌘Z, psaní) výběr zruší */
   },true);
