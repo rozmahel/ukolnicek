@@ -1,5 +1,5 @@
 /* Úkolníček – Obrázky: vložení, zmenšení, zarovnání, velikost */
-import { $, $$, clamp, esc, TEXT_TYPES } from '../core.js';
+import { $, $$, clamp, esc, lsGet, lsSet, TEXT_TYPES } from '../core.js';
 import { S } from '../state.js';
 import { LOCK } from '../lock.js';
 import { IMGURL, savePage } from '../store.js';
@@ -42,7 +42,7 @@ async function uploadImage(file){
     const pr=await prepImage(file,2400);
     const name=String(file.name||'obrázek').slice(0,100);
     const id=await Local.putImage(pr.blob,name);
-    IMGURL.set(id,URL.createObjectURL(pr.blob));
+    IMGURL.set(id,URL.createObjectURL(pr.blob)); noteRatio(id,pr.nw,pr.nh);
     return {id,name,nw:pr.nw};
   }catch(e){ toast(e&&e.code==='decode'?'Tenhle formát obrázku se nepodařilo načíst. Ulož ho jako JPG nebo PNG.':(e&&e.name==='QuotaExceededError'?'Úložiště v zařízení je plné.':'Obrázek se nepodařilo uložit do zařízení.')); return null; }
 }
@@ -67,7 +67,7 @@ async function pickImageInline(host,range,file){
 function insertInline(host,range,im){
   if(!host||!document.contains(host)){ toast('Obrázek se nepodařilo vložit, místo mezitím zmizelo. Zkus to znovu.'); return; }
   const inCell=!!host.closest('td');
-  const img=document.createElement('img'); img.className='im '+(inCell?'al-center':'al-left'); img.setAttribute('data-img',im.id); img.setAttribute('data-name',im.name); img.src=imgSrc(im.id,im.name); img.alt=''; img.draggable=false;
+  const img=document.createElement('img'); img.className='im '+(inCell?'al-center':'al-inline'); img.setAttribute('data-img',im.id); img.setAttribute('data-name',im.name); img.src=imgSrc(im.id,im.name); img.alt=''; img.draggable=false;
   img.setAttribute('width',Math.round(Math.min(im.nw||240,inCell?220:240)));
   let r=range; if(!r||!host.contains(r.startContainer)){ r=document.createRange(); r.selectNodeContents(host); r.collapse(false); }
   r.insertNode(img);
@@ -91,9 +91,26 @@ function rangeFromPoint(x,y){
 
 /* image selection, tools and resizing */
 let imgSel=null;
-const frame=document.createElement('div');    
+const frame=document.createElement('div');
+
+/* poměr stran obrázku se pamatuje jen v zařízení (uk-img-ar): obrázek má výšku hned, ještě než se načte,
+   takže stránka při překreslení neskáče; do dat se nic nezapisuje */
+const AR=new Map(Object.entries(lsGet('uk-img-ar',{})||{}));
+let arT=null;
+function noteRatio(id,w,h){
+  if(!id||!(w>0)||!(h>0)) return; const r=Math.round(w/h*1e4)/1e4; if(AR.get(id)===r) return;
+  AR.set(id,r); clearTimeout(arT); arT=setTimeout(()=>lsSet('uk-img-ar',Object.fromEntries(AR)),400);
+}
+function applyRatio(root){
+  if(!root||!root.querySelectorAll) return;
+  root.querySelectorAll('img.bimg[data-bimg]').forEach(im=>{ const r=AR.get(im.getAttribute('data-bimg')); if(r) im.style.aspectRatio='auto '+r; });
+}
 
 function imgAlign(){ if(!imgSel) return 'center'; if(imgSel.kind==='block') return imgSel.x.b.align||'center'; const m=imgSel.img.className.match(/al-(\w+)/); return m?m[1]:'inline'; }
+/* nw = bez obtékání: obrázek vlevo/vpravo na vlastním řádku */
+function imgNw(){ if(!imgSel) return false; return imgSel.kind==='block'?!!imgSel.x.b.nw:imgSel.img.classList.contains('nw'); }
+const isFloat=()=>{ const al=imgAlign(); return (al==='left'||al==='right')&&!imgNw(); };
+const FLOAT_MAX=.6;   /* obtékaný obrázek zabere nejvýš 60 % šířky, aby vedle zbylo místo na text */
 function imgContainerW(){ if(!imgSel) return 600; if(imgSel.kind==='block') return ($('#blocks')||{}).clientWidth||700; const td=imgSel.img.closest('td'); return Math.max(60,(td?td.clientWidth-16:imgSel.host.clientWidth)); }
 function placeFrame(){
   if(!imgSel) return;
@@ -102,26 +119,33 @@ function placeFrame(){
   Object.assign(frame.style,{left:(r.left-2)+'px',top:(r.top-2)+'px',width:(r.width+4)+'px',height:(r.height+4)+'px'});
   frame.classList.toggle('rz-left',imgAlign()==='right'); frame.hidden=false;
 }
-function hideImgSel(){ imgSel=null; frame.hidden=true; }
-/* kresba se klikem otevře v editoru kreslení; velikost a zarovnání jen z menu ⋮⋮ (force) */
-function selectImage(img,force){
-  if(!force&&img.classList.contains('bdraw')){ editDrawing(img); return; }
+function hideImgSel(){ if(imgSel){ const blk=imgSel.img.closest('.blk'); if(blk) blk.classList.remove('isel'); } imgSel=null; frame.hidden=true; }
+/* klik na obrázek i kresbu: rámeček a menu; quiet = jen rámeček (výběr klávesnicí), from = blok, odkud se přišlo */
+function selectImage(img,quiet,from){
   const x=ctxOf(img); if(!x) return;
-  hideFmt(); hideCellbar();
+  hideFmt(); hideCellbar(); closePop(); if(imgSel) hideImgSel();
   const kind=img.classList.contains('bimg')?'block':'inline';
-  imgSel={img,kind,x,host:kind==='inline'?img.closest('.txt'):null};
-  placeFrame(); openImgTools();
+  if(kind==='block'){
+    const a=document.activeElement; if(a&&a!==document.body&&a.blur) a.blur();
+    getSelection().removeAllRanges();
+    const blk=img.closest('.blk'); if(blk) blk.classList.add('isel');
+  }
+  imgSel={img,kind,x,host:kind==='inline'?img.closest('.txt'):null,from:from||null};
+  placeFrame();
+  if(quiet){ const r=img.getBoundingClientRect(), m=$('#main'); if(m&&(r.top<70||r.bottom>innerHeight-30)) m.scrollTop+=r.top<70?r.top-90:r.bottom-innerHeight+50; placeFrame(); }
+  else openImgTools();
 }
 function applyImgWidth(w,commit){
   if(!imgSel) return;
-  w=Math.round(clamp(w,48,imgContainerW()));
+  const cw=imgContainerW(); w=Math.round(clamp(w,48,imgSel.kind==='block'&&isFloat()?cw*FLOAT_MAX:cw));
   if(imgSel.kind==='block'){ imgSel.x.b.w=w; imgSel.img.closest('.blk').style.setProperty('--w',w+'px'); if(commit) savePage(imgSel.x.pg); }
   else { imgSel.img.setAttribute('width',w); if(commit) imgSel.host.dispatchEvent(new Event('input',{bubbles:true})); }
 }
-function applyImgAlign(al){
+function applyImgAlign(al,nw){
   if(!imgSel) return;
-  if(imgSel.kind==='block'){ const blk=imgSel.img.closest('.blk'); blk.classList.remove('al-left','al-center','al-right'); blk.classList.add('al-'+al); imgSel.x.b.align=al; savePage(imgSel.x.pg); }
-  else { imgSel.img.className='im al-'+al; imgSel.host.dispatchEvent(new Event('input',{bubbles:true})); }
+  if(nw===undefined) nw=imgNw();
+  if(imgSel.kind==='block'){ const blk=imgSel.img.closest('.blk'), b=imgSel.x.b; blk.classList.remove('al-left','al-center','al-right'); blk.classList.add('al-'+al); blk.classList.toggle('nw',!!nw); b.align=al; if(nw) b.nw=1; else delete b.nw; savePage(imgSel.x.pg); }
+  else { imgSel.img.className='im al-'+al+(nw&&(al==='left'||al==='right')?' nw':''); imgSel.host.dispatchEvent(new Event('input',{bubbles:true})); }
 }
 /* stažení obrázku do zařízení (původní název souboru, přípona podle skutečného formátu) */
 const EXT={'image/png':'png','image/jpeg':'jpg','image/gif':'gif','image/webp':'webp','image/svg+xml':'svg'};
@@ -136,27 +160,102 @@ async function downloadImage(id,name){
   }catch(e){ toast('Obrázek se nepodařilo stáhnout.'); }
 }
 const imgIdName=sel=>sel.kind==='block'?[sel.x.b.img,sel.x.b.name]:[sel.img.getAttribute('data-img'),sel.img.getAttribute('data-name')];
+
+/* rozvržení jako ve Wordu: obtékat vlevo/vpravo (Čtverec), vlevo/na střed/vpravo bez obtékání (Nahoře a dole), v řádku s textem */
+const LAY={wl:['left',0,'Obtékat vlevo'],l:['left',1,'Vlevo, bez obtékání'],c:['center',0,'Na střed'],r:['right',1,'Vpravo, bez obtékání'],wr:['right',0,'Obtékat vpravo'],in:['inline',0,'V řádku s textem']};
+const LN=(x1,x2,y)=>`<path d="M${x1} ${y}H${x2}"/>`;
+const LAY_IC={
+  wl:`<rect x="2" y="3" width="10" height="9" rx="1"/>${LN(15,26,4)}${LN(15,26,8)}${LN(15,26,12)}${LN(2,26,16.5)}`,
+  l:`${LN(2,26,2.5)}<rect x="2" y="5.5" width="10" height="8.5" rx="1"/>${LN(2,26,17.5)}`,
+  c:`${LN(2,26,2.5)}<rect x="9" y="5.5" width="10" height="8.5" rx="1"/>${LN(2,26,17.5)}`,
+  r:`${LN(2,26,2.5)}<rect x="16" y="5.5" width="10" height="8.5" rx="1"/>${LN(2,26,17.5)}`,
+  wr:`<rect x="16" y="3" width="10" height="9" rx="1"/>${LN(2,13,4)}${LN(2,13,8)}${LN(2,13,12)}${LN(2,26,16.5)}`,
+  in:`${LN(2,26,3.5)}${LN(2,8,14)}<rect x="10" y="7" width="8" height="7" rx="1"/>${LN(20,26,14)}`
+};
+function curLay(){ const al=imgAlign(), nw=imgNw(); if(al==='inline') return 'in'; if(al==='center') return 'c'; return al==='left'?(nw?'l':'wl'):(nw?'r':'wr'); }
+function markTools(p){
+  if(!imgSel||!p) return;
+  const cur=curLay(), cw=imgContainerW(), w=imgSel.img.getBoundingClientRect().width;
+  $$('[data-v^="lay:"]',p).forEach(b=>b.classList.toggle('on',b.dataset.v==='lay:'+cur));
+  $$('[data-v^="sz:"]',p).forEach(b=>b.classList.toggle('on',Math.abs(w-cw*parseFloat(b.dataset.v.slice(3)))<8));
+  requestAnimationFrame(()=>{ placeFrame(); if(imgSel) placePop(p,imgSel.img.getBoundingClientRect()); });
+}
+/* obrázek z textu na samostatný blok: obtékaný jde před odstavec (text ho obteče), jinak tam, kde v textu byl */
+function inlineToBlock(al,nw){
+  const {img,host,x}=imgSel; if(!x||x.line) return;
+  const pre=document.createRange(); pre.selectNodeContents(host); pre.setEndBefore(img);
+  const atStart=!pre.toString().trim()&&!pre.cloneContents().querySelector('img');
+  const cw=($('#blocks')||{clientWidth:700}).clientWidth||700;
+  let w=+img.getAttribute('width')||Math.round(img.getBoundingClientRect().width)||240;
+  const flt=al!=='center'&&!nw; if(flt) w=Math.min(w,Math.round(cw*.5));
+  const nb=newBlock('image',{img:img.getAttribute('data-img'),name:img.getAttribute('data-name')||'',w:Math.round(clamp(w,48,cw)),align:al,caption:''}); if(nw) nb.nw=1;
+  img.remove(); x.b.html=isBlankEl(host)?'':host.innerHTML;
+  const pg=x.pg, bi=pg.blocks.indexOf(x.b); pg.blocks.splice(flt||atStart?bi:bi+1,0,nb);
+  savePage(pg); hideImgSel(); closePop(); rerenderBlocks();
+  const im=$(`#blocks .blk[data-id="${nb.id}"] .bimg`); if(im) selectImage(im);
+}
+/* nový prázdný řádek nad / pod obrázkem (Enter, ⇧Enter u vybraného obrázku, tlačítka ↵) */
+function lineAround(id,before){
+  const pg=curPage(); if(!pg) return; const bi=pg.blocks.findIndex(b=>b.id===id); if(bi<0) return;
+  const blankP=b=>b&&b.type==='p'&&isBlank(b.html)&&!b.level;
+  let nb=before?(blankP(pg.blocks[bi-1])&&pg.blocks[bi-1]):(blankP(pg.blocks[bi+1])&&pg.blocks[bi+1]);
+  if(!nb){ nb=newBlock('p'); pg.blocks.splice(before?bi:bi+1,0,nb); savePage(pg); }
+  closePop(); hideImgSel(); rerenderBlocks(); focusBlock(nb.id,0);
+}
+/* smazání vybraného blokového obrázku; kurzor se vrátí tam, odkud se obrázek vybral, jinak k nejbližšímu textu */
+function deleteSelected(back){
+  if(!imgSel||imgSel.kind!=='block'||LOCK) return;
+  const {x,from}=imgSel, pg=x.pg, bi=pg.blocks.indexOf(x.b); if(bi<0) return;
+  pg.blocks.splice(bi,1); savePage(pg); hideImgSel(); closePop(); rerenderBlocks();
+  toast('Obrázek smazán','Vrátit',()=>{ pg.blocks.splice(Math.min(bi,pg.blocks.length),0,x.b); savePage(pg); rerenderBlocks(); });
+  const txt=b=>b&&TEXT_TYPES.includes(b.type);
+  if(from&&pg.blocks.some(b=>b.id===from)){ const fi=pg.blocks.findIndex(b=>b.id===from); focusBlock(from,fi<bi?'end':0); return; }
+  const prev=[...pg.blocks.slice(0,bi)].reverse().find(txt), next=pg.blocks.slice(bi).find(txt);
+  if(back&&prev) focusBlock(prev.id,'end'); else if(next) focusBlock(next.id,0); else if(prev) focusBlock(prev.id,'end');
+}
+/* šipkami mezi textem a obrázky: zastávky jsou nadpis stránky, textová pole bloků a blokové obrázky (v pořadí stránky) */
+function navFrom(el,up){
+  const stops=$$('#page-title, #blocks .txt, #blocks > .b-image .bimg').filter(s=>s!==el&&!el.contains(s));
+  const pos=s=>el.compareDocumentPosition(s);
+  const tgt=up?stops.filter(s=>pos(s)&Node.DOCUMENT_POSITION_PRECEDING).pop():stops.find(s=>pos(s)&Node.DOCUMENT_POSITION_FOLLOWING);
+  if(!tgt) return false;
+  if(tgt.classList.contains('bimg')){ const fb=el.closest&&el.closest('#blocks > .blk'); selectImage(tgt,true,fb&&!fb.classList.contains('b-image')?fb.dataset.id:null); }
+  else focusEl(tgt,up?'end':'start');
+  return true;
+}
+
 function openImgTools(){
-  const al=imgAlign(), kind=imgSel.kind, cw=imgContainerW(), cur=imgSel.img.getBoundingClientRect().width;
+  const kind=imgSel.kind, inCell=kind==='inline'&&!!imgSel.img.closest('td'), isDraw=imgSel.img.classList.contains('bdraw');
+  const keys=inCell?['in','wl','c','wr']:['wl','l','c','r','wr'].concat(kind==='inline'?['in']:[]);
   const sizes=[['25','Malý',.25],['50','Střední',.5],['75','Velký',.75],['100','Celá šířka',1]];
-  const h=`<div class="pop-h">Zarovnání</div><div class="it-row">
-      <button class="${al==='left'?'on':''}" data-v="al:left">⇤ Vlevo</button><button class="${al==='center'?'on':''}" data-v="al:center">Na střed</button><button class="${al==='right'?'on':''}" data-v="al:right">Vpravo ⇥</button>${kind==='inline'?`<button class="${al==='inline'?'on':''}" data-v="al:inline">V řádku</button>`:''}</div>
-    <p class="note" style="padding:0 8px 4px">${kind==='block'?'Vlevo a vpravo: text dalších bloků obteče obrázek.':'Vlevo a vpravo: text obteče obrázek.'}</p>
-    <div class="pop-h">Velikost</div><div class="it-row">${sizes.map(([k,l,f])=>`<button class="${Math.abs(cur-cw*f)<8?'on':''}" data-v="sz:${f}">${l}</button>`).join('')}</div>
-    <p class="note" style="padding:0 8px 4px">Nebo táhni za roh obrázku.</p>
-    <div class="pop-sep"></div><div class="it-row">${kind==='block'?`<button data-v="cap">${imgSel.x.b.caption||imgSel.x.b.capOn?'Upravit popisek':'Přidat popisek'}</button>`:''}<button data-v="open">Zvětšit</button><button data-v="dl">Stáhnout</button>${LOCK?'':'<button class="danger" data-v="del">Smazat</button>'}</div>`;
-  openPop(imgSel.img,h,(v,btn,p)=>{
+  const h=`<div class="it-row lay-row">${keys.map(k=>`<button class="lay-b" data-v="lay:${k}" title="${LAY[k][2]}" aria-label="${LAY[k][2]}"><svg viewBox="0 0 28 20" aria-hidden="true">${LAY_IC[k]}</svg></button>`).join('')}</div>
+    <div class="pop-h">Velikost</div><div class="it-row">${sizes.map(([k,l,f])=>`<button data-v="sz:${f}">${l}</button>`).join('')}</div>
+    <div class="pop-sep"></div><div class="it-row">${isDraw?'<button data-v="draw">Upravit kresbu</button>':''}${kind==='block'?`<button data-v="cap">${imgSel.x.b.caption||imgSel.x.b.capOn?'Upravit popisek':'Přidat popisek'}</button>`:''}<button data-v="open">Zvětšit</button><button data-v="dl">Stáhnout</button>${LOCK?'':'<button class="danger" data-v="del">Smazat</button>'}</div>`;
+  const pop=openPop(imgSel.img,h,(v,btn,p)=>{
     if(!imgSel) return;
-    if(v.startsWith('al:')){ applyImgAlign(v.slice(3)); $$('[data-v^="al:"]',p).forEach(b=>b.classList.toggle('on',b===btn)); requestAnimationFrame(()=>{ placeFrame(); placePop(p,imgSel.img.getBoundingClientRect()); }); return true; }
-    if(v.startsWith('sz:')){ applyImgWidth(imgContainerW()*parseFloat(v.slice(3)),true); $$('[data-v^="sz:"]',p).forEach(b=>b.classList.toggle('on',b===btn)); requestAnimationFrame(()=>{ placeFrame(); placePop(p,imgSel.img.getBoundingClientRect()); }); return true; }
+    if(v==='draw'){ const im=imgSel.img; hideImgSel(); editDrawing(im); return; }
+    if(v.startsWith('lay:')){
+      const k=v.slice(4), [al,nw]=LAY[k];
+      if(kind==='inline'&&!inCell&&k!=='in'){ inlineToBlock(al,!!nw); return; }
+      if(k==='in'){ applyImgAlign('inline',false); markTools(p); return true; }
+      applyImgAlign(al,!!nw);
+      if(kind==='block'&&isFloat()){ const cw=imgContainerW(); if((+imgSel.x.b.w||480)>cw*FLOAT_MAX) applyImgWidth(cw*.5,true); }
+      markTools(p); return true;
+    }
+    if(v.startsWith('sz:')){
+      const f=parseFloat(v.slice(3));
+      if(kind==='block'&&isFloat()&&f>FLOAT_MAX) applyImgAlign(imgAlign(),true);   /* velký obrázek: obtékání se vypne, zůstane na své straně */
+      applyImgWidth(imgContainerW()*f,true); markTools(p); return true;
+    }
     if(v==='dl'){ const [id,name]=imgIdName(imgSel); downloadImage(id,name); return true; }
     if(v==='open'){ const src=imgSel.img.src; const cap=kind==='block'?imgSel.x.b.caption:''; const [dlId,dlName]=imgIdName(imgSel); hideImgSel(); const mm=openModal('',`<div class="m-head"><span></span><span class="lb-acts"><button class="btn" data-lbdl>Stáhnout</button><button class="icon-btn" data-close aria-label="Zavřít">×</button></span></div><div class="lb"><img id="lb-img" alt="">${cap?`<p>${esc(cap)}</p>`:''}</div>`,'lbm'); $('#lb-img',mm).src=src; $('[data-lbdl]',mm).addEventListener('click',()=>downloadImage(dlId,dlName)); return; }
     if(v==='cap'){ const {x}=imgSel; x.b.capOn=true; savePage(x.pg); hideImgSel(); rerenderBlocks(); const c=$(`#blocks .blk[data-id="${x.b.id}"] .cap`); focusEl(c,'end'); return; }
     if(v==='del'&&!LOCK){
-      if(kind==='block'){ const {x}=imgSel; const bi=x.pg.blocks.indexOf(x.b); if(bi<0) return; x.pg.blocks.splice(bi,1); savePage(x.pg); hideImgSel(); rerenderBlocks(); toast('Obrázek smazán','Vrátit',()=>{ x.pg.blocks.splice(Math.min(bi,x.pg.blocks.length),0,x.b); savePage(x.pg); rerenderBlocks(); }); }
-      else { const host=imgSel.host; imgSel.img.remove(); hideImgSel(); host.dispatchEvent(new Event('input',{bubbles:true})); }
+      if(kind==='block'){ deleteSelected(true); return; }
+      const host=imgSel.host; imgSel.img.remove(); hideImgSel(); host.dispatchEvent(new Event('input',{bubbles:true}));
     }
   });
+  markTools(pop);
 }
 
 /* posluchače a nastavení při startu (volá main.js ve stejném pořadí jako dřív) */
@@ -175,6 +274,33 @@ export function initImages(){
     rz.addEventListener('pointermove',move); rz.addEventListener('pointerup',up); rz.addEventListener('pointercancel',up);
   });
   window.addEventListener('resize',()=>placeFrame());
+  /* načtený obrázek si zapamatuje poměr stran (jen v zařízení) */
+  document.addEventListener('load',e=>{ const im=e.target; if(im&&im.tagName==='IMG'&&im.classList.contains('bimg')){ noteRatio(im.getAttribute('data-bimg'),im.naturalWidth,im.naturalHeight); applyRatio(im.parentElement); } },true);
+  /* vybraný blokový obrázek a klávesnice: Enter = řádek pod, ⇧Enter = nad, Backspace/Delete = smazat, šipky = k textu, Esc = zrušit výběr */
+  document.addEventListener('keydown',e=>{
+    if(!imgSel||imgSel.kind!=='block'||e.isComposing||S.modal||e.metaKey||e.ctrlKey||e.altKey) return;
+    const a=document.activeElement; if(a&&a!==document.body&&(a.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) return;
+    const k=e.key;
+    if(k==='Escape'){ e.preventDefault(); e.stopPropagation(); closePop(); hideImgSel(); return; }
+    if(k==='Enter'){ e.preventDefault(); lineAround(imgSel.x.b.id,e.shiftKey); return; }
+    if(k==='Backspace'||k==='Delete'){ e.preventDefault(); deleteSelected(k==='Backspace'); return; }
+    if(/^Arrow(Up|Down|Left|Right)$/.test(k)){
+      e.preventDefault(); const blk=imgSel.img.closest('.blk'), up=k==='ArrowUp'||k==='ArrowLeft'; closePop(); hideImgSel();
+      if(blk&&!navFrom(blk,up)&&!up) lineAround(blk.dataset.id,false);
+    }
+  },true);
+  /* úchyty ⋮⋮ a + u textu vedle obrázku vlevo: k začátku textu, ne až vlevo od obrázku */
+  const gut=e=>{ const blk=e.target.closest&&e.target.closest('#blocks > .blk:not(.b-image)'); if(blk) placeGut(blk); };
+  const v=$('#view'); if(v){ v.addEventListener('mouseover',gut); v.addEventListener('focusin',gut); }
+}
+function placeGut(blk){
+  const br=blk.getBoundingClientRect(), top=br.top+4, bot=top+24; let gx=0;
+  $$('#blocks > .b-image.al-left:not(.nw)').forEach(f=>{
+    if(getComputedStyle(f).float!=='left') return;
+    const r=f.getBoundingClientRect(); if(r.height&&r.top<bot&&r.bottom>top&&r.left<=br.left+4) gx=Math.max(gx,Math.round(r.right-br.left+22));
+  });
+  if(gx){ blk.style.setProperty('--gx',gx+'px'); blk.classList.add('bfl'); }
+  else if(blk.classList.contains('bfl')){ blk.style.removeProperty('--gx'); blk.classList.remove('bfl'); }
 }
 
-export { handleImageFiles, hideImgSel, imgSel, pickImageBlock, pickImageInline, placeFrame, rangeFromPoint, selectImage };
+export { applyRatio, handleImageFiles, hideImgSel, imgSel, lineAround, navFrom, noteRatio, pickImageBlock, pickImageInline, placeFrame, rangeFromPoint, selectImage };

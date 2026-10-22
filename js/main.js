@@ -26,9 +26,8 @@ import { openSearch } from './views/search.js';
 import { applyFontScale, applyTheme, initSettings, openSettings } from './views/settings.js';
 import { openSyncMenu, Sync } from './sync/sync.js';
 import { openLinkPop } from './editor/links.js';
-import { initImages, selectImage } from './editor/images.js';
+import { initImages, lineAround, selectImage } from './editor/images.js';
 import { exportMd } from './editor/markdown.js';
-import { editDrawing } from './editor/draw.js';
 import { initMath, openEqEditor } from './editor/math.js';
 import { initSource, srcOn, toggleSource } from './editor/source.js';
 import { trashAct } from './trash.js';
@@ -52,7 +51,7 @@ document.addEventListener('click',e=>{
     if(e.metaKey||e.ctrlKey){ window.open(lk.href,'_blank','noopener'); return; }
     openLinkPop(lk); return;
   }
-  const im=e.target.closest&&e.target.closest('#doc .txt img.im, #doc .bimg'); if(im){ if(im.classList.contains('bdraw')) editDrawing(im); else selectImage(im); return; }
+  const im=e.target.closest&&e.target.closest('#doc .txt img.im, #doc .bimg'); if(im){ selectImage(im); return; }
   const eq=e.target.closest&&e.target.closest('#doc .eq, #doc .eqb'); if(eq){ openEqEditor(eq); return; }
   const col=e.target.classList&&e.target.classList.contains('sg-col')?e.target:null;
   if(col){
@@ -66,7 +65,7 @@ document.addEventListener('click',e=>{
   const a=e.target.closest('[data-act]'); if(!a) return;
   const act=a.dataset.act, pg=curPage();
   /* zamčeno: nic, co mění strukturu stránky */
-  if(LOCK&&['add-after','row-menu','col-menu','add-row','add-col','prop-add','prop-del','tpl'].includes(act)) return;
+  if(LOCK&&['add-after','img-line','row-menu','col-menu','add-row','add-col','prop-add','prop-del','tpl'].includes(act)) return;
   if(act.startsWith('trash')&&trashAct(act,a)) return;
   switch(act){
     case 'lock': toggleLock(); break;
@@ -104,6 +103,7 @@ document.addEventListener('click',e=>{
     case 'check': { const x=ctxOf(a); if(!x) break; x.b.done=!x.b.done; a.classList.toggle('on',x.b.done); a.setAttribute('aria-checked',x.b.done); a.parentElement.querySelector('.txt').classList.toggle('done',x.b.done); savePage(x.pg,300); renderSidebar(); break; }
     case 'lcheck': { const x=ctxOf(a); if(!x||!x.line) break; x.line.done=!x.line.done; a.classList.toggle('on',x.line.done); a.closest('.ln').classList.toggle('done',x.line.done); savePage(x.pg,300); renderSidebar(); break; }
     case 'collapse': { const x=ctxOf(a); if(!x) break; x.b.collapsed=!x.b.collapsed; savePage(x.pg); rerenderBlocks(); renderSidebar(); break; }
+    case 'img-line': { const x=ctxOf(a); if(x) lineAround(x.b.id,a.dataset.dir==='up'); break; }
     case 'add-after': { const x=ctxOf(a); if(!x) break; const nb=newBlock('p',{level:x.b.level||0}); x.pg.blocks.splice(x.bi+1,0,nb); savePage(x.pg); rerenderBlocks(); const el=$(`#blocks .blk[data-id="${nb.id}"] .txt`); focusEl(el,0); openSlash(el,nb.id,0,'plus'); break; }
     case 'blk-menu': { const x=ctxOf(a); if(x) openBlockMenu(a,x.pg,x.b); break; }
     case 'subj-blk': { const x=ctxOf(a); if(x&&x.b.type==='subj') openSubjBlockMenu(a,x.pg,x.b); break; }

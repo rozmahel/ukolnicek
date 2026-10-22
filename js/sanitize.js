@@ -57,7 +57,7 @@ function sanitize(html){
         [...ch.attributes].forEach(a=>ch.removeAttribute(a.name));
         ch.setAttribute('data-img',id); if(name) ch.setAttribute('data-name',name);
         if(/^\d{1,4}$/.test(w)) ch.setAttribute('width',w);
-        ch.setAttribute('class',/^im( al-(left|center|right|inline))?$/.test(cls)?cls:'im al-left');
+        ch.setAttribute('class',/^im( al-(left|center|right|inline)( nw)?)?$/.test(cls)?cls:'im al-left');
         if(!IMGURL.has(id)) ch.classList.add('missing');
         ch.setAttribute('src',imgSrc(id,name)); ch.setAttribute('alt',''); ch.setAttribute('draggable','false');
         return;

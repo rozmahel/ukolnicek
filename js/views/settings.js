@@ -17,7 +17,7 @@ import { placeFrame } from '../editor/images.js';
 import { checkUpdate } from '../update.js';
 
 /* ================= settings ================= */
-const APP_VERSION='4.4.1';
+const APP_VERSION='4.5.0';
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
 const FS_STEPS=[1,1.15,1.3,1.45,1.6];
 function applyTheme(){

@@ -7,7 +7,7 @@ import { hist, updateUndoBtns } from './history.js';
 import { curPage, isArchived, pIcon, pTitle } from '../pages.js';
 import { isSchool, subjBlockText, subjLabel } from '../school.js';
 import { imgSrc, isBlank, sanitize } from '../sanitize.js';
-import { hideImgSel, imgSel } from './images.js';
+import { applyRatio, hideImgSel, imgSel } from './images.js';
 import { codeNorm } from './code.js';
 import { backlinksHtml } from './mention.js';
 import { fitSource, flushSource, sourceHtml } from './source.js';
@@ -23,7 +23,7 @@ function numLabel(blocks,i){
 }
 function renderPage(pg){
   flushSource(true);
-  const src=sourceHtml(pg);
+  const src=sourceHtml(pg), items=src!=null?[]:blockList(pg);
   const crumbs=[]; let p=S.pages[pg.parent];
   while(p){ crumbs.unshift(p); p=S.pages[p.parent]; }
   const isEmpty=(pg.blocks||[]).length<=1&&isBlank((pg.blocks[0]||{}).html)&&!(pg.props||[]).length&&(!pg.blocks[0]||TEXT_TYPES.includes(pg.blocks[0].type));
@@ -46,10 +46,11 @@ function renderPage(pg){
       <div class="props" id="props">${renderProps(pg)}</div>
     </div>
     ${isEmpty&&src==null?`<div class="tpl"><span>Začít šablonou:</span><button data-act="tpl" data-v="subject">Předmět</button><button data-act="tpl" data-v="weeks">Přehled týdnů</button><button data-act="tpl" data-v="info">Obecné informace</button></div>`:''}
-    ${src!=null?src+'<div class="blocks" id="blocks" hidden></div>':`<div class="blocks" id="blocks">${renderBlocks(pg)}</div>`}
+    ${src!=null?src+'<div class="blocks" id="blocks" hidden></div>':`<div class="blocks" id="blocks">${items.map(x=>x.h).join('')}</div>`}
     ${backlinksHtml(pg)}
     <div class="doc-tail" data-act="tail"></div>
   </article>`;
+  if(src==null) tagBlocks($('#blocks'),items);
   hist(pg); updateUndoBtns(); applyLock(); if(src!=null) fitSource();
 }
 function renderProps(pg){
@@ -73,21 +74,49 @@ function hiddenMask(bl,counts){
   }
   return hidden;
 }
-function renderBlocks(pg){
+/* bloky stránky jako seznam {k: klíč, h: HTML}; každá položka má jeden kořenový prvek */
+function blockList(pg){
   const bl=pg.blocks||[]; const counts={}; const hidden=hiddenMask(bl,counts);
-  let out='';
+  const out=[];
   bl.forEach((b,i)=>{
     if(hidden[i]) return;
-    out+=renderBlock(b,i,bl);
-    const n=counts[b.id]; if(n&&S.settings.showHidden!==false) out+=`<div class="hidden-count">${n} ${n===1?'skrytý blok':n<5?'skryté bloky':'skrytých bloků'}</div>`;
+    out.push({k:b.id,h:renderBlock(b,i,bl)});
+    const n=counts[b.id]; if(n&&S.settings.showHidden!==false) out.push({k:'hc:'+b.id,h:`<div class="hidden-count">${n} ${n===1?'skrytý blok':n<5?'skryté bloky':'skrytých bloků'}</div>`});
   });
   return out;
+}
+function renderBlocks(pg){ return blockList(pg).map(x=>x.h).join(''); }
+/* uzlům v #blocks si zapamatuje, z jakého HTML vznikly (pro patchBlocks) */
+function tagBlocks(el,items){
+  const ch=el.children; items.forEach((it,i)=>{ const n=ch[i]; if(n) n._uk={k:it.k,h:it.h,c:n.getAttribute('class')||'',s:n.getAttribute('style')||''}; });
+  applyRatio(el); dirtyMo.disconnect(); dirtyMo.observe(el,{childList:true,subtree:true,characterData:true});
+}
+/* blok, ve kterém se od vykreslení měnil obsah (psaní, vložení…), se příště vždy vykreslí znovu */
+const dirtyMo=new MutationObserver(markDirty);
+function markDirty(recs){ for(const r of recs){ const n=r.target.nodeType===1?r.target:r.target.parentElement; const b=n&&n.closest&&n.closest('#blocks > *'); if(b&&b._uk) b._uk.d=1; } }
+/* překreslí jen změněné bloky: nezměněné uzly (hlavně obrázky) zůstanou, takže se nic znovu nenačítá a stránka neskáče */
+function patchBlocks(el,items){
+  markDirty(dirtyMo.takeRecords());
+  const old=new Map(); for(const n of el.children) if(n._uk) old.set(n._uk.k,n);
+  const tpl=document.createElement('template'), main=$('#main'), top=main?main.scrollTop:0;
+  const nodes=items.map(it=>{
+    const o=old.get(it.k);
+    if(o&&o._uk.h===it.h&&!o._uk.d){ old.delete(it.k); if(o.getAttribute('class')!==o._uk.c) o.setAttribute('class',o._uk.c); if((o.getAttribute('style')||'')!==o._uk.s) o.setAttribute('style',o._uk.s); return o; }
+    tpl.innerHTML=it.h; const n=tpl.content.firstElementChild;
+    n._uk={k:it.k,h:it.h,c:n.getAttribute('class')||'',s:n.getAttribute('style')||''}; applyRatio(n); return n;
+  });
+  const keep=new Set(nodes);
+  [...el.children].forEach(n=>{ if(!keep.has(n)) n.remove(); });
+  let ref=el.firstElementChild;
+  nodes.forEach(n=>{ if(n===ref) ref=ref.nextElementSibling; else el.insertBefore(n,ref); });
+  dirtyMo.takeRecords();
+  if(main&&main.scrollTop!==top) main.scrollTop=top;
 }
 function renderBlock(b,i,bl){
   const lv=b.level||0; let inner;
   if(b.type==='divider') inner='<div class="divider"><hr></div>';
   else if(b.type==='table') inner=renderTable(b);
-  else if(b.type==='image') inner=`<figure class="imgfig"><img class="bimg${b.draw?' bdraw':''} ${IMGURL.has(b.img)?'':'missing'}" data-bimg="${esc(b.img||'')}" src="${esc(imgSrc(b.img,b.name))}" alt="${esc(b.caption||'')}" draggable="false">${(b.caption||b.capOn)?`<figcaption class="cap" contenteditable="true" data-ph="Popisek obrázku">${esc(b.caption||'')}</figcaption>`:''}</figure>`;
+  else if(b.type==='image') inner=`<figure class="imgfig"><img class="bimg${b.draw?' bdraw':''} ${IMGURL.has(b.img)?'':'missing'}" data-bimg="${esc(b.img||'')}" src="${esc(imgSrc(b.img,b.name))}" alt="${esc(b.caption||'')}" draggable="false"><button class="ta ta-up" data-act="img-line" data-dir="up" title="Nový řádek nad" aria-label="Nový řádek nad obrázkem">↵</button><button class="ta ta-dn" data-act="img-line" title="Nový řádek pod" aria-label="Nový řádek pod obrázkem">↵</button>${(b.caption||b.capOn)?`<figcaption class="cap" contenteditable="true" data-ph="Popisek obrázku">${esc(b.caption||'')}</figcaption>`:''}</figure>`;
   else if(b.type==='subj') inner=renderSubjHead(b);
   else if(b.type==='eq'){ const tex=plain(b.html); inner=`<div class="eqb" data-tex="${esc(tex)}" role="button" tabindex="0" aria-label="Rovnice, klikni pro úpravu">${esc(tex)}</div>`; }
   else if(b.type==='page'){ const p=S.pages[b.pageId]; inner=`<button class="pagelink" data-act="open" data-id="${esc(b.pageId)}">${p?pIcon(p):'<span class="pl-ic">↗</span>'}<span class="pl-t">${esc(pTitle(p))}</span></button>`; }
@@ -100,8 +129,8 @@ function renderBlock(b,i,bl){
     else if(b.type==='callout') mk=`<button class="mk callout-ic" data-act="blk-menu" data-popanchor aria-label="Změnit ikonu a barvu">${esc(b.icon||'💡')}</button>`;
     inner=`<div class="row">${mk}<div class="txt t-${b.type} ${b.type==='todo'&&b.done?'done':''}" contenteditable="true" data-ph="${PH[b.type]||''}">${b.type==='code'?codeNorm(b.html):sanitize(b.html)}</div></div>`;
   }
-  const extra=b.type==='image'?` al-${b.align||'center'}${b.draw?' is-draw':''}`:b.type==='subj'?` hl-${esc((S.subjects[b.subj]||{}).color||'gray')}`:'';
-  return `<div class="blk b-${b.type} ${b.type==='callout'?'hl-'+(b.color||'purple'):''}${extra}" data-id="${b.id}" style="--lv:${b.type==='image'?0:lv}${b.type==='image'?`;--w:${+b.w||480}px`:''}">
+  const extra=b.type==='image'?` al-${b.align||'center'}${b.nw?' nw':''}${b.draw?' is-draw':''}`:b.type==='subj'?` hl-${esc((S.subjects[b.subj]||{}).color||'gray')}`:'';
+  return `<div class="blk b-${b.type} ${b.type==='callout'?'hl-'+(b.color||'purple'):''}${extra}${b.clr?' clr':''}" data-id="${b.id}" style="--lv:${b.type==='image'?0:lv}${b.type==='image'?`;--w:${+b.w||480}px`:''}">
     <div class="gut"><button class="g-add" data-act="add-after" aria-label="Přidat blok pod">+</button><button class="g-drag" data-act="blk-menu" data-popanchor draggable="true" aria-label="Přetáhni, nebo klikni pro menu">⋮⋮</button></div>${inner}</div>`;
 }
 /* nadpis s předmětem z Indexu: text se nepíše ručně, bere se živě z Indexu */
@@ -128,7 +157,7 @@ function renderTable(b){
   });
   return h+`</tbody></table></div><div class="tbl-tools"><button data-act="add-row">＋ Řádek</button><button data-act="add-col">＋ Sloupec</button></div>`;
 }
-function rerenderBlocks(){ const pg=curPage(); if(!pg) return; if(imgSel) hideImgSel(); const el=$('#blocks'); if(el) el.innerHTML=renderBlocks(pg); const tpl=$('.tpl'); if(tpl&&!((pg.blocks||[]).length<=1&&isBlank((pg.blocks[0]||{}).html))) tpl.remove(); }
+function rerenderBlocks(){ const pg=curPage(); if(!pg) return; if(imgSel) hideImgSel(); const el=$('#blocks'); if(el) patchBlocks(el,blockList(pg)); const tpl=$('.tpl'); if(tpl&&!((pg.blocks||[]).length<=1&&isBlank((pg.blocks[0]||{}).html))) tpl.remove(); }
 function rerenderProps(){ const pg=curPage(); if(pg) $('#props').innerHTML=renderProps(pg); }
 
 function ctxOf(el){

@@ -1,5 +1,5 @@
 /* Úkolníček – Klávesy v blocích a v buňkách tabulky (Enter, Backspace, Tab, šipky) */
-import { $$, clamp, esc, LIST_TYPES, plain, TEXT_TYPES } from '../core.js';
+import { $, $$, clamp, esc, LIST_TYPES, plain, TEXT_TYPES } from '../core.js';
 import { LOCK } from '../lock.js';
 import { savePage } from '../store.js';
 import { emptyCell, newBlock } from '../pages.js';
@@ -7,6 +7,7 @@ import { isBlank, isBlankEl, sanitize } from '../sanitize.js';
 import { caretAtEnd, caretAtStart, caretOffset, focusBlock, focusEl, focusLine, onFirstLine, onLastLine, splitAtCaret } from './caret.js';
 import { isHeading, rerenderBlocks, sectionEnd } from './render.js';
 import { setType, takeShortcut } from './blocks.js';
+import { navFrom, selectImage } from './images.js';
 import { caretPos, codeHtml, dedent, domText, insertCode, newLine } from './code.js';
 
 /* ---- key handling ---- */
@@ -70,13 +71,15 @@ function blockKeys(e,x,t){
     /* oddělovač, odkaz na podstránku a blok předmětu se Backspacem smažou celé (jde vrátit ⌘Z) */
     if(['divider','page','subj','eq'].includes(prev.type)&&LOCK) return;
     if(['divider','page','subj','eq'].includes(prev.type)){ pg.blocks.splice(pi,1); savePage(pg); rerenderBlocks(); focusBlock(b.id,0); return; }
-    if(prev.type==='table'||prev.type==='image'||prev.type==='code'){ if(isBlankEl(t)){ pg.blocks.splice(bi,1); savePage(pg); rerenderBlocks(); const last=$$(`#blocks .blk[data-id="${prev.id}"] .txt`).pop(); focusEl(last,'end'); } return; }
+    if(prev.type==='image'){ const im=$(`#blocks .blk[data-id="${prev.id}"] .bimg`); if(im) selectImage(im,true,b.id); return; }   /* obrázek se vybere, další Backspace ho smaže */
+    if(prev.type==='table'||prev.type==='code'){ if(isBlankEl(t)){ pg.blocks.splice(bi,1); savePage(pg); rerenderBlocks(); const last=$$(`#blocks .blk[data-id="${prev.id}"] .txt`).pop(); focusEl(last,'end'); } return; }
     const len=plain(prev.html).length; prev.html=(prev.html||'')+(b.html||''); pg.blocks.splice(bi,1);
     savePage(pg); rerenderBlocks(); focusBlock(prev.id,len); return;
   }
   if(e.key==='Delete'&&b.type!=='code'&&caretAtEnd(t)){
     const nextEl=blkEl.nextElementSibling; if(!nextEl||!nextEl.classList.contains('blk')) return;
     const ni=pg.blocks.findIndex(q=>q.id===nextEl.dataset.id); const nx=pg.blocks[ni];
+    if(nx&&nx.type==='image'){ e.preventDefault(); const im=nextEl.querySelector('.bimg'); if(im) selectImage(im,true,b.id); return; }
     if(!nx||!TEXT_TYPES.includes(nx.type)||nx.type==='code') return;
     e.preventDefault(); const len=t.textContent.length; b.html=sanitize(t.innerHTML)+(nx.html||''); pg.blocks.splice(ni,1); savePage(pg); rerenderBlocks(); focusBlock(b.id,len); return;
   }
@@ -86,8 +89,7 @@ function blockKeys(e,x,t){
   }
   if((e.key==='ArrowUp'&&onFirstLine(t))||(e.key==='ArrowDown'&&onLastLine(t))){
     if(e.shiftKey) return;
-    const all=$$('#page-title, #blocks .txt'); const i=all.indexOf(t); const tgt=all[e.key==='ArrowUp'?i-1:i+1];
-    if(tgt){ e.preventDefault(); focusEl(tgt,e.key==='ArrowUp'?'end':'start'); }
+    if(navFrom(t,e.key==='ArrowUp')) e.preventDefault();   /* cestou se zastaví i na obrázku (vybere ho) */
   }
 }
 function lineKeys(e,x,t){

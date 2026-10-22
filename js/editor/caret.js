@@ -33,7 +33,14 @@ function caretRect(){ const s=getSelection(); if(!s.rangeCount) return null; con
 function lineH(el){ return parseFloat(getComputedStyle(el).lineHeight)||22; }
 function onFirstLine(el){ const rc=caretRect(); if(!rc) return true; return rc.top-el.getBoundingClientRect().top<lineH(el)*.9; }
 function onLastLine(el){ const rc=caretRect(); if(!rc) return true; return el.getBoundingClientRect().bottom-rc.bottom<lineH(el)*.9; }
-function focusEl(el,pos){ if(!el) return; el.focus({preventScroll:true}); const len=el.textContent.length; setCaret(el,pos==='end'?len:pos==='start'||pos==null?0:Math.min(pos,len)); const r=el.getBoundingClientRect(); if(r.bottom>innerHeight-40||r.top<60) el.scrollIntoView({block:'center'}); }
+function focusEl(el,pos){ if(!el) return; el.focus({preventScroll:true}); const len=el.textContent.length; setCaret(el,pos==='end'?len:pos==='start'||pos==null?0:Math.min(pos,len)); keepCaretVisible(el); }
+/* posune stránku jen o tolik, aby byl vidět kurzor (jako Word), ne celý blok na střed */
+function keepCaretVisible(el){
+  const m=document.getElementById('main'), r=caretRect()||el.getBoundingClientRect();
+  if(!m||!m.contains(el)){ if(r.bottom>innerHeight-40||r.top<60) el.scrollIntoView({block:'nearest'}); return; }
+  const top=Math.max(60,m.getBoundingClientRect().top+16), bot=innerHeight-40;
+  if(r.bottom>bot) m.scrollTop+=r.bottom-bot+24; else if(r.top<top) m.scrollTop-=top-r.top+24;
+}
 function focusBlock(id,pos){ focusEl($(`#blocks .blk[data-id="${id}"] .txt`),pos); }
 function focusLine(bid,r,c,l,pos){ focusEl($(`#blocks .blk[data-id="${bid}"] td[data-r="${r}"][data-c="${c}"] .ln[data-l="${l}"] .txt`),pos); }
 

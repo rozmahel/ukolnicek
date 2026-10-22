@@ -14,6 +14,7 @@ import { isBlank } from '../sanitize.js';
 import { focusBlock } from './caret.js';
 import { rerenderBlocks } from './render.js';
 import { closeModal, closePop, toast } from '../ui.js';
+import { noteRatio } from './images.js';
 
 const INK=['#111111','#1f5fd1','#d23b3b','#2b8a3e','#e8740c','#7b3fc4','#8a5a2b','#868e96'];
 const HLC=['#ffd43b','#8ce99a','#faa2c1','#74c0fc','#ffa94d'];
@@ -446,7 +447,7 @@ async function finish(){
   else box={x:view[0],y:view[1],w:view[2],h:view[3]};
   const svg=buildSvg(data,box), blob=new Blob([svg],{type:'image/svg+xml'});
   let id;
-  try{ id=await Local.putImage(blob,'Kresba'); IMGURL.set(id,URL.createObjectURL(blob)); }
+  try{ id=await Local.putImage(blob,'Kresba'); IMGURL.set(id,URL.createObjectURL(blob)); noteRatio(id,box.w,box.h); }
   catch(e){ toast(e&&e.name==='QuotaExceededError'?'Úložiště v zařízení je plné.':'Kresbu se nepodařilo uložit do zařízení.'); return; }
   const {target,oldVw}=E; closeDraw();
   const pg=S.pages[target.pgId]; if(!pg) return toast('Stránka mezitím zmizela, kresba se nevložila.');

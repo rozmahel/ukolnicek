@@ -195,7 +195,7 @@ export function initEvents(){
       const from=pg.blocks.findIndex(b=>b.id===dragId); const [im]=pg.blocks.splice(from,1);
       const to=pg.blocks.findIndex(b=>b.id===tgt.dataset.id); pg.blocks.splice(to,0,im);
       const cw=($('#blocks')||{clientWidth:700}).clientWidth||700;
-      im.align='right'; if((+im.w||480)>cw*.5) im.w=Math.round(cw*.42);
+      im.align='right'; delete im.nw; if((+im.w||480)>cw*.5) im.w=Math.round(cw*.42);
       savePage(pg);
     } else if(tgt&&pg&&tgt.dataset.id!==dragId){
       const after=tgt.classList.contains('drop-after');

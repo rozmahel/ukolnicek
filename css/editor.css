@@ -108,6 +108,7 @@
 
 /* ---------- obrázky ---------- */
 .blocks::after{content:"";display:block;clear:both}
+.blocks{container:blk/inline-size}
 .b-h1{clear:both}
 .doc-tail{clear:both}
 .b-image{padding-left:0}
@@ -117,6 +118,36 @@
 .b-image.al-right{float:right;width:min(var(--w),100%);margin-left:22px}
 /* obtékaný obrázek nad následujícími bloky, jinak je jejich rámeček (position:relative) překryje a nejde na něj kliknout */
 .b-image.al-left,.b-image.al-right{z-index:1}
+/* bez obtékání: vlevo/vpravo, ale na vlastním řádku */
+.b-image.nw.al-left,.b-image.nw.al-right{float:none;clear:both;margin-inline:0}
+.b-image.nw.al-right{margin-left:auto}
+/* obtékaný obrázek nejvýš 60 % šířky, aby vedle zbylo místo na text */
+.b-image.al-left:not(.nw),.b-image.al-right:not(.nw){width:min(var(--w),60%)}
+/* odstavec vedle obtékaného obrázku není samostatný box: řádky obtékají a pod obrázkem pokračují přes celou šířku (jako Word).
+   Odrážky, úkoly, citace a nadpisy zůstávají zúžené vedle obrázku, jinak by se značka schovala pod něj. */
+.b-p>.row{display:block}
+.b-p .txt:has(img.im.al-left,img.im.al-right){display:flow-root}
+/* „Začít pod obrázkem“ = konec obtékání */
+.blk.clr{clear:both}
+/* úchyty u textu vedle obrázku vlevo (placeGut v images.js) */
+.blk.bfl>.gut{left:calc(var(--gx) + var(--lv,0)*26px - 54px);z-index:2;background:var(--panel);border-radius:7px;box-shadow:var(--shadow)}
+/* nový řádek nad / pod obrázkem */
+.imgfig .ta{position:absolute;right:10px;width:24px;height:24px;border-radius:7px;display:grid;place-items:center;background:var(--panel);color:var(--fg2);box-shadow:var(--shadow);font-size:calc(14px*var(--fs));line-height:1;opacity:0;transition:opacity .12s;z-index:2}
+.imgfig .ta-up{top:-12px}
+.imgfig .ta-up{transform:scaleY(-1)}
+.imgfig .ta-dn{bottom:-12px}
+.b-image:hover .ta,.b-image.isel .ta{opacity:1}
+.imgfig .ta:hover{color:var(--accent)}
+body.locked .imgfig .ta{display:none}
+.b-image .imgfig{container-type:inline-size}
+@container (max-width:110px){ .imgfig .ta{display:none} }
+/* v úzkém sloupci se neobtéká (jen zobrazení, data se nemění) */
+@container blk (max-width:520px){
+  .blocks>.b-image.al-left,.blocks>.b-image.al-right{float:none;width:min(var(--w),100%);margin-inline:0}
+  .blocks>.b-image.al-right{margin-left:auto}
+  .txt img.im.al-left,.txt img.im.al-right{float:none;display:block;margin:6px 0}
+  .txt img.im.al-right{margin-left:auto}
+}
 .bimg{display:block;width:100%;height:auto;border-radius:8px;cursor:pointer;background:var(--hover)}
 .b-image>.gut{left:6px;top:14px;z-index:2;background:var(--panel);border-radius:7px;box-shadow:var(--shadow)}
 .b-image.al-center>.gut{left:calc(50% - min(var(--w),100%)/2 + 6px)}
@@ -126,6 +157,8 @@
 .txt img.im.al-left{float:left;margin:3px 12px 4px 0}
 .txt img.im.al-right{float:right;margin:3px 0 4px 12px}
 .txt img.im.al-center{display:block;margin:6px auto}
+.txt img.im.nw{float:none;display:block;margin:6px 0}
+.txt img.im.al-right.nw{margin-left:auto}
 img.broken{min-width:80px;min-height:48px;outline:1px dashed var(--faint)}
 .task-t img{max-height:44px;width:auto!important;float:none!important;display:inline-block!important;margin:0 4px!important}
 #imgframe{position:fixed;z-index:60;border:2px solid var(--accent);border-radius:8px;pointer-events:none}
@@ -136,6 +169,10 @@ img.broken{min-width:80px;min-height:48px;outline:1px dashed var(--faint)}
 .it-row button:hover{border-color:var(--faint);color:var(--fg)}
 .it-row button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
 .it-row button.danger{color:var(--danger)}
+.lay-row{gap:3px}
+.it-row .lay-b{padding:4px 5px;line-height:0}
+.lay-b svg{width:28px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+.lay-b svg rect{fill:currentColor;fill-opacity:.28;stroke-width:1.2}
 .modal.lbm{width:min(1100px,100%)}
 .lb-acts{display:flex;align-items:center;gap:6px}
 .lb{padding:8px 18px 18px;display:grid;gap:8px}
@@ -270,6 +307,6 @@ a.mention.gone{color:var(--muted);background:var(--hover);text-decoration:line-t
 .src-ed{display:block;width:100%;min-height:40vh;margin:6px 0 0;padding:10px 0;border:0;outline:0;resize:none;background:transparent;color:var(--fg);font:calc(13.5px*var(--fs))/1.65 var(--f-mono);white-space:pre-wrap;overflow-wrap:anywhere;tab-size:2;overflow:hidden;font-variant-ligatures:none;font-feature-settings:"calt" 0,"liga" 0}   /* bez ligatur JetBrains Mono: „###“, „->“ se při psaní nepřeskupují */
 .src-ed:read-only{color:var(--fg2)}
 /* náhled stránky v koši (jen ke čtení) */
-.ro-blocks .gut,.ro-blocks .hidden-count{display:none}
+.ro-blocks .gut,.ro-blocks .hidden-count,.ro-blocks .ta{display:none}
 .ro-blocks .txt:empty{display:none}
 .ro-doc .page-icon{cursor:default}

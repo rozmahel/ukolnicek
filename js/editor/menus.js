@@ -61,6 +61,8 @@ function openBlockMenu(anchor,pg,b){
   }
   if(b.type==='eq') h+=`<div class="pop-sep"></div><button class="pop-item" data-v="eq-edit"><span class="pi-ic">${TYPE_ICON.eq}</span>Upravit rovnici</button><button class="pop-item" data-v="eq-txt"><span class="pi-ic">T</span><span>Převést na text<small>Zdroj LaTeX jako obyčejný odstavec</small></span></button>`;
   if(b.type==='image'&&b.draw) h+=`<div class="pop-sep"></div><button class="pop-item" data-v="draw-edit"><span class="pi-ic">✎</span>Upravit kresbu</button><button class="pop-item" data-v="draw-size"><span class="pi-ic">⤢</span>Velikost a zarovnání</button>`;
+  { const xi=pg.blocks.indexOf(b); if(b.type!=='image'&&(b.clr||pg.blocks.slice(0,xi).some(q=>q.type==='image'&&(q.align==='left'||q.align==='right')&&!q.nw)))
+      h+=`<div class="pop-sep"></div><button class="pop-item ${b.clr?'act':''}" data-v="clr"><span class="pi-ic">${b.clr?'✓':'⤓'}</span><span>Začít pod obrázkem<small>${b.clr?'Klikni pro zrušení':'Ukončí obtékání, blok začne až pod obrázkem'}</small></span></button>`; }
   if(b.type==='table') h+=`<div class="pop-sep"></div><div class="pop-h">Tabulka</div><button class="pop-item" data-v="hrow"><span class="pi-ic">${b.hrow?'✓':''}</span>První řádek jako záhlaví</button><button class="pop-item" data-v="hcol"><span class="pi-ic">${b.hcol?'✓':''}</span>První sloupec jako záhlaví</button>`;
   {
     const bl=pg.blocks, xi=bl.indexOf(b); let sec='';
@@ -90,7 +92,7 @@ function openBlockMenu(anchor,pg,b){
     if(v==='subj-ix'){ gotoSubject(b.subj); return; }
     if(v==='subj-h1'){ subjToH1(pg,b); return; }
     if(v==='eq-edit'){ const el=$(`#blocks .blk[data-id="${b.id}"] .eqb`); if(el) setTimeout(()=>openEqEditor(el),0); return; }
-    if(v==='draw-edit'||v==='draw-size'){ const im=$(`#blocks .blk[data-id="${b.id}"] .bimg`); if(im) setTimeout(()=>v==='draw-edit'?editDrawing(im):selectImage(im,true),0); return; }
+    if(v==='draw-edit'||v==='draw-size'){ const im=$(`#blocks .blk[data-id="${b.id}"] .bimg`); if(im) setTimeout(()=>v==='draw-edit'?editDrawing(im):selectImage(im),0); return; }
     if(v==='eq-txt'){ b.type='p'; savePage(pg); rerenderBlocks(); focusBlock(b.id,'end'); return; }
     if(v==='type:eq'){ blockToEq(pg,b); return; }
     if(v.startsWith('type:')){ setType(pg,b,v.slice(5),true); }
@@ -100,6 +102,7 @@ function openBlockMenu(anchor,pg,b){
     else if(v.startsWith('until:')){ const hb=pg.blocks.find(q=>q.id===v.slice(6)); if(hb){ hb.until=b.id; delete hb.untilVis; } }
     else if(v.startsWith('untilv:')){ const hb=pg.blocks.find(q=>q.id===v.slice(7)); if(hb){ hb.until=b.id; hb.untilVis=true; } }
     else if(v.startsWith('until-x:')){ const hb=pg.blocks.find(q=>q.id===v.slice(8)); if(hb){ delete hb.until; delete hb.untilVis; } }
+    else if(v==='clr'){ if(b.clr) delete b.clr; else b.clr=1; }
     else if(v==='hrow') b.hrow=!b.hrow;
     else if(v==='hcol') b.hcol=!b.hcol;
     else if(v==='up'&&bi>0){ pg.blocks.splice(bi,1); pg.blocks.splice(bi-1,0,b); }
