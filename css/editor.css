@@ -100,6 +100,17 @@
 @keyframes flash{0%{background:var(--sel)}100%{background:transparent}}
 /* nalezený text z hledání (CSS Highlight API, do obsahu bloku nesahá) */
 ::highlight(uk-find){background-color:var(--hl-yellow-bg);color:var(--hl-yellow-fg)}
+/* text psaný se zapnutým Caps Lockem (js/editor/caps.js): vlnovka jen nad textem, bublina u kurzoru */
+::highlight(uk-caps){text-decoration:underline wavy var(--accent);text-decoration-thickness:1.5px;text-underline-offset:3px;text-decoration-skip-ink:none}
+.pop.caps-pop{display:flex;gap:3px;min-width:0;padding:3px;border-radius:9px;overflow:visible}
+.pop.caps-pop[hidden]{display:none}
+.cp-b{height:30px;min-width:30px;padding:0 6px;display:grid;place-items:center;border-radius:6px;color:var(--fg2)}
+.cp-b:hover{background:var(--hover);color:var(--fg)}
+.cp-b svg{height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.cp-b:not(.cp-swap) svg{width:18px}
+.cp-swap svg{width:34px;height:20px;stroke-width:1.5}
+.cp-swap text{fill:currentColor;stroke:none;font:600 15px var(--f-body)}
+.cp-swap .cp-up{font-size:16px}
 .doc-tail{min-height:140px;cursor:text}
 
 /* stránka v archivu */

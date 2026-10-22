@@ -29,6 +29,7 @@ import { openSyncMenu, Sync } from './sync/sync.js';
 import { openLinkPop } from './editor/links.js';
 import { initImages, lineAround, selectImage } from './editor/images.js';
 import { exportMd } from './editor/markdown.js';
+import { initCaps } from './editor/caps.js';
 import { initMath, openEqEditor } from './editor/math.js';
 import { initSource, srcOn, toggleSource } from './editor/source.js';
 import { initTableSize } from './editor/tblsize.js';
@@ -37,7 +38,7 @@ import { initUpdates, workerOk } from './update.js';
 import { quickAdd, wgDo, wgUi } from './views/dashWidgets.js';
 
 /* posluchače ostatních modulů; pořadí je stejné jako dřív v jednom souboru app.js (na pořadí registrace záleží) */
-initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings(); initImages(); initIndex(); initTreeDrag(); initMath(); initSource(); initTableSize();
+initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings(); initImages(); initIndex(); initTreeDrag(); initMath(); initSource(); initTableSize(); initCaps();
 
 /* ================= global actions ================= */
 document.addEventListener('click',e=>{

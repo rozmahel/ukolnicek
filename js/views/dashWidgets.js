@@ -238,7 +238,7 @@ function wData(s){
    posouvá se do stran, začíná u nejnovějších, dny jsou odlišené pruhy s datem dole.
    Dva grafy pod sebou (čas a velikost) se stejnými body, každý svou stupnicí. */
 let upReady=false, upScroll=null;   /* upScroll: null = drží se u nejnovějších (vpravo) */
-const UP_M=20, UP_STEP=16, UP_MAX=3000;
+const UP_M=100, UP_STEP=3.2, UP_MAX=3000;   /* body těsně u sebe (od 4.7.0 pětkrát hustěji) */
 const fmtKb=b=>{ const k=b/1024; return (k<10?k.toFixed(1).replace('.',','):String(Math.round(k)))+' kB'; };
 document.addEventListener('scroll',e=>{ const el=e.target; if(!el||!el.classList||!el.classList.contains('up-sc')) return;
   upScroll=el.scrollLeft+el.clientWidth>=el.scrollWidth-4?null:el.scrollLeft; },true);

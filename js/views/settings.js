@@ -14,10 +14,11 @@ import { HOUR_SCALES } from './schedule.js';
 import { autoPull, autoPush, cloudSvg, IDLE_MAX, IDLE_MIN, idleSec, Sync, updateSyncUI } from '../sync/sync.js';
 import { ImgSync, withImgs } from '../sync/images.js';
 import { placeFrame } from '../editor/images.js';
+import { capsOff } from '../editor/caps.js';
 import { checkUpdate } from '../update.js';
 
 /* ================= settings ================= */
-const APP_VERSION='4.6.0';
+const APP_VERSION='4.7.0';
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
 const FS_STEPS=[1,1.15,1.3,1.45,1.6];
 function applyTheme(){
@@ -58,6 +59,7 @@ async function openSettings(focus){
       <label class="chk sub"><input type="checkbox" id="st-mcw" ${st.miniCalWeeks!==false?'checked':''} ${st.miniCal?'':'disabled'}> V kalendáři ukazovat čísla týdnů v roce</label>
       <h3 class="set-h">Poznámky</h3>
       <label class="chk"><input type="checkbox" id="st-hid" ${st.showHidden!==false?'checked':''}> U sbaleného nadpisu ukazovat, kolik bloků je skrytých</label>
+      <label class="chk"><input type="checkbox" id="st-caps" ${lsGet('uk-caps',true)!==false?'checked':''}> Podtrhnout text napsaný se zapnutým Caps Lockem</label>
     </section>
 
     <section class="set-pane" data-pane="look">
@@ -178,6 +180,7 @@ async function openSettings(focus){
   const iu=$('#st-img-up',m); if(iu) iu.addEventListener('click',()=>{ closeModal(); Sync.uploadImgs(); });
   const idn=$('#st-img-down',m); if(idn) idn.addEventListener('click',()=>{ closeModal(); Sync.downloadImgs(); });
   $('#st-autoup',m).addEventListener('change',e=>lsSet('uk-auto-push',e.target.checked));
+  $('#st-caps',m).addEventListener('change',e=>{ lsSet('uk-caps',e.target.checked); if(!e.target.checked) capsOff(); });
   /* doba nečinnosti: uloží se v sekundách, mimo rozsah se srovná na 5 s / 2 h a políčko ukáže skutečnou hodnotu */
   const auSave=()=>{ const n=$('#st-au-n',m), u=+$('#st-au-u',m).value||60; const v=+n.value; if(!Number.isFinite(v)||v<=0){ n.value=idleSec()/u; return; }
     const sec=Math.min(IDLE_MAX,Math.max(IDLE_MIN,Math.round(v*u))); if(sec===300){ try{ localStorage.removeItem('uk-auto-sec'); }catch(_){} } else lsSet('uk-auto-sec',sec);
