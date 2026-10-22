@@ -1,6 +1,7 @@
 /* Úkolníček – Vykreslení stránky a bloků (včetně tabulek a sbalování nadpisů) */
 import { $, esc, PH, plain, TEXT_TYPES } from '../core.js';
 import { S } from '../state.js';
+import { modeBtn } from '../theme.js';
 import { applyLock } from '../lock.js';
 import { IMGURL } from '../store.js';
 import { hist, updateUndoBtns } from './history.js';
@@ -37,7 +38,7 @@ function renderPage(pg){
         <button class="icon-btn" id="redo-btn" data-act="redo" title="Znovu (⇧⌘Z)" aria-label="Znovu"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
         <button class="icon-btn" id="md-btn" data-act="mdexport" title="Stáhnout stránku jako Markdown (.md)" aria-label="Stáhnout jako Markdown"><svg viewBox="0 0 24 24"><path d="M12 3.5v11"/><path d="m7.5 10.5 4.5 4.5 4.5-4.5"/><path d="M4.5 16v2.5a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V16"/></svg></button>
         <button class="icon-btn src-btn${src!=null?' on':''}" id="src-btn" data-act="source" title="${src!=null?'Zpět na bloky':'Zobrazit zdroj (Markdown)'}" aria-label="Zobrazit zdroj v Markdownu" aria-pressed="${src!=null}"><svg viewBox="0 0 24 24"><path d="m8.5 7-5 5 5 5"/><path d="m15.5 7 5 5-5 5"/></svg></button>
-        <button class="icon-btn lock-btn" id="lock-btn" data-act="lock"></button>
+        <button class="icon-btn lock-btn" id="lock-btn" data-act="lock"></button>${modeBtn()}
       </div>
     </div>
     ${isArchived(pg)?`<div class="arch-note">Stránka je v archivu. Nezobrazuje se v projektech, Úkolech ani Dnes. <button class="linkbtn" data-act="unarchive" data-id="${pg.id}">Obnovit z archivu</button></div>`:''}
@@ -64,6 +65,15 @@ function sectionEnd(bl,i){
   /* „sbalovat až sem“: blok b.until se schová taky, s untilVis zůstane vidět (jen u oddělovače) */
   if(b.until){ const k=bl.findIndex(x=>x.id===b.until); if(k>i) end=b.untilVis?k:k+1; }
   return end;
+}
+/* nový blok vkládaný na místo `at` by se jinak přidal na konec sbalené sekce (sekce sahá po další nadpis) a nebyl by vidět:
+   taková sekce se ukončí svým posledním blokem („sbalovat až sem“), prázdná sbalená sekce se rozbalí. Volat před vložením. */
+function keepVisible(bl,at){
+  for(let h=0;h<at;h++){
+    const b=bl[h]; if(!isHeading(b.type)||!b.collapsed) continue;
+    if(sectionEnd(bl,h)!==at||(b.until&&!b.untilVis)) continue;
+    if(at>h+1){ b.until=bl[at-1].id; delete b.untilVis; } else delete b.collapsed;
+  }
 }
 /* které bloky jsou schované ve sbalených sekcích (používají to i Úkoly a Dnes) */
 function hiddenMask(bl,counts){
@@ -143,10 +153,15 @@ function renderSubjHead(b){
   if(b.it) t=`<i>${t}</i>`; if(b.un) t=`<u>${t}</u>`; if(b.st) t=`<s>${t}</s>`; if(b.hl) t=`<mark class="hl-${esc(b.hl)}">${t}</mark>`;
   return `<div class="row">${caret}<button class="sj-h" data-act="subj-blk" data-popanchor title="${esc(subjLabel(su))} · předmět z Indexu">${b.icon?`<span class="sj-ic" aria-hidden="true">${esc(b.icon)}</span>`:''}<span class="sj-t">${t}</span></button></div>`;
 }
+/* šířky sloupců (b.cw, px) a výšky řádků (b.rh, px, null = podle obsahu) nastavené tažením okraje; bez nich se tabulka roztáhne sama */
+const COL_DEF=150, COL_MIN=40;
+const colW=v=>{ v=Math.round(+v); return Number.isFinite(v)&&v>0?Math.min(2000,Math.max(COL_MIN,v)):COL_DEF; };
 function renderTable(b){
-  let h=`<div class="tbl-wrap"><table class="tbl ${b.hrow?'hrow':''} ${b.hcol?'hcol':''}"><tbody>`;
+  const cols=(b.rows[0]&&b.rows[0].cells.length)||0, cw=Array.isArray(b.cw)?Array.from({length:cols},(_,c)=>colW(b.cw[c])):null, rh=Array.isArray(b.rh)?b.rh:[];
+  let h=`<div class="tbl-wrap"><table class="tbl ${b.hrow?'hrow':''} ${b.hcol?'hcol':''}${cw?' fixw':''}"${cw?` style="width:${cw.reduce((a,v)=>a+v,0)}px"`:''}>${cw?`<colgroup>${cw.map(w=>`<col style="width:${w}px">`).join('')}</colgroup>`:''}<tbody>`;
   b.rows.forEach((row,r)=>{
-    h+='<tr>';
+    const rhv=Math.round(+rh[r]);
+    h+=rhv>0?`<tr style="height:${Math.min(2000,rhv)}px">`:'<tr>';
     row.cells.forEach((cell,c)=>{
       h+=`<td data-r="${r}" data-c="${c}">${c===0?`<button class="rh" data-act="row-menu" data-popanchor aria-label="Možnosti řádku">⋮</button>`:''}${r===0?`<button class="ch" data-act="col-menu" data-popanchor aria-label="Možnosti sloupce">⋯</button>`:''}${cell.lines.map((ln,l)=>{
         const mk=ln.t==='bullet'?'<span class="mk bullet" aria-hidden="true">•</span>':ln.t==='todo'?`<button class="mk check ${ln.done?'on':''}" data-act="lcheck" role="checkbox" aria-checked="${!!ln.done}" aria-label="Hotovo"></button>`:'';
@@ -173,4 +188,4 @@ function ctxOf(el){
   return {pg,b,bi,blkEl};
 }
 
-export { ctxOf, defaultEnd, hiddenMask, hLevel, isHeading, renderBlocks, renderPage, rerenderBlocks, rerenderProps, sectionEnd };
+export { COL_DEF, COL_MIN, colW, ctxOf, defaultEnd, hiddenMask, hLevel, isHeading, keepVisible, renderBlocks, renderPage, rerenderBlocks, rerenderProps, sectionEnd };

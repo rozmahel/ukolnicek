@@ -8,7 +8,7 @@ import { gotoSubject, isIndex, openSubjPicker, subjBlockText, subjLabel } from '
 import { focusBlock } from './caret.js';
 import { renderSidebar } from '../sidebar.js';
 import { go } from '../router.js';
-import { defaultEnd, hLevel, isHeading, renderPage, rerenderBlocks } from './render.js';
+import { COL_DEF, defaultEnd, hLevel, isHeading, renderPage, rerenderBlocks } from './render.js';
 import { setType, subjToH1, toSubject } from './blocks.js';
 import { closePop, openPop, placePop, toast } from '../ui.js';
 import { selectImage } from './images.js';
@@ -156,11 +156,11 @@ function openTableMenu(anchor,pg,b,kind,idx){
   openPop(anchor,h,v=>{
     const cols=b.rows[0].cells.length;
     if(kind==='row'){
-      if(v==='del'){ if(b.rows.length<=1) return toast('Tabulka musí mít aspoň jeden řádek.'); b.rows.splice(idx,1); }
-      else b.rows.splice(v==='above'?idx:idx+1,0,{cells:Array.from({length:cols},()=>emptyCell())});
+      if(v==='del'){ if(b.rows.length<=1) return toast('Tabulka musí mít aspoň jeden řádek.'); b.rows.splice(idx,1); if(Array.isArray(b.rh)) b.rh.splice(idx,1); }
+      else { const at=v==='above'?idx:idx+1; b.rows.splice(at,0,{cells:Array.from({length:cols},()=>emptyCell())}); if(Array.isArray(b.rh)&&at<b.rh.length) b.rh.splice(at,0,null); }
     } else {
-      if(v==='del'){ if(cols<=1) return toast('Tabulka musí mít aspoň jeden sloupec.'); b.rows.forEach(r=>r.cells.splice(idx,1)); }
-      else b.rows.forEach(r=>r.cells.splice(v==='left'?idx:idx+1,0,emptyCell()));
+      if(v==='del'){ if(cols<=1) return toast('Tabulka musí mít aspoň jeden sloupec.'); b.rows.forEach(r=>r.cells.splice(idx,1)); if(Array.isArray(b.cw)) b.cw.splice(idx,1); }
+      else { const at=v==='left'?idx:idx+1; b.rows.forEach(r=>r.cells.splice(at,0,emptyCell())); if(Array.isArray(b.cw)) b.cw.splice(at,0,COL_DEF); }
     }
     savePage(pg); rerenderBlocks();
   });

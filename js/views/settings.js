@@ -1,7 +1,7 @@
 /* Úkolníček – Nastavení, motiv a velikost písma, návod a novinky */
 import { $, $$, downloadFile, esc, ICONS, lsGet, lsSet, plural } from '../core.js';
 import { defaultSettings, S } from '../state.js';
-import { applySkin, skinOf, SKINS, syncThemeColor } from '../theme.js';
+import { applySkin, skinOf, SKINS, syncModeBtns, syncThemeColor } from '../theme.js';
 import { LOCK } from '../lock.js';
 import { applyData, dataForSave, META, normalizeImport, saveSettings, stateForStorage, Store } from '../store.js';
 import { HIST } from '../editor/history.js';
@@ -11,19 +11,19 @@ import { renderSidebar } from '../sidebar.js';
 import { renderMain } from '../router.js';
 import { closeModal, openModal, toast } from '../ui.js';
 import { HOUR_SCALES } from './schedule.js';
-import { autoPull, autoPush, cloudSvg, Sync, updateSyncUI } from '../sync/sync.js';
+import { autoPull, autoPush, cloudSvg, IDLE_MAX, IDLE_MIN, idleSec, Sync, updateSyncUI } from '../sync/sync.js';
 import { ImgSync, withImgs } from '../sync/images.js';
 import { placeFrame } from '../editor/images.js';
 import { checkUpdate } from '../update.js';
 
 /* ================= settings ================= */
-const APP_VERSION='4.5.0';
+const APP_VERSION='4.6.0';
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
 const FS_STEPS=[1,1.15,1.3,1.45,1.6];
 function applyTheme(){
   const t=lsGet('uk-theme','auto'), root=document.documentElement;
   if(t==='light'||t==='dark') root.setAttribute('data-theme',t); else root.removeAttribute('data-theme');
-  syncThemeColor();
+  syncThemeColor(); syncModeBtns();
 }
 function applyFontScale(){
   const f=+lsGet('uk-fs',1); const v=FS_STEPS.includes(f)?f:1;
@@ -105,7 +105,8 @@ async function openSettings(focus){
         <label class="chk"><input type="checkbox" id="st-imgs" ${withImgs()?'checked':''}> Šipky ↑ a ↓ přenášejí i obrázky</label>
         <p class="note" style="margin-top:-8px;padding-left:26px">Nahrávají se jen nové, přerušený přenos příště pokračuje. Na mobilních datech se před stažením víc než 5 MB zeptá. Žlutý vykřičník u mráčku = obrázky čekají na přenos. Jen pro toto zařízení.</p>
         <h3 class="set-h">Nahrávání na Disk</h3>
-        <label class="chk"><input type="checkbox" id="st-autoup" ${autoPush()?'checked':''}> Po 5 minutách nečinnosti nahrát neuložené změny</label>
+        <label class="chk"><input type="checkbox" id="st-autoup" ${autoPush()?'checked':''}> Po nečinnosti nahrát neuložené změny</label>
+        <div class="au-row"><span>Po</span>${(()=>{ const s=idleSec(), u=s%3600===0?3600:s%60===0?60:1; return `<input type="number" class="inp" id="st-au-n" min="1" step="1" value="${s/u}" aria-label="Doba nečinnosti"><select class="inp" id="st-au-u" aria-label="Jednotka">${[[1,'s'],[60,'min'],[3600,'h']].map(([v,l])=>`<option value="${v}" ${v===u?'selected':''}>${l}</option>`).join('')}</select>`; })()}<span class="note">5 s až 2 h</span></div>
         <p class="note" style="margin-top:-8px;padding-left:26px">Jen s platným přihlášením a když na Disku není novější verze. Jen pro toto zařízení.</p>
         <h3 class="set-h">Stahování z Disku</h3>
         <label class="chk"><input type="checkbox" id="st-auto" ${autoPull()?'checked':''}> Po otevření aplikace stáhnout novější verzi z Disku</label>
@@ -177,6 +178,11 @@ async function openSettings(focus){
   const iu=$('#st-img-up',m); if(iu) iu.addEventListener('click',()=>{ closeModal(); Sync.uploadImgs(); });
   const idn=$('#st-img-down',m); if(idn) idn.addEventListener('click',()=>{ closeModal(); Sync.downloadImgs(); });
   $('#st-autoup',m).addEventListener('change',e=>lsSet('uk-auto-push',e.target.checked));
+  /* doba nečinnosti: uloží se v sekundách, mimo rozsah se srovná na 5 s / 2 h a políčko ukáže skutečnou hodnotu */
+  const auSave=()=>{ const n=$('#st-au-n',m), u=+$('#st-au-u',m).value||60; const v=+n.value; if(!Number.isFinite(v)||v<=0){ n.value=idleSec()/u; return; }
+    const sec=Math.min(IDLE_MAX,Math.max(IDLE_MIN,Math.round(v*u))); if(sec===300){ try{ localStorage.removeItem('uk-auto-sec'); }catch(_){} } else lsSet('uk-auto-sec',sec);
+    if(sec!==Math.round(v*u)) n.value=+(sec/u).toFixed(2); };
+  $('#st-au-n',m).addEventListener('change',auSave); $('#st-au-u',m).addEventListener('change',auSave);
   $('#st-auto',m).addEventListener('change',e=>{ lsSet('uk-auto-pull',e.target.checked); if(e.target.checked){ Sync.lastCheck=0; Sync.check('setting'); } else Sync.disarm(); });
   $('#st-news',m).addEventListener('click',e=>{ e.preventDefault(); openGuide('novinky'); });
   $('#st-upd',m).addEventListener('click',e=>{ e.preventDefault(); checkUpdate(); });

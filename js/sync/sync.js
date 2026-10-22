@@ -14,7 +14,9 @@ function cloudSvg(off){ return `<svg viewBox="0 0 24 24" aria-hidden="true"><pat
 function deviceName(){ const u=navigator.userAgent; return /iPhone/.test(u)?'iPhone':/iPad/.test(u)?'iPad':/Android/.test(u)?'Android':/Mac/.test(u)?'Mac':/Windows/.test(u)?'Windows':'Prohlížeč'; }
 const autoPull=()=>lsGet('uk-auto-pull',true)!==false;
 const autoPush=()=>lsGet('uk-auto-push',true)!==false;
-const IDLE_MS=5*60000;
+/* doba nečinnosti před automatickým nahráním: 5 s až 2 h, výchozí 5 min (jen v zařízení, 'uk-auto-sec', neukládá se do dat) */
+const IDLE_MIN=5, IDLE_MAX=7200, IDLE_DEF=300;
+const idleSec=()=>{ const v=Math.round(+lsGet('uk-auto-sec',IDLE_DEF)); return Number.isFinite(v)?Math.min(IDLE_MAX,Math.max(IDLE_MIN,v)):IDLE_DEF; };
 /* je nejnovější soubor na Disku jiný a novější než ten, se kterým bylo toto zařízení naposledy synchronizované?
    (porovnává se čas vytvoření na serveru Googlu, ne hodiny zařízení) */
 function newerOnDrive(top){ return !!(top&&top.name!==META.remoteName&&(!META.remoteAt||top.createdTime>META.remoteAt)); }
@@ -29,9 +31,9 @@ const Sync={
   lastAct:Date.now(),lastAuto:0,
   init(){
     DriveSync.preload(); updateSyncUI();
-    /* zapomenuté změny: po 5 minutách bez psaní a klikání se tiše nahrají (jen s platným přihlášením) */
+    /* zapomenuté změny: po nastavené době bez psaní a klikání se tiše nahrají (jen s platným přihlášením) */
     ['keydown','pointerdown','input'].forEach(t=>document.addEventListener(t,()=>{ this.lastAct=Date.now(); },true));
-    setInterval(()=>this.idlePush(),30000);
+    setInterval(()=>this.idlePush(),1000);
     this.check('start');
     document.addEventListener('visibilitychange',()=>{
       if(document.visibilityState==='hidden'){ this.hiddenAt=Date.now(); return; }
@@ -282,7 +284,8 @@ const Sync={
   idlePush(){
     const now=Date.now();
     if(!autoPush()||this.busy||this.connecting||this.checking||this.pending||S.modal||Store.broken||!navigator.onLine) return;
-    if(now-this.lastAct<IDLE_MS||now-this.lastAuto<IDLE_MS) return;
+    const ms=idleSec()*1000;
+    if(now-this.lastAct<ms||now-this.lastAuto<ms) return;
     if(!DriveSync.clientId()||DriveSync.state()!=='ok'||!isDirty()) return;
     this.lastAuto=now; this.upload(false,true);
   },
@@ -384,4 +387,4 @@ function openSyncMenu(anchor){
   openPop(anchor,h,v=>{ if(v==='up') Sync.upload(); else if(v==='down') Sync.download(); else if(v==='pick') Sync.openDownload(); else if(v==='merge'){ Sync.snoozed=''; Sync.check('menu',true); } else openSettings('drive'); });
 }
 
-export { autoPull, autoPush, cloudSvg, deviceName, openSyncMenu, Sync, updateSyncUI };
+export { autoPull, autoPush, cloudSvg, deviceName, IDLE_MAX, IDLE_MIN, idleSec, openSyncMenu, Sync, updateSyncUI };

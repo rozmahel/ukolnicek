@@ -3,6 +3,7 @@
    Dokud ho uživatel nezmění, nic se neukládá a platí výchozí rozložení. Každý widget má tři velikosti s jiným obsahem. */
 import { $, $$, clamp, DAYS_FULL, esc, MONTHS, pad, plural } from '../core.js';
 import { S } from '../state.js';
+import { modeBtn } from '../theme.js';
 import { applyLock, LOCK } from '../lock.js';
 import { saveSettings } from '../store.js';
 import { eventsOnDate, isoWeek, shortDate, sod, toMin, weekInfo } from '../dates.js';
@@ -31,7 +32,7 @@ const WG={
   page:{free:true,name:'Stránka',ic:'📃',multi:true,opts:'page',desc:'Náhled vybrané stránky',sizes:['s','l'],w:{s:1,l:2},sz:{s:'Název a kolik úkolů zbývá',l:'Náhled stránky'}},
   look:{name:'Vzhled',ic:'🎨',desc:'Motiv, den/noc a velikost textu',w:{s:1,m:1,l:2},h:{s:1},sz:{s:'Světlý nebo tmavý režim',m:'Motiv a den/noc',l:'Motiv, den/noc a velikost textu'}},
   data:{name:'Zálohy',ic:'🗂️',desc:'Export, import a zálohy na Disku',w:{s:1,m:1,l:2},h:{s:1},sz:{s:'Export a import',m:'K tomu nahrání na Disk',l:'K tomu seznam záloh na Disku'}},
-  uploads:{name:'Nahrávání na Disk',ic:'📈',desc:'Jak dlouho trvá nahrání a jak velké jsou zálohy',sizes:['m','l'],w:{m:2,l:4},sz:{m:'Posledních 30 dní',l:'Posledních 90 dní'}},
+  uploads:{name:'Nahrávání na Disk',ic:'📈',desc:'Jak dlouho trvá nahrání a jak velké jsou zálohy',sizes:['m','l'],w:{m:2,l:4},sz:{m:'Posledních 20 nahrání',l:'Všechna nahrání'}},
 };
 /* id widgetu = typ (clock, page…), další kusy stejného typu mají id typ-xxxxxx */
 const typeOf=id=>String(id).split('-')[0];
@@ -275,7 +276,7 @@ function renderToday(){
   $$('#wg-grid > .wg.fixh').forEach(w=>{ const b=w.querySelector('.card-body'); if(b) inScroll[scrKey(w)]=b.scrollTop; });
   const list=readLayout(mob).filter(x=>avail(x.id));
   const head=`<div class="v-head"><div><div class="eyebrow">${DAYS_FULL[wd][0].toUpperCase()+DAYS_FULL[wd].slice(1)}${school&&wi?` · ${wi.n}. týden výuky, ${wi.parity}`:''}</div><h1 class="v-title">${now.getDate()}. ${MONTHS[now.getMonth()]}</h1></div>
-    <div class="v-tools"><button class="btn wg-addbtn" data-act="wg-add">＋ Widget</button><button class="icon-btn lock-btn" data-act="lock"></button></div></div>`;
+    <div class="v-tools"><button class="btn wg-addbtn" data-act="wg-add">＋ Widget</button><button class="icon-btn lock-btn" data-act="lock"></button>${modeBtn()}</div></div>`;
   $('#view').innerHTML=`<div class="view dash">${head}
     <div class="wg-scroll"><div class="wg-grid" id="wg-grid" style="height:${lastGridH}px">${list.map(x=>wgHtml(x,c)).join('')}</div></div>
     ${list.length?'':`<div class="card"><div class="empty" style="padding:18px">Na Dnes teď nic není. Odemkni zámek a přidej widget tlačítkem <b>＋ Widget</b>.</div></div>`}

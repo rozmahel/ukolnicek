@@ -16,7 +16,7 @@ import { handleImageFiles, pickImageBlock, rangeFromPoint } from './images.js';
 import { codeHtml, domText, insertCode } from './code.js';
 import { dollarInput, eqFromSelection } from './math.js';
 import { mentionInput, mentionKey } from './mention.js';
-import { blockEsc, initMultiSel, UK_CLIP } from './multisel.js';
+import { blockEsc, clipBlocks, initMultiSel, pasteBlocks, UK_CLIP } from './multisel.js';
 
 /* ---- document events ---- */
 const viewEl=$('#view');
@@ -107,6 +107,8 @@ export function initEvents(){
       if(raw) insertCode(t,raw);
       return;
     }
+    /* bloky zkopírované v Úkolníčku i s obrázky, kresbami, tabulkami… (ne do buňky tabulky) */
+    if(t.classList.contains('txt')&&!t.closest('td')){ const cb=clipBlocks(e.clipboardData); if(cb&&cb.length){ pasteBlocks(t,cb); return; } }
     const imgs=[...(e.clipboardData.files||[])].filter(f=>f.type.startsWith('image/'));
     if(imgs.length&&t.classList.contains('txt')){ const s=getSelection(); handleImageFiles(imgs,t,s.rangeCount?s.getRangeAt(0).cloneRange():null); return; }
     const text=(e.clipboardData.getData('text/plain')||'').replace(/\r/g,'');

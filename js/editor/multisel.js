@@ -10,7 +10,7 @@ import { curPage, newBlock, pTitle } from '../pages.js';
 import { subjLabel } from '../school.js';
 import { sanitize } from '../sanitize.js';
 import { caretOffset, focusBlock, focusEl } from './caret.js';
-import { isHeading, rerenderBlocks, sectionEnd } from './render.js';
+import { ctxOf, isHeading, keepVisible, rerenderBlocks, sectionEnd } from './render.js';
 import { setType } from './blocks.js';
 import { openPop, toast } from '../ui.js';
 import { rangeFromPoint } from './images.js';
@@ -69,7 +69,10 @@ function toClipboard(items){
     }
     if(b.type==='subj'){ close(); const su=S.subjects&&S.subjects[b.subj], s=su?subjLabel(su):plain(b.html).trim(); txt.push('# '+s); html.push(`<h1>${esc(s)}</h1>`); return; }
     if(b.type==='page'){ close(); const s=pTitle(S.pages[b.pageId]); txt.push(ind+s); html.push(`<p>${esc(s)}</p>`); return; }
-    if(!TEXT_TYPES.includes(b.type)) return;   /* oddělovač, obrázek */
+    /* obrázek, kresba a oddělovač mají v textu jen zástupný zápis; v Úkolníčku se vloží celé (viz rememberClip) */
+    if(b.type==='image'){ close(); const s=`[${b.draw?'Kresba':'Obrázek'}${b.caption?': '+plain(b.caption):''}]`; txt.push(s); html.push(`<p>${esc(s)}</p>`); return; }
+    if(b.type==='divider'){ close(); txt.push('---'); html.push('<hr>'); return; }
+    if(!TEXT_TYPES.includes(b.type)) return;
     if(b.type==='code'){ close(); const c=part?fragText(part.cloneContents()):htmlToCode(b.html); txt.push(c); html.push(`<pre>${esc(c)}</pre>`); return; }
     /* část textu (výběr textem), nebo celý blok (výběr bloků) */
     const s=part?part.toString():plain(b.html||''), h=part?fragHtml(part):sanitize(b.html||'');
@@ -97,9 +100,42 @@ function wholeBlock(r){
   const post=document.createRange(); post.selectNodeContents(t); post.setStart(r.endContainer,r.endOffset);
   return pre.toString().trim()||post.toString().trim()?null:{el,b,t,part:null};
 }
+/* Vnitřní schránka bloků: když kopie obsahuje obrázek, kresbu, tabulku, oddělovač, rovnici, podstránku nebo předmět,
+   uloží se celé bloky v zařízení ('uk-clip', jen tady, mimo data). Vložení v Úkolníčku (i na jinou stránku) je pozná
+   podle stejného textu ve schránce a vloží je jako bloky; obrázky a kresby sdílí stejný soubor (jako u Duplikovat). */
+const CLIP_KEY='uk-clip';
+function rememberClip(items,c){
+  const blocks=items.map(({b,part})=>{ const o=clone(b); if(part&&TEXT_TYPES.includes(b.type)) o.html=fragHtml(part); return o; });
+  try{
+    if(blocks.some(b=>!TEXT_TYPES.includes(b.type))) localStorage.setItem(CLIP_KEY,JSON.stringify({text:c.text,blocks}));
+    else localStorage.removeItem(CLIP_KEY);
+  }catch(_){}
+}
+const normClip=s=>String(s||'').replace(/\r/g,'').trim();
+export function clipBlocks(dt){
+  let c=null; try{ c=JSON.parse(localStorage.getItem(CLIP_KEY)||'null'); }catch(_){}
+  if(!c||!Array.isArray(c.blocks)||!c.blocks.length||normClip(dt.getData('text/plain'))!==normClip(c.text)) return null;
+  return c.blocks.filter(b=>b&&typeof b==='object'&&typeof b.type==='string');
+}
+/* vloží bloky z vnitřní schránky pod blok s kurzorem (prázdný řádek nahradí) */
+export function pasteBlocks(t,blocks){
+  const x=ctxOf(t); if(!x||!blocks.length) return;
+  if(LOCK&&blocks.some(b=>!TEXT_TYPES.includes(b.type))){ toast('Zamčeno: obrázky a další bloky jde vložit po odemčení.'); return; }
+  const pg=x.pg, map=new Map(), copies=blocks.map(b=>{ const c=clone(b); c.id=rid(); map.set(b.id,c.id); return c; });
+  copies.forEach(c=>{ if(c.until&&map.has(c.until)) c.until=map.get(c.until); else { delete c.until; delete c.untilVis; } });
+  const blank=TEXT_TYPES.includes(x.b.type)&&x.b.type!=='code'&&!t.textContent.trim();
+  let at;
+  if(blank){ at=x.bi; pg.blocks.splice(x.bi,1); }
+  else { at=isHeading(x.b.type)&&x.b.collapsed?sectionEnd(pg.blocks,x.bi):x.bi+1; keepVisible(pg.blocks,at); }
+  pg.blocks.splice(at,0,...copies);
+  let nx=pg.blocks[at+copies.length], last=copies[copies.length-1];
+  const pos=TEXT_TYPES.includes(last.type)?'end':0;
+  if(!TEXT_TYPES.includes(last.type)){ if(!nx||!TEXT_TYPES.includes(nx.type)){ nx=newBlock('p'); pg.blocks.splice(at+copies.length,0,nx); } last=nx; }
+  savePage(pg); rerenderBlocks(); focusBlock(last.id,pos);
+}
 /* příznak pro vložení zpět do Úkolníčku: i jeden řádek se vloží jako blok svého typu */
 export const UK_CLIP='application/x-ukolnicek-blocks';
-const setClip=(e,c)=>{ e.clipboardData.setData('text/plain',c.text); e.clipboardData.setData('text/html',c.html); try{ e.clipboardData.setData(UK_CLIP,'1'); }catch(_){} };
+const setClip=(e,c,items)=>{ if(items) rememberClip(items,c); e.clipboardData.setData('text/plain',c.text); e.clipboardData.setData('text/html',c.html); try{ e.clipboardData.setData(UK_CLIP,'1'); }catch(_){} };
 /* smazání výběru: první blok si nechá text před výběrem, k němu se připojí zbytek posledního bloku */
 function deleteSel(items){
   const pg=curPage(); if(!pg||!items.length) return;
@@ -196,7 +232,7 @@ function moveRange(pg,i0,i1,lo,hi,vis,dir){
 const moveBlocks=after((r,dir)=>{ if(guard()) return; if(moveRange(r.pg,r.i0,r.i1,r.lo,r.hi,r.vis,dir)){ markSel(); const el=$('#blocks > .blk.bsel'); if(el){ const rc=el.getBoundingClientRect(); if(rc.top<70||rc.bottom>innerHeight-40) el.scrollIntoView({block:'center'}); placeBar(); } } });
 async function copyBlocks(r){ return copyItems(blockItems(r)); }
 async function copyItems(items){
-  const c=toClipboard(items);
+  const c=toClipboard(items); rememberClip(items,c);
   try{ await navigator.clipboard.write([new ClipboardItem({'text/plain':new Blob([c.text],{type:'text/plain'}),'text/html':new Blob([c.html],{type:'text/html'})})]); }
   catch(_){ try{ await navigator.clipboard.writeText(c.text); }catch(__){ return toast('Kopírování se nepovedlo. Zkus ⌘C.'); } }
   toast('Zkopírováno');
@@ -278,15 +314,15 @@ export function initMultiSel(){
   });
   document.addEventListener('mouseup',()=>{ xs=null; });
   document.addEventListener('copy',e=>{
-    if(bs&&!e.target.closest?.('input,textarea')){ const br=bRange(); if(!br) return; const c=toClipboard(blockItems(br)); e.preventDefault(); setClip(e,c); return; }
+    if(bs&&!e.target.closest?.('input,textarea')){ const br=bRange(); if(!br) return; const it=blockItems(br), c=toClipboard(it); e.preventDefault(); setClip(e,c,it); return; }
     const r=curRange(); if(!r) return;
-    if(!active){ const one=wholeBlock(r); if(!one) return; e.preventDefault(); setClip(e,toClipboard([one])); return; }
-    const c=toClipboard(picked(r)); e.preventDefault(); setClip(e,c);
+    if(!active){ const one=wholeBlock(r); if(!one) return; e.preventDefault(); setClip(e,toClipboard([one]),[one]); return; }
+    const it=picked(r), c=toClipboard(it); e.preventDefault(); setClip(e,c,it);
   });
   document.addEventListener('cut',e=>{
-    if(bs){ const br=bRange(); if(!br) return; e.preventDefault(); if(guard()) return; const c=toClipboard(blockItems(br)); e.clipboardData.setData('text/plain',c.text); e.clipboardData.setData('text/html',c.html); delBlocks(); return; }
+    if(bs){ const br=bRange(); if(!br) return; e.preventDefault(); if(guard()) return; const it=blockItems(br), c=toClipboard(it); rememberClip(it,c); e.clipboardData.setData('text/plain',c.text); e.clipboardData.setData('text/html',c.html); delBlocks(); return; }
     const r=active&&curRange(); if(!r) return;
-    const items=picked(r), c=toClipboard(items); e.preventDefault();
+    const items=picked(r), c=toClipboard(items); rememberClip(items,c); e.preventDefault();
     e.clipboardData.setData('text/plain',c.text); e.clipboardData.setData('text/html',c.html);
     deleteSel(items);
   });

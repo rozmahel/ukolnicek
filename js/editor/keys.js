@@ -5,7 +5,7 @@ import { savePage } from '../store.js';
 import { emptyCell, newBlock } from '../pages.js';
 import { isBlank, isBlankEl, sanitize } from '../sanitize.js';
 import { caretAtEnd, caretAtStart, caretOffset, focusBlock, focusEl, focusLine, onFirstLine, onLastLine, splitAtCaret } from './caret.js';
-import { isHeading, rerenderBlocks, sectionEnd } from './render.js';
+import { isHeading, keepVisible, rerenderBlocks, sectionEnd } from './render.js';
 import { setType, takeShortcut } from './blocks.js';
 import { navFrom, selectImage } from './images.js';
 import { caretPos, codeHtml, dedent, domText, insertCode, newLine } from './code.js';
@@ -50,7 +50,7 @@ function blockKeys(e,x,t){
     const nb=newBlock(nt,{html:tail,level:b.level||0});
     let at=bi+1;
     if(isHeading(b.type)&&b.collapsed) at=sectionEnd(pg.blocks,bi);
-    pg.blocks.splice(at,0,nb);
+    keepVisible(pg.blocks,at); pg.blocks.splice(at,0,nb);
     savePage(pg); rerenderBlocks(); focusBlock(nb.id,0); return;
   }
   if(e.key==='Backspace'&&caretAtStart(t)){

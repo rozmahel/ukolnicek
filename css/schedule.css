@@ -64,8 +64,8 @@
 /* ---------- zámek v rozvrhu ---------- */
 body.locked .ev-add,body.locked .ag-dh [data-act="day-add"],body.locked .lk-hide{display:none!important}
 .v-tools .lock-btn{width:32px;height:32px}
-.v-tools .lock-btn{border:1px solid var(--line);border-radius:8px;background:var(--panel);height:auto;min-height:34px;width:36px}
-.v-tools .lock-btn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.v-tools .lock-btn,.v-tools .mode-btn,.filters .mode-btn{border:1px solid var(--line);border-radius:8px;background:var(--panel);height:auto;min-height:34px;width:36px}
+.v-tools .lock-btn svg,.v-tools .mode-btn svg,.filters .mode-btn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .v-tools .lock-btn.on{border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
 
 /* barva hodiny „podle předmětu“ (mění se s předmětem v Indexu) */
@@ -75,3 +75,7 @@ body.locked .ev-add,body.locked .ag-dh [data-act="day-add"],body.locked .lk-hide
 /* zamčená hodina: nabídka skoku na předmět */
 .ev-lk-t{padding:0 8px 6px}
 .ev-lk-n{padding:6px 8px 4px;border-top:1px solid var(--line);margin-top:4px;font-size:calc(12.5px*var(--fs))}
+
+/* světlý/tmavý vedle zámku */
+.filters .mode-btn{padding:0;display:grid;place-items:center;color:var(--muted)}
+.v-tools .mode-btn:hover,.filters .mode-btn:hover{color:var(--fg)}

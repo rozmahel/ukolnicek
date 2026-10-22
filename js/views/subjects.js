@@ -1,6 +1,7 @@
 /* Úkolníček – Index: semestry jako karty, předměty v nich (body a zápočet přímo na místě), nastavení předmětu (klik na název), semestry, známky a kredity */
 import { $, $$, clone, COLOR_CZ, COLORS, esc, ICONS, plural, rid } from '../core.js';
 import { S } from '../state.js';
+import { modeBtn } from '../theme.js';
 import { applyLock, LOCK } from '../lock.js';
 import { Store } from '../store.js';
 import { parseD } from '../dates.js';
@@ -108,7 +109,7 @@ function renderIndex(){
   const shown=sems.filter(sm=>!sm.hidden||sm.id===peek), nHid=sems.filter(sm=>sm.hidden&&sm.id!==peek).length, stats=statSubs();
   $('#view').innerHTML=`<div class="view ix-view" style="max-width:920px">
     <div class="v-head"><div><h1 class="v-title">Index</h1></div>
-      <div class="v-tools">${sems.length?'<button class="btn" data-act="sem-new">＋ Semestr</button><button class="btn" data-act="subj-new">＋ Předmět</button><button class="icon-btn ix-cfg" data-act="ix-view" title="Které semestry ukazovat" aria-label="Zobrazení semestrů">'+ICONS.settings+'</button>':'<button class="btn pri" data-act="sem-new">＋ Semestr</button>'}</div></div>
+      <div class="v-tools">${sems.length?'<button class="btn" data-act="sem-new">＋ Semestr</button><button class="btn" data-act="subj-new">＋ Předmět</button><button class="icon-btn ix-cfg" data-act="ix-view" title="Které semestry ukazovat" aria-label="Zobrazení semestrů">'+ICONS.settings+'</button>':'<button class="btn pri" data-act="sem-new">＋ Semestr</button>'}${modeBtn()}</div></div>
     ${subs.length?`<div class="ix-sum">${sumInner(stats)}</div>${stats.length<subs.length?`<p class="note ix-sumnote">Souhrn bez ${sems.filter(sm=>sm.noStats).map(sm=>esc(sm.name||'Semestr')).join(', ')}.</p>`:''}`
     :sems.length?`<div class="card"><div class="empty" style="padding:18px">Index je databáze tvých předmětů: kredity, body a známky. Předměty se zakládají jen tady. V rozvrhu je pak vybereš u hodiny a do poznámek je vložíš přes <b>/předmět</b>. <div class="m-actions" style="margin-top:10px"><button class="btn pri" data-act="subj-new">＋ První předmět</button></div></div></div>`
     :`<div class="card"><div class="empty" style="padding:18px">Index je databáze tvých předmětů: kredity, body a známky. <b>Začni semestrem</b>, předměty se pak zakládají do něj. V rozvrhu je vybereš u hodiny a do poznámek je vložíš přes <b>/předmět</b>. <div class="m-actions" style="margin-top:10px"><button class="btn pri" data-act="sem-new">＋ První semestr</button></div></div></div>`}

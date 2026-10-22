@@ -28,7 +28,7 @@
 <main class="navod" id="navod">
 
 <section data-tab="navod" data-title="Návod">
-  <p class="g-lead">Úkolníček je školní sešit: stránky s poznámkami a úkoly, týdenní rozvrh a přehled termínů. Všechno se ukládá v zařízení. Na Google Disk se nahrává ručně (zapomenuté změny se nahrají samy po 5 minutách nečinnosti) a novější verze z Disku se po otevření aplikace stáhne sama.</p>
+  <p class="g-lead">Úkolníček je školní sešit: stránky s poznámkami a úkoly, týdenní rozvrh a přehled termínů. Všechno se ukládá v zařízení. Na Google Disk se nahrává ručně (zapomenuté změny se nahrají samy po chvíli nečinnosti) a novější verze z Disku se po otevření aplikace stáhne sama.</p>
   <div class="g-grid">
 
     <div class="g-card hl-purple">
@@ -61,6 +61,7 @@
       <h3><span class="g-ic">▦</span>Tabulky</h3>
       <p>V buňce můžou být text, odrážky, úkoly, obrázky i odkazy, přepínáš je v liště nad buňkou. <kbd>Tab</kbd> skočí do další buňky.</p>
       <p>Řádek a sloupec přidáš tlačítky, která se ukážou pod tabulkou po najetí myší. ⋮ a ⋯ na okraji je vloží jinam nebo smažou.</p>
+      <p>Šířku sloupce a výšku řádku změníš tažením okraje buňky. Mění se jen ten sloupec, tabulka se zúží nebo rozšíří. Dvojklik na okraji vrátí původní velikost.</p>
     </div>
 
     <div class="g-card hl-blue">
@@ -138,7 +139,7 @@
     <div class="g-card hl-yellow">
       <h3><span class="g-ic">☁️</span>Záloha na Google Disk</h3>
       <p>↑ nahraje data, ↓ je stáhne (podle nastavení rovnou nejnovější verzi, nebo výběr z posledních 10). Po otevření aplikace se Úkolníček sám podívá na Disk: když je tam novější verze a ty tady nemáš neuložené změny, tiše ji stáhne (v oznámení je tlačítko <b>Vrátit</b>). Když se změnilo obojí, hned se zeptá: verze z Disku, tvoje, nebo obě. Před každým stažením se uloží místní záloha.</p>
-      <p>Oranžová tečka u mráčku znamená změny, které na Disku nejsou. Rozbalení nadpisu se nepočítá a když změnu vrátíš (třeba <kbd>⌘Z</kbd>), tečka zmizí. Po 5 minutách bez psaní a klikání se neuložené změny nahrají samy, když je přihlášení platné a na Disku není novější verze (vypnout jde v Nastavení → Google Disk). Žlutý mráček: přihlášení vypršelo (platí asi hodinu), první klepnutí kamkoli do aplikace ho obnoví a zkontroluje Disk. Žlutý vykřičník vedle mráčku: obrázky čekají na nahrání, v tomto zařízení chybí nebo čekají na smazání z Disku, klik ukáže podrobnosti.</p>
+      <p>Oranžová tečka u mráčku znamená změny, které na Disku nejsou. Rozbalení nadpisu se nepočítá a když změnu vrátíš (třeba <kbd>⌘Z</kbd>), tečka zmizí. Po chvíli bez psaní a klikání (výchozí 5 minut, nastavit jde 5 s až 2 h) se neuložené změny nahrají samy, když je přihlášení platné a na Disku není novější verze (Nastavení → Google Disk). Žlutý mráček: přihlášení vypršelo (platí asi hodinu), první klepnutí kamkoli do aplikace ho obnoví a zkontroluje Disk. Žlutý vykřičník vedle mráčku: obrázky čekají na nahrání, v tomto zařízení chybí nebo čekají na smazání z Disku, klik ukáže podrobnosti.</p>
       <p><b>Obrázky</b> jsou na Disku zvlášť, každý jako vlastní soubor. ↑ nahraje jen nové obrázky a pak text, ↓ (i automatické stažení) doplní obrázky, které tady chybí. Do té doby se ukáže rámeček s názvem. Přerušený přenos příště pokračuje. Na mobilních datech se před stažením víc než 5 MB zeptá. Samostatná tlačítka a vypnutí přenosu obrázků přes šipky najdeš v Nastavení → Google Disk.</p>
     </div>
 
@@ -153,6 +154,18 @@
 <section data-tab="novinky" data-title="Novinky">
 
   <article class="g-rel new">
+    <h3>Tabulky, kopírování kresby, tmavý režim <span class="v">4.6.0</span> <time datetime="2026-10-22">22. 10. 2026</time></h3>
+    <ul>
+      <li>Tabulky: šířka sloupce a výška řádku tažením okraje. Ostatní sloupce zůstanou, tabulka se zúží nebo rozšíří. Dvojklik vrátí původní.</li>
+      <li>Enter na sbaleném nadpisu začne nový řádek pod schovaným obsahem, takže je vidět.</li>
+      <li>Kopírovat u kresby a obrázku funguje: vložíš je i na jinou stránku.</li>
+      <li>Graf nahrávání je spojnicový, bod = jedno nahrání. Střední widget ukáže posledních 20, velký všechna a posouvá se do stran.</li>
+      <li>Doba nečinnosti před automatickým nahráním jde nastavit (5 s až 2 h) v Nastavení → Google Disk. Jen v tomto zařízení.</li>
+      <li>Vedle zámku je přepínač světlý / tmavý.</li>
+    </ul>
+  </article>
+
+  <article class="g-rel">
     <h3>Obrázky a obtékání jako ve Wordu <span class="v">4.5.0</span> <time datetime="2026-10-22">22. 10. 2026</time></h3>
     <ul>
       <li>Stránka už neskáče: při Enteru a mazání se překreslí jen změněné bloky a obrázky mají výšku hned.</li>

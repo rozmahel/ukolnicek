@@ -1,6 +1,7 @@
 /* Úkolníček – Rozvrh: týdenní mřížka, události, formulář hodiny */
 import { $, $$, clamp, clone, COLOR_CZ, COLORS, DAYS, DAYS_FULL, esc, lsGet, rid, TYPE_SHORT, TYPES } from '../core.js';
 import { S } from '../state.js';
+import { modeBtn } from '../theme.js';
 import { applyLock, LOCK } from '../lock.js';
 import { saveEvent } from '../store.js';
 import { eventsOnDate, fromMin, mondayOf, occIndex, parseD, shortDate, toMin, weekInfo, ymd } from '../dates.js';
@@ -87,7 +88,7 @@ function renderSchedule(){
         <button class="btn" data-act="wk-today">Tento týden</button>
         <button class="navbtn" data-act="wk-next" aria-label="Další týden">›</button>
         <span class="wk-label"><span>${shortDate(dates[0])} – ${shortDate(last)} ${last.getFullYear()}</span></span>
-        <button class="icon-btn lock-btn" data-act="lock"></button>
+        <button class="icon-btn lock-btn" data-act="lock"></button>${modeBtn()}
         <button class="btn pri" data-act="ev-add">＋ Přidat</button>
       </div></div>
     ${grid}${agenda}

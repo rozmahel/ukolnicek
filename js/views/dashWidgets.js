@@ -233,25 +233,39 @@ function wData(s){
   }
   return {title:'Zálohy',body:`<div class="dz-cols"><div>${main}${dur}</div><div class="dz-list"><div class="wg-grp">Na Disku</div>${list||'<div class="empty">Disk nepřipojen.</div>'}</div></div>`};
 }
-/* ================= Nahrávání na Disk: nejdelší nahrání a největší záloha za každý den =================
-   střední = 30 dní (půl šířky), velký = 90 dní (celá šířka); dva grafy pod sebou se stejnými dny (každý svou stupnicí) */
-let upReady=false;
+/* ================= Nahrávání na Disk: spojnicový graf, jeden bod = jedno nahrání =================
+   střední = posledních UP_M nahrání rovnoměrně přes celou šířku; velký = všechna nahrání (UP_STEP px na bod),
+   posouvá se do stran, začíná u nejnovějších, dny jsou odlišené pruhy s datem dole.
+   Dva grafy pod sebou (čas a velikost) se stejnými body, každý svou stupnicí. */
+let upReady=false, upScroll=null;   /* upScroll: null = drží se u nejnovějších (vpravo) */
+const UP_M=20, UP_STEP=16, UP_MAX=3000;
 const fmtKb=b=>{ const k=b/1024; return (k<10?k.toFixed(1).replace('.',','):String(Math.round(k)))+' kB'; };
+document.addEventListener('scroll',e=>{ const el=e.target; if(!el||!el.classList||!el.classList.contains('up-sc')) return;
+  upScroll=el.scrollLeft+el.clientWidth>=el.scrollWidth-4?null:el.scrollLeft; },true);
 function wUploads(s){
   const title='Nahrávání na Disk';
   if(!upReady){ UpLog.load().then(()=>{ upReady=true; if(S.view.kind==='today') renderMain(); }); return {title,body:'<div class="empty">Načítám…</div>'}; }
-  const days=s==='l'?90:30, end=new Date(); end.setHours(0,0,0,0);
-  const start=dwAdd(end,-(days-1)), t0=start.getTime(), map=new Map(); let n=0;
-  UpLog.all().forEach(e=>{ if(e.t<t0) return; n++; const k=ymd(new Date(e.t)), v=map.get(k)||{ms:0,b:0,n:0}; v.ms=Math.max(v.ms,e.ms); v.b=Math.max(v.b,e.b); v.n++; map.set(k,v); });
-  if(!n) return {title,body:`<div class="empty">Za posledních ${days} dní nic nenahráno.</div>`};
-  const cols=[]; for(let i=0;i<days;i++){ const d=dwAdd(start,i); cols.push({d,v:map.get(ymd(d))}); }
-  const tip=c=>c.v?`${shortDate(c.d)} · nejdéle ${fmtSec(c.v.ms)} · nejvíc ${fmtKb(c.v.b)}${c.v.n>1?` · ${c.v.n}× nahráno`:''}`:`${shortDate(c.d)} · nic`;
+  const all=UpLog.all();
+  if(!all.length) return {title,body:'<div class="empty">Zatím nic nenahráno.</div>'};
+  const big=s==='l', list=all.slice(-(big?UP_MAX:UP_M)), n=list.length;
+  const X=i=>(i+.5)/n*100;
+  const tip=e=>`${shortDate(new Date(e.t))} ${fmtTime(e.t).split(' ').pop()} · ${fmtSec(e.ms)} · ${fmtKb(e.b)}${e.dev?` · ${e.dev}`:''}`;
+  /* dny: začátek (index prvního nahrání) a počet */
+  const days=[]; list.forEach((e,i)=>{ const k=ymd(new Date(e.t)); if(!days.length||days[days.length-1].k!==k) days.push({k,i,d:new Date(e.t),c:0}); days[days.length-1].c++; });
+  const bands=big?days.map((d,j)=>`<b class="up-day${j%2?' odd':''}" style="left:${d.i/n*100}%;width:${d.c/n*100}%"></b>`).join(''):'';
   const chart=(k,fmt,label)=>{
-    const max=Math.max(...cols.map(c=>c.v?c.v[k]:0))||1;
+    const max=Math.max(...list.map(e=>e[k]))||1, Y=v=>96-v/max*90;
+    const pts=list.map((e,i)=>`${X(i).toFixed(3)},${Y(e[k]).toFixed(2)}`).join(' ');
     return `<div class="up-ch"><div class="up-h"><span>${label}</span><span>nejvíc <b>${fmt(max)}</b></span></div>
-      <div class="up-bars" style="--n:${days}">${cols.map(c=>`<i title="${esc(tip(c))}"${c.v?` style="--h:${Math.max(3,Math.round(c.v[k]/max*100))}%"`:' class="no"'}></i>`).join('')}</div></div>`;
+      <div class="up-plot">${bands}<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}"/></svg>${list.map((e,i)=>`<i style="left:${X(i)}%;top:${Y(e[k])}%" title="${esc(tip(e))}"></i>`).join('')}</div></div>`;
   };
-  return {title,sub:`${n}× za ${days} dní`,body:`<div class="up">${chart('ms',fmtSec,'Čas nahrání')}${chart('b',fmtKb,'Velikost zálohy')}<div class="up-x"><span>${shortDate(start)}</span><span>dnes</span></div></div>`};
+  const today=ymd(new Date()), dl=d=>d.k===today?'dnes':shortDate(d.d);
+  const charts=chart('ms',fmtSec,'Čas nahrání')+chart('b',fmtKb,'Velikost zálohy');
+  if(!big) return {title,sub:`posledních ${n}`,body:`<div class="up">${charts}<div class="up-x"><span>${dl(days[0])}</span><span>${dl(days[days.length-1])}</span></div></div>`};
+  requestAnimationFrame(()=>{ const el=document.querySelector('.wg-uploads .up-sc'); if(el) el.scrollLeft=upScroll==null?el.scrollWidth:upScroll; });
+  /* popisky dní jen tam, kde se nepřekrývají (den s jedním nahráním je úzký) */
+  let last=-1e9; const xl=days.map(d=>{ const px=d.i*UP_STEP; if(px-last<52) return ''; last=px; return `<span style="left:${d.i/n*100}%">${dl(d)}</span>`; }).join('');
+  return {title,sub:`${n}×`,body:`<div class="up up-l"><div class="up-sc"><div class="up-in" style="width:${n*UP_STEP}px">${charts}<div class="up-xl">${xl}</div></div></div></div>`};
 }
 /* tlačítka ve Vzhledu a Zálohách */
 function wgDo(a){

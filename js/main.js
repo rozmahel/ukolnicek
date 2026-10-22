@@ -1,6 +1,7 @@
 /* Úkolníček – Start aplikace: globální kliknutí a klávesy, spuštění, Service Worker, upozornění při zavírání */
 import { $, $$, clamp, esc, lsGet, lsSet } from './core.js';
 import { S } from './state.js';
+import { isDarkNow } from './theme.js';
 import { applyLock, LOCK, toggleLock } from './lock.js';
 import { initStore, isDirty, META, savePage, saveSettings, Store } from './store.js';
 import { redo, undo } from './editor/history.js';
@@ -11,7 +12,7 @@ import { isBlank } from './sanitize.js';
 import { focusBlock, focusEl, focusLine } from './editor/caret.js';
 import { closeSide, initTreeDrag, openSide, renderSidebar } from './sidebar.js';
 import { go, renderMain } from './router.js';
-import { ctxOf, renderPage, rerenderBlocks, rerenderProps } from './editor/render.js';
+import { ctxOf, hiddenMask, isHeading, keepVisible, renderPage, rerenderBlocks, rerenderProps, sectionEnd } from './editor/render.js';
 import { applyTemplate } from './editor/blocks.js';
 import { openSlash, slash } from './editor/slash.js';
 import { initEvents } from './editor/events.js';
@@ -30,12 +31,13 @@ import { initImages, lineAround, selectImage } from './editor/images.js';
 import { exportMd } from './editor/markdown.js';
 import { initMath, openEqEditor } from './editor/math.js';
 import { initSource, srcOn, toggleSource } from './editor/source.js';
+import { initTableSize } from './editor/tblsize.js';
 import { trashAct } from './trash.js';
 import { initUpdates, workerOk } from './update.js';
 import { quickAdd, wgDo, wgUi } from './views/dashWidgets.js';
 
 /* posluchače ostatních modulů; pořadí je stejné jako dřív v jednom souboru app.js (na pořadí registrace záleží) */
-initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings(); initImages(); initIndex(); initTreeDrag(); initMath(); initSource();
+initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings(); initImages(); initIndex(); initTreeDrag(); initMath(); initSource(); initTableSize();
 
 /* ================= global actions ================= */
 document.addEventListener('click',e=>{
@@ -69,6 +71,7 @@ document.addEventListener('click',e=>{
   if(act.startsWith('trash')&&trashAct(act,a)) return;
   switch(act){
     case 'lock': toggleLock(); break;
+    case 'mode': { lsSet('uk-theme',isDarkNow()?'light':'dark'); applyTheme(); if(S.view.kind==='today') renderMain(); break; }
     case 'mdexport': exportMd(pg); break;
     case 'source': toggleSource(pg); break;
     case 'mc-prev': S.calOffset--; renderSidebar(); break;
@@ -104,13 +107,13 @@ document.addEventListener('click',e=>{
     case 'lcheck': { const x=ctxOf(a); if(!x||!x.line) break; x.line.done=!x.line.done; a.classList.toggle('on',x.line.done); a.closest('.ln').classList.toggle('done',x.line.done); savePage(x.pg,300); renderSidebar(); break; }
     case 'collapse': { const x=ctxOf(a); if(!x) break; x.b.collapsed=!x.b.collapsed; savePage(x.pg); rerenderBlocks(); renderSidebar(); break; }
     case 'img-line': { const x=ctxOf(a); if(x) lineAround(x.b.id,a.dataset.dir==='up'); break; }
-    case 'add-after': { const x=ctxOf(a); if(!x) break; const nb=newBlock('p',{level:x.b.level||0}); x.pg.blocks.splice(x.bi+1,0,nb); savePage(x.pg); rerenderBlocks(); const el=$(`#blocks .blk[data-id="${nb.id}"] .txt`); focusEl(el,0); openSlash(el,nb.id,0,'plus'); break; }
+    case 'add-after': { const x=ctxOf(a); if(!x) break; const nb=newBlock('p',{level:x.b.level||0}); const at=isHeading(x.b.type)&&x.b.collapsed?sectionEnd(x.pg.blocks,x.bi):x.bi+1; keepVisible(x.pg.blocks,at); x.pg.blocks.splice(at,0,nb); savePage(x.pg); rerenderBlocks(); const el=$(`#blocks .blk[data-id="${nb.id}"] .txt`); focusEl(el,0); openSlash(el,nb.id,0,'plus'); break; }
     case 'blk-menu': { const x=ctxOf(a); if(x) openBlockMenu(a,x.pg,x.b); break; }
     case 'subj-blk': { const x=ctxOf(a); if(x&&x.b.type==='subj') openSubjBlockMenu(a,x.pg,x.b); break; }
     case 'row-menu': case 'col-menu': { const x=ctxOf(a); if(x&&x.b.type==='table') openTableMenu(a,x.pg,x.b,act==='row-menu'?'row':'col',act==='row-menu'?x.r:x.c); break; }
     case 'add-row': { const x=ctxOf(a); if(!x) break; const cols=x.b.rows[0].cells.length; x.b.rows.push({cells:Array.from({length:cols},()=>emptyCell())}); savePage(x.pg); rerenderBlocks(); focusLine(x.b.id,x.b.rows.length-1,0,0,0); break; }
-    case 'add-col': { const x=ctxOf(a); if(!x) break; x.b.rows.forEach(r=>r.cells.push(emptyCell())); savePage(x.pg); rerenderBlocks(); focusLine(x.b.id,0,x.b.rows[0].cells.length-1,0,0); break; }
-    case 'tail': if(srcOn(pg)){ const ta=$('#src-ed'); if(ta){ ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length); } break; } if(pg){ const last=pg.blocks[pg.blocks.length-1]; if(last&&last.type==='p'&&isBlank(last.html)) focusBlock(last.id,0); else { const nb=newBlock('p'); pg.blocks.push(nb); savePage(pg); rerenderBlocks(); focusBlock(nb.id,0); } } break;
+    case 'add-col': { const x=ctxOf(a); if(!x) break; x.b.rows.forEach(r=>r.cells.push(emptyCell())); if(Array.isArray(x.b.cw)) x.b.cw.push(150); savePage(x.pg); rerenderBlocks(); focusLine(x.b.id,0,x.b.rows[0].cells.length-1,0,0); break; }
+    case 'tail': if(srcOn(pg)){ const ta=$('#src-ed'); if(ta){ ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length); } break; } if(pg){ const last=pg.blocks[pg.blocks.length-1]; if(last&&last.type==='p'&&isBlank(last.html)&&!hiddenMask(pg.blocks)[pg.blocks.length-1]) focusBlock(last.id,0); else { const nb=newBlock('p'); keepVisible(pg.blocks,pg.blocks.length); pg.blocks.push(nb); savePage(pg); rerenderBlocks(); focusBlock(nb.id,0); } } break;
     case 'wk-prev': S.weekOffset--; renderMain(); break;
     case 'wk-next': S.weekOffset++; renderMain(); break;
     case 'wk-today': S.weekOffset=0; renderMain(); break;

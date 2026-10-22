@@ -1,6 +1,7 @@
 /* Úkolníček – Úkoly: sběr ze všech stránek, přehled po projektech, skrývání projektů */
 import { $, esc, ICONS, lsGet, lsSet, plain } from '../core.js';
 import { S } from '../state.js';
+import { modeBtn } from '../theme.js';
 import { DATA_REV, savePage, saveSettings } from '../store.js';
 import { dueChip, parseDue } from '../dates.js';
 import { flatPages, isArchived, pIcon, pTitle } from '../pages.js';
@@ -124,7 +125,7 @@ function renderTasks(){
   $('#view').innerHTML=`<div class="view tk-view">
     <div class="v-head"><div><h1 class="v-title">Úkoly</h1></div>
       <div class="filters"><button class="${S.taskFilter==='open'?'on':''}" data-act="tfilter" data-v="open">Nesplněné · ${openN}</button><button class="${S.taskFilter==='all'?'on':''}" data-act="tfilter" data-v="all">Vše · ${all.length}</button>
-        <button class="t-projbtn ${hiddenNames.length?'has':''}" data-act="t-projs" aria-haspopup="true">${ICONS.eyeOff}Projekty${hiddenNames.length?` · ${hiddenNames.length}`:''}</button></div></div>
+        <button class="t-projbtn ${hiddenNames.length?'has':''}" data-act="t-projs" aria-haspopup="true">${ICONS.eyeOff}Projekty${hiddenNames.length?` · ${hiddenNames.length}`:''}</button>${modeBtn()}</div></div>
     ${all.length?`<div class="tk-sum">${tile('Po termínu',lateN,'',lateN?'late':'')}${tile('Příštích 7 dní',weekN)}${tile('Nesplněné',openN,` z ${all.length}`)}</div>`:''}
     ${empty?`<div class="card"><div class="empty" style="padding:18px">${empty}</div></div>`:''}
     ${dated.length?`<section class="tk-sec ${fD?'folded':''}"><div class="tk-h"><h2>S termínem</h2>${tkProg(datedAll.filter(t=>t.done).length,datedAll.length)}${tkActs(DUE,'S termínem')}</div>${fD?'':`<div class="tk-list">${dated.map(t=>tkRow(t,true)).join('')}</div>`}</section>`:''}
