@@ -17,7 +17,7 @@ import { placeFrame } from '../editor/images.js';
 import { checkUpdate } from '../update.js';
 
 /* ================= settings ================= */
-const APP_VERSION='4.3.2';
+const APP_VERSION='4.4.1';
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
 const FS_STEPS=[1,1.15,1.3,1.45,1.6];
 function applyTheme(){
@@ -209,7 +209,7 @@ function importFile(f){
       const d=JSON.parse(rd.result); if(!d||typeof d.pages!=='object') throw 0;
       await Local.addBackup(stateForStorage(),'Před importem ze souboru');
       const n=normalizeImport(d);
-      Object.assign(S.pages,n.pages); Object.assign(S.events,n.events); Object.assign(S.subjects,n.subjects); Object.assign(S.semesters,n.semesters);
+      Object.assign(S.pages,n.pages); Object.assign(S.events,n.events); Object.assign(S.subjects,n.subjects); Object.assign(S.semesters,n.semesters); Object.assign(S.trash,n.trash);
       if(d.settings){ S.settings=Object.assign(defaultSettings(),n.settings); applySkin(); }
       HIST.clear(); Store.queue();
       closeModal(); renderSidebar(); renderMain(); const np=Object.keys(n.pages).length, ne=Object.keys(n.events).length; toast(`Importováno: ${np} ${np===1?'stránka':np<5&&np>0?'stránky':'stránek'}, ${ne} ${ne===1?'událost':ne<5&&ne>0?'události':'událostí'}`);

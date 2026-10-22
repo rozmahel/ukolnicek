@@ -11,6 +11,8 @@ import { go } from '../router.js';
 import { defaultEnd, hLevel, isHeading, renderPage, rerenderBlocks } from './render.js';
 import { setType, subjToH1, toSubject } from './blocks.js';
 import { closePop, openPop, placePop, toast } from '../ui.js';
+import { selectImage } from './images.js';
+import { editDrawing } from './draw.js';
 import { blockToEq, openEqEditor } from './math.js';
 import { bselCount, bulk, copyOne } from './multisel.js';
 
@@ -58,6 +60,7 @@ function openBlockMenu(anchor,pg,b){
     h+=`<div class="pop-h">Barva</div><div class="swatches">${COLORS.map(c=>`<button class="sw hl-${c} ${b.color===c?'on':''}" data-v="color:${c}" aria-label="${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}</div>`;
   }
   if(b.type==='eq') h+=`<div class="pop-sep"></div><button class="pop-item" data-v="eq-edit"><span class="pi-ic">${TYPE_ICON.eq}</span>Upravit rovnici</button><button class="pop-item" data-v="eq-txt"><span class="pi-ic">T</span><span>Převést na text<small>Zdroj LaTeX jako obyčejný odstavec</small></span></button>`;
+  if(b.type==='image'&&b.draw) h+=`<div class="pop-sep"></div><button class="pop-item" data-v="draw-edit"><span class="pi-ic">✎</span>Upravit kresbu</button><button class="pop-item" data-v="draw-size"><span class="pi-ic">⤢</span>Velikost a zarovnání</button>`;
   if(b.type==='table') h+=`<div class="pop-sep"></div><div class="pop-h">Tabulka</div><button class="pop-item" data-v="hrow"><span class="pi-ic">${b.hrow?'✓':''}</span>První řádek jako záhlaví</button><button class="pop-item" data-v="hcol"><span class="pi-ic">${b.hcol?'✓':''}</span>První sloupec jako záhlaví</button>`;
   {
     const bl=pg.blocks, xi=bl.indexOf(b); let sec='';
@@ -87,6 +90,7 @@ function openBlockMenu(anchor,pg,b){
     if(v==='subj-ix'){ gotoSubject(b.subj); return; }
     if(v==='subj-h1'){ subjToH1(pg,b); return; }
     if(v==='eq-edit'){ const el=$(`#blocks .blk[data-id="${b.id}"] .eqb`); if(el) setTimeout(()=>openEqEditor(el),0); return; }
+    if(v==='draw-edit'||v==='draw-size'){ const im=$(`#blocks .blk[data-id="${b.id}"] .bimg`); if(im) setTimeout(()=>v==='draw-edit'?editDrawing(im):selectImage(im,true),0); return; }
     if(v==='eq-txt'){ b.type='p'; savePage(pg); rerenderBlocks(); focusBlock(b.id,'end'); return; }
     if(v==='type:eq'){ blockToEq(pg,b); return; }
     if(v.startsWith('type:')){ setType(pg,b,v.slice(5),true); }

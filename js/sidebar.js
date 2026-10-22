@@ -9,6 +9,7 @@ import { isIndex, isSchool } from './school.js';
 import { renderPage } from './editor/render.js';
 import { shownTasks } from './views/tasks.js';
 import { updateSyncUI } from './sync/sync.js';
+import { TRASH_IC, trashSidebar } from './trash.js';
 
 /* ================= sidebar ================= */
 function renderSidebar(){
@@ -27,6 +28,15 @@ function renderSidebar(){
     </div>${ch&&open?tree(p.id,d+1):''}`;
   }).join('');
   const school=isSchool();
+  if(S.trashMode){
+    side.innerHTML=`
+    <div class="ws"><div class="ws-name">${esc(S.settings.name||'Úkolníček')}</div></div>
+    <nav class="nav"><button class="nv arch-back" data-act="trash-back">${ICONS.back}<span>Zpět</span></button></nav>
+    ${trashSidebar()}
+    <div class="syncbar" id="sync-box"></div>
+    <div class="side-foot"><button class="nv" data-act="settings">${ICONS.settings}<span>Nastavení</span></button><span id="save-state"></span></div>`;
+    updateSaving(); updateSyncUI(); return;
+  }
   if(arch){
     const roots=archRoots();
     side.innerHTML=`
@@ -49,6 +59,7 @@ function renderSidebar(){
       ${nav('tasks','Úkoly',open?`<span class="badge">${open}</span>`:'')}
       <button class="nv" data-act="search">${ICONS.search}<span>Hledat</span><kbd>${SEARCH_KEY}</kbd></button>
       <button class="nv" data-act="arch">${ICONS.archive}<span>Archiv</span>${archN?`<span class="badge">${archN}</span>`:''}</button>
+      <button class="nv" data-act="trash">${TRASH_IC}<span>Koš</span></button>
     </nav>
     <div class="sec-h"><span>Projekty</span><button class="icon-btn" data-act="new-page" aria-label="Nový projekt">+</button></div>
     <div class="tree">${kids(null).length?tree(null,0):`<div class="tree-empty">Zatím žádné projekty.<br><button class="linkbtn" data-act="new-page">Vytvořit první projekt</button></div>`}</div>

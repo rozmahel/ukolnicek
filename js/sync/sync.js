@@ -19,7 +19,7 @@ const IDLE_MS=5*60000;
    (porovnává se čas vytvoření na serveru Googlu, ne hodiny zařízení) */
 function newerOnDrive(top){ return !!(top&&top.name!==META.remoteName&&(!META.remoteAt||top.createdTime>META.remoteAt)); }
 /* data z Disku ve stejném tvaru jako dataForSave() (i s výchozím nastavením) */
-function packRemote(n){ return packData(n.pages,n.events,Object.assign(defaultSettings(),n.settings),n.subjects,n.semesters); }
+function packRemote(n){ return packData(n.pages,n.events,Object.assign(defaultSettings(),n.settings),n.subjects,n.semesters,n.trash); }
 
 const Sync={
   busy:false,remoteNewer:false,prog:'',

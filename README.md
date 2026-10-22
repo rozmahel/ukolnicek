@@ -121,9 +121,10 @@ Kód je rozdělený do malých souborů podle oblastí. Prohlížeč je načte s
 | `js/main.js` | start aplikace, globální kliknutí a klávesy, Service Worker |
 | `js/core.js`, `state.js`, `dates.js`, `ui.js`, `router.js`, `sidebar.js`, `pages.js`, `sanitize.js`, `lock.js` | základ: pomůcky, stav v paměti, data a časy, dialogy a oznámení, přepínání pohledů, levý panel, stránky, čištění HTML, zámek |
 | `js/school.js` | školní režim a předměty: výběr předmětu, propojení hodin s předměty, smazání školních dat |
+| `js/trash.js` | koš: smazané stránky a projekty na 7 dní, levý panel koše, náhled ke čtení, obnovení |
 | `js/theme.js` | barevný motiv: čte `settings.theme`, nastavuje `data-skin` na `<html>` a barvu lišty prohlížeče |
 | `js/store.js` | ukládání do zařízení, otisk dat („neuloženo na Disk“), kontrola dat zvenku, víc oken najednou (Web Locks + BroadcastChannel, spojení přes `merge.js`) |
-| `js/editor/` | editor stránek: vykreslení, klávesy, `/` menu, lišty, menu bloků, odkazy, obrázky, zpět a znovu, výběr textu i celých bloků (`multisel.js`), nabídka @ a zpětné odkazy (`mention.js`), import a export Markdownu (`markdown.js`), zobrazení zdroje (`source.js`), rovnice v LaTeXu (`math.js`), blok s kódem (`code.js`) |
+| `js/editor/` | editor stránek: vykreslení, klávesy, `/` menu, lišty, menu bloků, odkazy, obrázky, zpět a znovu, výběr textu i celých bloků (`multisel.js`), nabídka @ a zpětné odkazy (`mention.js`), import a export Markdownu (`markdown.js`), zobrazení zdroje (`source.js`), rovnice v LaTeXu (`math.js`), blok s kódem (`code.js`), kreslení (`draw.js`) |
 | `js/views/` | pohledy: Dnes, Index, Rozvrh, Úkoly, Hledání, Nastavení |
 | `js/sync/` | synchronizace s Google Diskem (`sync.js`), obrázky na Disku (`images.js`), spojení dvou verzí při kolizi, i po blocích (`merge.js`), statistika nahrávání (`uplog.js`) |
 | `js/storage.js` | IndexedDB: data, obrázky, místní zálohy |
@@ -148,7 +149,7 @@ npx playwright install chromium
 
 Pak:
 
-- `npm test`: zkontroluje importy mezi moduly a spustí testy v prohlížeči bez okna (synchronizace s napodobeným Diskem včetně obrázků, Úkoly, Index, školní režim, barevné motivy, výběr přes víc bloků a přesouvání projektů, import a export Markdownu, rovnice, blok s kódem a „1.“ jako text, hledání a ⌘S, archiv a sbalené úkoly, widgety na Dnes včetně nastavení a rychlého úkolu, menu bloku a výběr víc bloků, ⌘ú/⌘), kurzor za rovnicí, místo na stránce a kopie hodiny v rozvrhu (`tests/blokmenu.test.js`), zkratky a ⌘D, typy rámečku, blok → rovnice, zobrazení zdroje, spojení po blocích, dvě okna, čas nahrání a graf (`tests/novinky43.test.js`) a další). Na Google se nic neposílá. Snímky obrazovky z testů jsou v `tests/shots/`. Test kompatibility se starou verzí potřebuje složku `_zaloha-v2.6.0`, bez ní poběží proti současné verzi. Test motivů porovnává Výchozí vzhled se složkou `_zaloha-v3.0.1` (bez ní se to porovnání přeskočí).
+- `npm test`: zkontroluje importy mezi moduly a spustí testy v prohlížeči bez okna (synchronizace s napodobeným Diskem včetně obrázků, Úkoly, Index, školní režim, barevné motivy, výběr přes víc bloků a přesouvání projektů, import a export Markdownu, rovnice, blok s kódem a „1.“ jako text, hledání a ⌘S, archiv a sbalené úkoly, widgety na Dnes včetně nastavení a rychlého úkolu, menu bloku a výběr víc bloků, ⌘ú/⌘), kurzor za rovnicí, místo na stránce a kopie hodiny v rozvrhu (`tests/blokmenu.test.js`), zkratky a ⌘D, typy rámečku, blok → rovnice, zobrazení zdroje, spojení po blocích, dvě okna, čas nahrání a graf (`tests/novinky43.test.js`), kreslení, koš a mazání vybraných bloků se zámkem (`tests/kresleni.test.js`) a další). Na Google se nic neposílá. Snímky obrazovky z testů jsou v `tests/shots/`. Test kompatibility se starou verzí potřebuje složku `_zaloha-v2.6.0`, bez ní poběží proti současné verzi. Test motivů porovnává Výchozí vzhled se složkou `_zaloha-v3.0.1` (bez ní se to porovnání přeskočí).
 - `npm run fix-imports`: přepočítá řádky `import` a `export` ve všech modulech. Když přesuneš funkci do jiného souboru, stačí ho spustit. Nový modul přidej do seznamu `MODULES` v `tools/fix-imports.js` (určuje pořadí načítání).
 
 ### Vydání nové verze
@@ -164,12 +165,14 @@ Nová verze se v zařízeních nasadí sama, při spuštění nebo návratu do a
 
 ### Formát dat
 
-Data jsou jeden JSON: `pages`, `events`, `settings`, a když jsou použité, i `subjects` a `semesters`.
+Data jsou jeden JSON: `pages`, `events`, `settings`, a když jsou použité, i `subjects`, `semesters` a `trash`.
 
 - **Stránka:** `{id, title, icon, color, parent, order, props, blocks}`, volitelně `archived` (čas archivace v ms; jen u archivované stránky, její podstránky příznak nemají a archivované jsou s ní). Blok má `id`, `type` (`p`, `h1`–`h3`, `bullet`, `num`, `todo`, `quote`, `callout`, `code`, `table`, `divider`, `page`, `image`, `subj`, `eq`) a `html`. Nadpis může mít `collapsed`, `until` (blok, po který se sbaluje) a `untilVis` (ten blok zůstane vidět).
 - **Blok předmětu** (`subj`): `subj` (ID předmětu), `html` (textová kopie názvu pro starší verze), volitelně `icon`, `it`, `un`, `st`, `hl` (emoji a formát nadpisu).
 - **Kód** (`code`): `html` je prostý text, řádky oddělené `<br>` (prázdný poslední řádek má `<br>` navíc), znaky `< > &` escapované, žádné značky formátu. Starší verze ho ukážou jako odstavec. Číslovaný seznam vrácený na text si pamatuje jen stránka v paměti (`blocks.js`), do dat se nic nezapisuje.
 - **Rovnice na řádku** (`eq`): `html` je zdroj LaTeX jako escapovaný text (žádné HTML z KaTeXu). Starší verze z něj udělají odstavec s textem rovnice.
+- **Kresba:** obrázkový blok (`image`) s `draw: 1`, `img` je ID souboru SVG v úložišti obrázků (v zařízení i na Disku jako `ukimg_<ID>`), `name` „Kresba“. V SVG je `<metadata id="uk-draw">` s JSONem `{v:1, bg, crop, view:[x,y,w,h], box?:[x,y,w,h] (vlastní ořez), s:[{t:'p'|'f'|'h', c:'#rrggbb', w, p:[x,y,…], r?:[přítlak 0–1]}]}`; aplikace ho při úpravě kontroluje a do stránky SVG nikdy nevkládá. Každá uložená úprava = nový soubor s novým ID, starý zůstane bez odkazu a ↑ ho smaže z Disku jako smazaný obrázek. Uložený soubor je vždy denní (bílý papír), tmavý režim ho převrací filtrem v `css/draw.css`. Starší verze kresbu ukáží jako obyčejný obrázek a příznak `draw` zachovají. Předvolby nástrojů jsou jen v zařízení (`uk-draw`).
+- **Koš** (`trash`): `{ID kořenové stránky: {id, at, pages:[kořen, podstránky…]}}`, `at` = čas smazání v ms, po 7 dnech se položka smaže sama (při spuštění a návratu do aplikace). Stránky v koši nejsou v `pages`, takže je hledání, Úkoly ani Dnes nevidí. Starší verze klíč `trash` zahodí. Při spojení verzí: stránka smazaná na jedné straně a upravená na druhé zůstane a vrátí se z koše i s podstránkami.
 - **Hodina v rozvrhu:** `{id, title, type, day, start, end, repeat, date, count, place, who, note, color, subj}`. Prázdné `color` u hodiny s předmětem znamená barvu podle předmětu.
 
 - **Rovnice v textu:** `<span class="eq" contenteditable="false">TeX</span>` uvnitř `html` (i v buňce tabulky). Uvnitř je jen zdroj LaTeX, vykreslení je ve shadow DOM a do dat se nedostane. Starší verze ukáží TeX jako text.

@@ -148,8 +148,9 @@ function clearBsel(){
 }
 function drawBar(r){
   const n=r.ids.length, cnt=n===1?'1 blok':n<5?`${n} bloky`:`${n} bloků`;
-  bar.innerHTML=`<span class="bs-n">${cnt}</span>`+(LOCK?'':`<button data-b="type" data-popanchor>Převést na ▾</button><button data-b="dup" title="⌘D">Duplikovat</button><button data-b="del" class="danger" title="⌫">Smazat</button>`)
-    +`<button data-b="copy" title="⌘C">Kopírovat</button><button data-b="x" class="bs-x" aria-label="Zrušit výběr" title="Esc">×</button>`;
+  /* smazat vybrané bloky jde i se zámkem: výběr je záměrný a ⌘Z je vrátí */
+  bar.innerHTML=`<span class="bs-n">${cnt}</span>`+(LOCK?'':`<button data-b="type" data-popanchor>Převést na ▾</button><button data-b="dup" title="⌘D">Duplikovat</button>`)
+    +`<button data-b="copy" title="⌘C">Kopírovat</button><button data-b="del" class="danger" title="⌫">Smazat</button><button data-b="x" class="bs-x" aria-label="Zrušit výběr" title="Esc">×</button>`;
   bar.hidden=false; placeBar();
 }
 function placeBar(){
@@ -162,7 +163,6 @@ const blockItems=r=>r.pg.blocks.slice(r.i0,r.i1+1).map(b=>({b,el:$(`#blocks > .b
 function after(fn){ return (...a)=>{ const r=bRange(); if(!r) return clearBsel(); return fn(r,...a); }; }
 const guard=msg=>{ if(LOCK){ toast(msg||'Zamčeno: bloky jde přesouvat, mazat a měnit po odemčení.'); return true; } return false; };
 const delBlocks=after(r=>{
-  if(guard()) return;
   r.pg.blocks.splice(r.i0,r.i1-r.i0+1); if(!r.pg.blocks.length) r.pg.blocks.push(newBlock('p'));
   savePage(r.pg); clearBsel(); rerenderBlocks();
   const prev=r.vis[r.lo-1]||r.vis[r.hi+1], t=prev&&$(`#blocks .blk[data-id="${prev}"] .txt`), any=$('#blocks .txt');

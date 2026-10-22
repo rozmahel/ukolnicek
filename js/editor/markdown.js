@@ -206,7 +206,7 @@ function blockMd(b){
     case 'eq': s='$$\n'+plain(b.html)+'\n$$'; break;
     case 'code': { const c=htmlToCode(b.html); const f=c.includes('```')?'~~~~':'```'; s=f+'\n'+c+'\n'+f; break; }
     case 'page': s=`↗ ${escMd(pTitle(S.pages[b.pageId]||null))}`; break;
-    case 'image': s=`*[obrázek${b.name?': '+escMd(b.name):''}]*`+(b.caption?`  \n${htmlToMd(b.caption,' ')}`:''); break;
+    case 'image': s=b.draw?'*[kresba]*':`*[obrázek${b.name?': '+escMd(b.name):''}]*`+(b.caption?`  \n${htmlToMd(b.caption,' ')}`:''); break;
     case 'table': {
       const rows=(b.rows||[]).map(r=>r.cells.map(c=>c.lines.map(l=>(l.t==='bullet'?'- ':l.t==='todo'?(l.done?'- [x] ':'- [ ] '):'')+htmlToMd(l.html,'<br>')).filter((x,k,a)=>x||a.length===1).join('<br>').replace(/\n/g,' ')));
       if(!rows.length) return null;

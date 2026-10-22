@@ -1,0 +1,73 @@
+/* Úkolníček – Kreslení: okno editoru a kresba ve stránce
+   Kresba je uložená vždy v denních barvách (bílý papír, černý inkoust). V tmavém režimu se papír, inkoust
+   i ostatní barvy převrátí filtrem: bílá → skoro černá, černá → skoro bílá, barvy si nechají odstín. */
+:root{--drw-night:invert(.92) hue-rotate(180deg)}
+
+/* kresba ve stránce */
+.bimg.bdraw{border-radius:6px;cursor:pointer;background:#fff}
+.bimg.bdraw.missing{background:none;cursor:default}
+
+/* okno */
+.drw-ov{position:fixed;inset:0;z-index:90;background:var(--scrim);overscroll-behavior:contain}
+.drw{position:absolute;inset:14px;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.drw-bar{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;padding:8px 10px;border-bottom:1px solid var(--line)}
+.drw-grp{display:flex;align-items:center;gap:2px}
+.drw-sp{flex:1}
+.drw-end{gap:6px}
+.drw-b{width:36px;height:36px;display:grid;place-items:center;border-radius:8px;color:var(--fg2)}
+.drw-b:hover:not(:disabled){background:var(--hover);color:var(--fg)}
+.drw-b.on{background:var(--accent-soft);color:var(--accent)}
+.drw-b:disabled{opacity:.35;cursor:default}
+.drw-b svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.drw-more{font-size:20px;line-height:1;letter-spacing:1px}
+.drw-sw{width:20px;height:20px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
+.drw-dot{border-radius:50%;background:currentColor;display:block}
+.drw-wrap{position:relative;flex:1;min-height:0;overflow:hidden}
+.drw-stage{position:absolute;inset:0;background:#fff;touch-action:none;user-select:none;-webkit-user-select:none;cursor:crosshair}
+.drw-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.cv-bg{z-index:1}.cv-hl{z-index:2}.cv-live{z-index:3}.cv-ink{z-index:4}
+.drw-stage.cropping{cursor:move}
+/* vlastní ořez: mimo rámeček ztmavené (při ořezávání víc), rohy jen při ořezávání */
+.drw-crop{position:absolute;z-index:5;pointer-events:none;outline:1.5px dashed var(--accent);box-shadow:0 0 0 100vmax rgba(0,0,0,.12)}
+.drw-crop[hidden]{display:none}
+.drw-crop.act{outline-style:solid;box-shadow:0 0 0 100vmax rgba(0,0,0,.38)}
+.drw-crop i{display:none;position:absolute;width:14px;height:14px;background:var(--panel);border:2px solid var(--accent);border-radius:4px}
+.drw-crop.act i{display:block}
+.drw-crop [data-h="nw"]{left:-8px;top:-8px}.drw-crop [data-h="ne"]{right:-8px;top:-8px}
+.drw-crop [data-h="sw"]{left:-8px;bottom:-8px}.drw-crop [data-h="se"]{right:-8px;bottom:-8px}
+.drw-pop{position:absolute;z-index:6;min-width:180px;padding:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);display:grid;gap:10px}
+.drw-pop[hidden]{display:none}
+.drw-sws{display:grid;grid-template-columns:repeat(4,32px);gap:6px}
+.drw-swb{width:32px;height:32px;border-radius:50%;display:grid;place-items:center}
+.drw-swb span{width:22px;height:22px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
+.drw-swb.on{box-shadow:0 0 0 2px var(--accent)}
+.drw-row{display:grid;gap:6px;font-size:calc(13px*var(--fs));color:var(--fg2)}
+.drw-row input[type=range]{width:100%;accent-color:var(--accent)}
+.drw-lbl{font-size:calc(13px*var(--fs));color:var(--fg2);font-weight:600}
+.drw-seg{display:flex}
+.drw-seg button{flex:1;display:grid;place-items:center;padding:4px 10px}
+.drw-seg svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.drw-chk{display:flex;align-items:center;gap:8px;font-size:calc(13.5px*var(--fs));color:var(--fg2)}
+.drw-chk input{accent-color:var(--accent);width:16px;height:16px}
+.drw-ask{display:flex;gap:6px;justify-content:flex-end}
+@media (max-width:640px){
+  .drw{inset:0;border-radius:0;border:0}
+  .drw-bar{gap:4px 6px;padding:6px}
+  .drw-b{width:34px;height:34px}
+}
+
+/* tmavý režim: papír černý, inkoust bílý */
+:root[data-theme="dark"] .bimg.bdraw:not(.missing),
+:root[data-theme="dark"] .drw-stage,
+:root[data-theme="dark"] .drw-sw,
+:root[data-theme="dark"] .drw-swb span,
+:root[data-theme="dark"] .drw-wid .drw-dot{filter:var(--drw-night)}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .bimg.bdraw:not(.missing),
+  :root:not([data-theme="light"]) .drw-stage,
+  :root:not([data-theme="light"]) .drw-sw,
+  :root:not([data-theme="light"]) .drw-swb span,
+  :root:not([data-theme="light"]) .drw-wid .drw-dot{filter:var(--drw-night)}
+}
+/* u kresby se nový blok plusem nepřidává, zůstává jen ⋮⋮ */
+.b-image.is-draw>.gut .g-add{display:none}

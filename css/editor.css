@@ -269,3 +269,7 @@ a.mention.gone{color:var(--muted);background:var(--hover);text-decoration:line-t
 /* zobrazení zdroje (Markdown) */
 .src-ed{display:block;width:100%;min-height:40vh;margin:6px 0 0;padding:10px 0;border:0;outline:0;resize:none;background:transparent;color:var(--fg);font:calc(13.5px*var(--fs))/1.65 var(--f-mono);white-space:pre-wrap;overflow-wrap:anywhere;tab-size:2;overflow:hidden;font-variant-ligatures:none;font-feature-settings:"calt" 0,"liga" 0}   /* bez ligatur JetBrains Mono: „###“, „->“ se při psaní nepřeskupují */
 .src-ed:read-only{color:var(--fg2)}
+/* náhled stránky v koši (jen ke čtení) */
+.ro-blocks .gut,.ro-blocks .hidden-count{display:none}
+.ro-blocks .txt:empty{display:none}
+.ro-doc .page-icon{cursor:default}

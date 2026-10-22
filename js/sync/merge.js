@@ -58,12 +58,12 @@ function mergePage(L,R,B){
 function syncDiff(L,R,B){
   const out={here:[],drive:[],both:[],differ:[],copies:0};
   const name=(k,lv,rv,inBase)=>{
-    const v=lv||rv; const t=k==='pages'?(v.icon?v.icon+' ':'')+(v.title||'Bez názvu'):k==='subjects'?'🎓 '+[v.code,v.name].filter(Boolean).join(' '):k==='semesters'?'📅 '+(v.name||'Semestr'):'🗓️ '+(v.title||'Bez názvu')+(v.start?' '+v.start:'');
+    const v=lv||rv; const t=k==='trash'?'🗑 '+((v.pages&&v.pages[0]&&v.pages[0].title)||'Bez názvu'):k==='pages'?(v.icon?v.icon+' ':'')+(v.title||'Bez názvu'):k==='subjects'?'🎓 '+[v.code,v.name].filter(Boolean).join(' '):k==='semesters'?'📅 '+(v.name||'Semestr'):'🗓️ '+(v.title||'Bez názvu')+(v.start?' '+v.start:'');
     if(lv&&rv) return t;
     if(inBase==null) return t+(lv?' (jen tady)':' (jen na Disku)');
     return t+(inBase?(lv?' (na Disku smazáno)':' (tady smazáno)'):(lv?' (nové tady)':' (nové na Disku)'));
   };
-  [['pages',pageSig],['events',evSig],['subjects',evSig],['semesters',evSig]].forEach(([k,sig])=>{
+  [['pages',pageSig],['events',evSig],['subjects',evSig],['semesters',evSig],['trash',evSig]].forEach(([k,sig])=>{
     const l=L[k]||{}, r=R[k]||{}, b=B?(B[k]||{}):null;
     new Set([...Object.keys(l),...Object.keys(r)]).forEach(id=>{
       const lv=l[id], rv=r[id], sl=sig(lv), sr=sig(rv); if(sl===sr) return;
@@ -73,9 +73,9 @@ function syncDiff(L,R,B){
         if(sr===sb){ out.here.push(name(k,lv,rv,!!b[id])); return; }
         out.both.push(name(k,lv,rv,!!b[id]));
         if(k==='pages'&&lv&&rv&&b[id]){ const m=mergePage(lv,rv,b[id]); out.copies+=m?m.copies:1; return; }
-        if(lv&&rv&&k!=='semesters') out.copies++; return;
+        if(lv&&rv&&k!=='semesters'&&k!=='trash') out.copies++; return;
       }
-      out.differ.push(name(k,lv,rv,null)); if(lv&&rv&&k!=='semesters') out.copies++;
+      out.differ.push(name(k,lv,rv,null)); if(lv&&rv&&k!=='semesters'&&k!=='trash') out.copies++;
     });
   });
   const ls=L.settings||{}, rs=R.settings||{};
@@ -88,8 +88,8 @@ function syncDiff(L,R,B){
   return out;
 }
 function mergeData(L,R,B){
-  const dev=deviceName(), out={pages:{},events:{},settings:{},subjects:{},semesters:{}}; let copies=0;
-  [['pages',pageSig],['events',evSig],['subjects',evSig],['semesters',evSig]].forEach(([k,sig])=>{
+  const dev=deviceName(), out={pages:{},events:{},settings:{},subjects:{},semesters:{},trash:{}}; let copies=0;
+  [['pages',pageSig],['events',evSig],['subjects',evSig],['semesters',evSig],['trash',evSig]].forEach(([k,sig])=>{
     const l=L[k]||{}, r=R[k]||{}, b=B?(B[k]||{}):null;
     new Set([...Object.keys(l),...Object.keys(r)]).forEach(id=>{
       const lv=l[id], rv=r[id], sl=sig(lv), sr=sig(rv);
@@ -103,7 +103,7 @@ function mergeData(L,R,B){
       if(rv) out[k][id]=clone(rv);
       if(!lv) return;
       if(!rv){ out[k][id]=clone(lv); return; }               /* smazané na jedné straně a změněné na druhé: ponechat */
-      if(k==='semesters') return;                            /* semestr zůstane jen jednou (verze z Disku) */
+      if(k==='semesters'||k==='trash') return;               /* semestr a položka koše zůstanou jen jednou (verze z Disku) */
       const c=clone(lv); c.id=rid(); copies++;
       if(k==='subjects') c.name=(lv.name||lv.code||'Předmět')+' (kopie – '+dev+')';
       else c.title=(lv.title||'Bez názvu')+' (kopie – '+dev+')';
@@ -112,6 +112,13 @@ function mergeData(L,R,B){
       out[k][c.id]=c;
     });
   });
+  /* stránka smazaná do koše na jedné straně a upravená na druhé zůstala: vrátí se z koše i její podstránky */
+  Object.values(out.trash).forEach(t=>{
+    if(!out.pages[t.id]) return;
+    (t.pages||[]).forEach(p=>{ if(!out.pages[p.id]) out.pages[p.id]=clone(p); });
+    delete out.trash[t.id];
+  });
+  Object.values(out.trash).forEach(t=>{ t.pages=(t.pages||[]).filter(p=>!out.pages[p.id]); if(!t.pages.length) delete out.trash[t.id]; });
   /* podstránky stránky, která zmizela, přesunout na nejvyšší úroveň */
   Object.values(out.pages).forEach(p=>{ if(p.parent&&!out.pages[p.parent]) p.parent=null; });
   /* nastavení po položkách: změněné na Disku se převezme, jinak zůstane to z tohoto zařízení */

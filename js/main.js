@@ -28,8 +28,10 @@ import { openSyncMenu, Sync } from './sync/sync.js';
 import { openLinkPop } from './editor/links.js';
 import { initImages, selectImage } from './editor/images.js';
 import { exportMd } from './editor/markdown.js';
+import { editDrawing } from './editor/draw.js';
 import { initMath, openEqEditor } from './editor/math.js';
 import { initSource, srcOn, toggleSource } from './editor/source.js';
+import { trashAct } from './trash.js';
 import { initUpdates, workerOk } from './update.js';
 import { quickAdd, wgDo, wgUi } from './views/dashWidgets.js';
 
@@ -50,7 +52,7 @@ document.addEventListener('click',e=>{
     if(e.metaKey||e.ctrlKey){ window.open(lk.href,'_blank','noopener'); return; }
     openLinkPop(lk); return;
   }
-  const im=e.target.closest&&e.target.closest('#doc .txt img.im, #doc .bimg'); if(im){ selectImage(im); return; }
+  const im=e.target.closest&&e.target.closest('#doc .txt img.im, #doc .bimg'); if(im){ if(im.classList.contains('bdraw')) editDrawing(im); else selectImage(im); return; }
   const eq=e.target.closest&&e.target.closest('#doc .eq, #doc .eqb'); if(eq){ openEqEditor(eq); return; }
   const col=e.target.classList&&e.target.classList.contains('sg-col')?e.target:null;
   if(col){
@@ -65,6 +67,7 @@ document.addEventListener('click',e=>{
   const act=a.dataset.act, pg=curPage();
   /* zamčeno: nic, co mění strukturu stránky */
   if(LOCK&&['add-after','row-menu','col-menu','add-row','add-col','prop-add','prop-del','tpl'].includes(act)) return;
+  if(act.startsWith('trash')&&trashAct(act,a)) return;
   switch(act){
     case 'lock': toggleLock(); break;
     case 'mdexport': exportMd(pg); break;
@@ -78,7 +81,7 @@ document.addEventListener('click',e=>{
     case 'nav': go({kind:a.dataset.v}); break;
     case 'menu': $('#side').classList.contains('open')?closeSide():openSide(); break;
     case 'search': closeSide(); openSearch(); break;
-    case 'arch': S.archMode=true; renderSidebar(); break;
+    case 'arch': S.archMode=true; S.trashMode=false; renderSidebar(); break;
     case 'arch-back': S.archMode=false; renderSidebar(); break;
     case 'unarchive': unarchivePage(a.dataset.id); break;
     case 'settings': closeSide(); openSettings(); break;

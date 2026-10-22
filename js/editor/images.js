@@ -9,6 +9,7 @@ import { focusBlock, focusEl } from './caret.js';
 import { ctxOf, rerenderBlocks } from './render.js';
 import { hideCellbar, hideFmt } from './toolbar.js';
 import { closePop, openModal, openPop, placePop, toast } from '../ui.js';
+import { editDrawing } from './draw.js';
 
 /* ================= images ================= */
 const IMG_OK=/^image\/(png|jpeg|gif|webp)$/;
@@ -102,7 +103,9 @@ function placeFrame(){
   frame.classList.toggle('rz-left',imgAlign()==='right'); frame.hidden=false;
 }
 function hideImgSel(){ imgSel=null; frame.hidden=true; }
-function selectImage(img){
+/* kresba se klikem otevře v editoru kreslení; velikost a zarovnání jen z menu ⋮⋮ (force) */
+function selectImage(img,force){
+  if(!force&&img.classList.contains('bdraw')){ editDrawing(img); return; }
   const x=ctxOf(img); if(!x) return;
   hideFmt(); hideCellbar();
   const kind=img.classList.contains('bimg')?'block':'inline';
@@ -121,7 +124,7 @@ function applyImgAlign(al){
   else { imgSel.img.className='im al-'+al; imgSel.host.dispatchEvent(new Event('input',{bubbles:true})); }
 }
 /* stažení obrázku do zařízení (původní název souboru, přípona podle skutečného formátu) */
-const EXT={'image/png':'png','image/jpeg':'jpg','image/gif':'gif','image/webp':'webp'};
+const EXT={'image/png':'png','image/jpeg':'jpg','image/gif':'gif','image/webp':'webp','image/svg+xml':'svg'};
 async function downloadImage(id,name){
   const url=IMGURL.get(id); if(!url) return toast('Obrázek v tomhle zařízení ještě není. Nejdřív ho stáhni z Disku (↓).');
   try{

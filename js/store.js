@@ -11,6 +11,7 @@ import { Sync, updateSyncUI } from './sync/sync.js';
 import { keepFocus, mergeData, restoreFocus } from './sync/merge.js';
 import { ImgSync } from './sync/images.js';
 import { hideImgSel } from './editor/images.js';
+import { purgeTrash } from './trash.js';
 
 /* ================= storage (IndexedDB, see storage.js) ================= */
 const IMGURL=new Map();
@@ -34,7 +35,7 @@ function fnv(str){ let h=0x811c9dc5; for(let i=0;i<str.length;i++){ h^=str.charC
 function hashData(d){ return fnv(canonH(d)); }
 function dataHash(){ return hashData(dataForSave()); }
 /* otisk dat stažených z Disku (po normalizeImport), počítaný stejně jako otisk dat v zařízení */
-function hashOf(n){ return hashData(packData(n.pages,n.events,Object.assign(defaultSettings(),n.settings),n.subjects,n.semesters)); }
+function hashOf(n){ return hashData(packN(n)); }
 function isDirty(){
   if(!Object.keys(S.pages).length&&!Object.keys(S.events).length&&!Object.keys(S.subjects).length) return false;
   if(META.syncedHash&&META.curHash) return META.curHash!==META.syncedHash;
@@ -52,7 +53,7 @@ const bumpRev=()=>{ DATA_REV++; };
 let lastWid='', lastSeen=null, staleTab=false;
 const TAB_CH=typeof BroadcastChannel==='function'?new BroadcastChannel('ukolnicek-data'):null;
 const withLock=fn=>navigator.locks&&navigator.locks.request&&!Store.unloading?navigator.locks.request('ukolnicek-store',fn):fn();
-function packN(n){ return packData(n.pages,n.events,Object.assign(defaultSettings(),n.settings),n.subjects,n.semesters); }
+function packN(n){ return packData(n.pages,n.events,Object.assign(defaultSettings(),n.settings),n.subjects,n.semesters,n.trash); }
 /* data uložená jiným oknem (cur) + data v paměti → paměť; vrací uložený stav jiného okna (nový základ) */
 function takeOther(cur){
   const R=packN(normalizeImport(cur)), L=dataForSave();
@@ -90,7 +91,7 @@ const Store={
     try{
       await Local.open();
       const st=await Local.loadState();
-      if(st){ const d=normalizeImport(st); S.pages=d.pages||{}; S.events=d.events||{}; S.subjects=d.subjects||{}; S.semesters=d.semesters||{}; S.settings=Object.assign(defaultSettings(),d.settings||{}); Object.assign(META,st.meta||{}); lastWid=META.wid||''; }
+      if(st){ const d=normalizeImport(st); S.pages=d.pages||{}; S.events=d.events||{}; S.subjects=d.subjects||{}; S.semesters=d.semesters||{}; S.trash=d.trash||{}; S.settings=Object.assign(defaultSettings(),d.settings||{}); Object.assign(META,st.meta||{}); lastWid=META.wid||''; }
       lastSeen=dataForSave();
       const imgs=await Local.allImages(); imgs.forEach(r=>{ try{ IMGURL.set(r.id,URL.createObjectURL(r.blob)); }catch(_){} });
       Local.persist();
@@ -129,16 +130,19 @@ function stripBlocks(blocks){
     return o;
   });
 }
-/* Index (předměty a semestry) se do dat přidá jen když něco obsahuje,
-   takže data bez Indexu mají stejný tvar i otisk jako ve starších verzích */
-function packData(src,events,settings,subjects,semesters){
-  const pages={}; Object.values(src||{}).forEach(p=>{ pages[p.id]=Object.assign({},p,{blocks:stripBlocks(p.blocks)}); });
+/* Index (předměty a semestry) a koš se do dat přidají jen když něco obsahují,
+   takže data bez nich mají stejný tvar i otisk jako ve starších verzích.
+   Koš (trash) je mimo pages: starší verze ho při načtení zahodí a smazané stránky neukáže. */
+const stripPage=p=>Object.assign({},p,{blocks:stripBlocks(p.blocks)});
+function packData(src,events,settings,subjects,semesters,trash){
+  const pages={}; Object.values(src||{}).forEach(p=>{ pages[p.id]=stripPage(p); });
   const out={pages,events:events||{},settings:settings||{}};
   if(subjects&&Object.keys(subjects).length) out.subjects=subjects;
   if(semesters&&Object.keys(semesters).length) out.semesters=semesters;
+  if(trash&&Object.keys(trash).length){ out.trash={}; Object.values(trash).forEach(t=>{ out.trash[t.id]=Object.assign({},t,{pages:(t.pages||[]).map(stripPage)}); }); }
   return clone(out);
 }
-function dataForSave(){ return packData(S.pages,S.events,S.settings,S.subjects,S.semesters); }
+function dataForSave(){ return packData(S.pages,S.events,S.settings,S.subjects,S.semesters,S.trash); }
 function stateForStorage(){ return Object.assign(dataForSave(),{meta:clone(META)}); }
 /* accept older exports: Claude version (/_blob/ images, src on block images) */
 function legacyHtml(h){
@@ -158,11 +162,11 @@ function idFixer(){
 }
 function normalizeImport(d){
   const fid=idFixer();
-  const out={pages:{},events:{},settings:clone(d.settings||{}),subjects:{},semesters:{}};
+  const out={pages:{},events:{},settings:clone(d.settings||{}),subjects:{},semesters:{},trash:{}};
   delete out.settings.by; delete out.settings.updated;
   if(Array.isArray(out.settings.taskHidden)) out.settings.taskHidden=out.settings.taskHidden.map(fid);
-  Object.entries(d.pages||{}).forEach(([k,p])=>{
-    if(!p) return; const pg=clone(p); pg.id=fid(pg.id||k); delete pg.by;
+  const normPage=(p,k)=>{
+    const pg=clone(p); pg.id=fid(pg.id||k); delete pg.by;
     if(pg.parent) pg.parent=fid(pg.parent);
     if(pg.color!=null&&!COLORS.includes(pg.color)) pg.color='gray';
     pg.blocks=(Array.isArray(pg.blocks)?pg.blocks:[]).filter(b=>b&&typeof b==='object').map(b=>{
@@ -183,7 +187,16 @@ function normalizeImport(d){
       if(b.rows) b.rows.forEach(r=>(r.cells||[]).forEach(c=>(c.lines||[]).forEach(l=>{ if(!LINE_TYPES.has(l.t)) l.t='p'; l.html=legacyHtml(l.html); })));
       return b;
     });
-    out.pages[pg.id]=pg;
+    return pg;
+  };
+  Object.entries(d.pages||{}).forEach(([k,p])=>{ if(!p) return; const pg=normPage(p,k); out.pages[pg.id]=pg; });
+  /* koš: {ID kořenové stránky: {id, at: čas smazání, pages: [kořen, podstránky…]}} */
+  out.trash={};
+  Object.entries(d.trash&&typeof d.trash==='object'?d.trash:{}).forEach(([k,t])=>{
+    if(!t||!Array.isArray(t.pages)) return;
+    const pages=t.pages.filter(p=>p&&typeof p==='object').map(p=>normPage(p,''));
+    if(!pages.length) return;
+    const id=pages[0].id; out.trash[id]={id,at:Number.isFinite(+t.at)&&+t.at>0?+t.at:Date.now(),pages};
   });
   Object.entries(d.events||{}).forEach(([k,e])=>{
     if(!e) return; const ev=clone(e); ev.id=fid(ev.id||k); delete ev.by; delete ev.updated;
@@ -210,25 +223,28 @@ function saveEvent(){ Store.queue(); }
 function saveSettings(){ Store.queue(); }
 
 function onDataReady(){
-  S.ready=true;
+  S.ready=true; purgeTrash();
+  if(S.view.kind==='trash'&&S.trash[S.view.id]) S.trashMode=true;
   applySkin();
   renderSidebar(); renderMain(); restoreScroll();
 }
 function applyData(d){ applyNormalized(normalizeImport(d)); }
 function applyNormalized(n){
   n=clone(n); bumpRev();
-  S.pages=n.pages||{}; S.events=n.events||{}; S.subjects=n.subjects||{}; S.semesters=n.semesters||{}; S.settings=Object.assign(defaultSettings(),n.settings);
+  S.pages=n.pages||{}; S.events=n.events||{}; S.subjects=n.subjects||{}; S.semesters=n.semesters||{}; S.trash=n.trash||{}; S.settings=Object.assign(defaultSettings(),n.settings);
   applySkin();
   if((S.view.kind==='schedule'&&!isSchool())||(S.view.kind==='index'&&!isIndex())) S.view={kind:'today'};
   HIST.clear(); hideImgSel(); closePop();
   if(S.view.kind==='page'&&!S.pages[S.view.pageId]) S.view={kind:'today'};
+  if(S.view.kind==='trash'&&!S.trash[S.view.id]) S.view={kind:'today'};
+  if(S.trashMode&&!Object.keys(S.trash).length) S.trashMode=false;
   renderSidebar(); renderMain();
 }
 
 /* posluchače a nastavení při startu (volá main.js ve stejném pořadí jako dřív) */
 export function initStore(){
   window.addEventListener('pagehide',()=>{ Store.unloading=true; Store.flushAll(); });
-  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') Store.flushAll(); else if(staleTab) refreshFromOther(); });
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') Store.flushAll(); else { if(staleTab) refreshFromOther(); if(S.ready&&purgeTrash()){ renderSidebar(); renderMain(); } } });
   if(TAB_CH) TAB_CH.onmessage=e=>{ if(e.data&&e.data.t==='saved'&&e.data.wid!==lastWid&&S.ready) refreshFromOther(); };
 }
 

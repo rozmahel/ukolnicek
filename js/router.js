@@ -13,6 +13,7 @@ import { renderIndex } from './views/subjects.js';
 import { renderTasks } from './views/tasks.js';
 import { renderToday } from './views/today.js';
 import { hideImgSel } from './editor/images.js';
+import { renderTrashView } from './trash.js';
 
 /* ================= místo na stránce (jen v zařízení, nezálohuje se) ================= */
 const SCR_KEY='uk-scroll';
@@ -44,6 +45,7 @@ function go(view){
   rememberScroll(true);
   S.view=view; lsSet('uk-view',view);
   if(view.kind==='page'&&isArchived(S.pages[view.pageId])) S.archMode=true;   /* archivovaná stránka (třeba z hledání): panel ukáže archiv */
+  if(view.kind==='trash'){ S.trashMode=true; S.archMode=false; } else S.trashMode=false;
   closeSide(); closePop(); hideFmt(); hideCellbar(); hideImgSel();
   renderSidebar(); renderMain();
   restoreScroll();
@@ -57,6 +59,7 @@ function renderMain(){
     if(!pg){ S.view={kind:'today'}; return renderMain(); }
     renderPage(pg); title=pTitle(pg);
   } else if((v.kind==='schedule'&&!isSchool())||(v.kind==='index'&&!isIndex())){ S.view={kind:'today'}; lsSet('uk-view',S.view); return renderMain(); }   /* jen ve školním režimu (Index jen když není vypnutý) */
+  else if(v.kind==='trash'){ if(!renderTrashView(v.id)){ S.view={kind:'today'}; lsSet('uk-view',S.view); return renderMain(); } title='Koš'; }
   else if(v.kind==='schedule'){ renderSchedule(); title='Rozvrh'; }
   else if(v.kind==='tasks'){ renderTasks(); title='Úkoly'; }
   else if(v.kind==='index'){ renderIndex(); title='Index'; }

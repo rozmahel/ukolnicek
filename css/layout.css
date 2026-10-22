@@ -78,3 +78,12 @@ button.mc-d:hover{background:var(--hover);color:var(--fg)}
   .ti-acts{display:none}
   .ti:hover .ti-acts,.ti:focus-within .ti-acts{display:flex;opacity:1}
 }
+/* koš v levém panelu */
+.tr-it{padding-left:4px}
+.tr-left{margin-left:auto;padding-left:6px;flex:none;color:var(--muted);font-size:calc(12px*var(--fs));font-variant-numeric:tabular-nums}
+.tr-acts{display:flex;flex:none;padding-right:3px}
+.tr-acts .icon-btn{color:var(--muted)}
+.tr-acts .tr-del:hover{color:var(--danger)}
+.sec-h .tr-empty{font-size:calc(12.5px*var(--fs));color:var(--muted)}
+.sec-h .tr-empty:hover{color:var(--danger)}
+body.locked .tr-del,body.locked .tr-empty{display:none}
