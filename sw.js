@@ -1,6 +1,6 @@
 /* Úkolníček – Service Worker (offline režim)
    Při každé nové verzi aplikace zvyš VERSION, jinak si telefony nechají starou verzi. */
-const VERSION = 'ukolnicek-v4.7.0';
+const VERSION = 'ukolnicek-v4.12.0';
 const ASSETS = [
   './',
   './index.html',
@@ -16,6 +16,7 @@ const ASSETS = [
   './css/settings.css',
   './css/sync.css',
   './css/draw.css',
+  './css/mindmap.css',
   './css/responsive.css',
   './js/core.js',
   './js/dates.js',
@@ -63,6 +64,7 @@ const ASSETS = [
   './js/views/settings.js',
   './js/views/subjects.js',
   './js/views/tasks.js',
+  './js/views/mindmap.js',
   './js/views/today.js',
   './js/views/dashWidgets.js',
   './lib/fonts/fonts.css',
@@ -78,6 +80,14 @@ const ASSETS = [
   './lib/fonts/literata-latin-opsz-italic.woff2',
   './lib/fonts/newsreader-latin-ext-opsz-normal.woff2',
   './lib/fonts/newsreader-latin-opsz-normal.woff2',
+  './lib/fonts/source-serif-4-latin-ext-opsz-normal.woff2',
+  './lib/fonts/source-serif-4-latin-opsz-normal.woff2',
+  './lib/fonts/source-serif-4-latin-ext-opsz-italic.woff2',
+  './lib/fonts/source-serif-4-latin-opsz-italic.woff2',
+  './lib/fonts/ibm-plex-sans-latin-ext-wght-normal.woff2',
+  './lib/fonts/ibm-plex-sans-latin-wght-normal.woff2',
+  './lib/fonts/ibm-plex-sans-latin-ext-wght-italic.woff2',
+  './lib/fonts/ibm-plex-sans-latin-wght-italic.woff2',
   './lib/fonts/newsreader-latin-ext-opsz-italic.woff2',
   './lib/fonts/newsreader-latin-opsz-italic.woff2',
   './lib/katex/katex.min.js',

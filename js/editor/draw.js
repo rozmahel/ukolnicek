@@ -187,7 +187,7 @@ async function openDraw(target){
   st.addEventListener('pointermove',onMove);
   st.addEventListener('pointerup',onUp);
   st.addEventListener('pointercancel',onUp);
-  st.addEventListener('pointerleave',()=>{ if(E&&!E.ptr&&E.pf.tool==='e') clearLive(); });
+  st.addEventListener('pointerleave',()=>{ if(E&&E.ptr==null) clearLive(); });
   st.addEventListener('contextmenu',e=>e.preventDefault());
   E.ro=new ResizeObserver(()=>{ if(E){ fitView(false); drawAll(); } }); E.ro.observe(st);
   placeCrop();
@@ -242,6 +242,8 @@ function drawAll(){ drawBg(); drawLayers(); clearLive(); placeCrop(); }
 function clearLive(){ clearCv(E.cv.live); }
 
 /* ---------- kreslení ---------- */
+/* tlačítko na boku pera (S Pen apod.) nebo guma na konci pera: dokud je stisknuté, kreslí guma */
+const penErase=e=>e.pointerType==='pen'&&((e.buttons&2)||(e.buttons&32)||e.button===2||e.button===5);
 const toWorld=e=>{ const rc=E.stage.getBoundingClientRect(), v=E.view; return [(e.clientX-rc.left-v.ox)/v.s,(e.clientY-rc.top-v.oy)/v.s]; };
 function onDown(e){
   if(!E||E.ptr!=null) return;
@@ -253,7 +255,7 @@ function onDown(e){
   E.ptr=e.pointerId;
   const [x,y]=toWorld(e);
   if(E.pf.tool==='crop'){ cropDown(e,x,y); return; }
-  if(E.pf.tool==='e'){ E.er={hit:false}; eraseAt(x,y); showEraser(x,y); return; }
+  if(E.pf.tool==='e'||penErase(e)){ E.er={hit:false}; eraseAt(x,y); showEraser(x,y); return; }
   const t=E.pf.tool, o=E.pf[t];
   E.cur={t,c:o.c,w:o.w,p:[x,y],r:e.pointerType==='pen'&&t==='p'?[e.pressure||.5]:null,raw:[x,y]};
   E.cv.live.style.zIndex=t==='h'?3:5;
@@ -261,7 +263,7 @@ function onDown(e){
 }
 function onMove(e){
   if(!E) return;
-  if(E.ptr==null){ if(E.pf.tool==='e'&&e.pointerType!=='touch'){ const [x,y]=toWorld(e); clearLive(); showEraser(x,y); } return; }
+  if(E.ptr==null){ if((E.pf.tool==='e'||penErase(e))&&e.pointerType!=='touch'){ const [x,y]=toWorld(e); clearLive(); showEraser(x,y); } else if(e.pointerType==='pen'&&!E.cur) clearLive(); return; }
   if(e.pointerId!==E.ptr) return;
   e.preventDefault();
   if(E.cr){ cropMove(...toWorld(e)); return; }

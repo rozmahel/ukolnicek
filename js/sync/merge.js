@@ -58,12 +58,12 @@ function mergePage(L,R,B){
 function syncDiff(L,R,B){
   const out={here:[],drive:[],both:[],differ:[],copies:0};
   const name=(k,lv,rv,inBase)=>{
-    const v=lv||rv; const t=k==='trash'?'🗑 '+((v.pages&&v.pages[0]&&v.pages[0].title)||'Bez názvu'):k==='pages'?(v.icon?v.icon+' ':'')+(v.title||'Bez názvu'):k==='subjects'?'🎓 '+[v.code,v.name].filter(Boolean).join(' '):k==='semesters'?'📅 '+(v.name||'Semestr'):'🗓️ '+(v.title||'Bez názvu')+(v.start?' '+v.start:'');
+    const v=lv||rv; const t=k==='trash'?'🗑 '+((v.pages&&v.pages[0]&&v.pages[0].title)||'Bez názvu'):k==='pages'?(v.icon?v.icon+' ':'')+(v.title||'Bez názvu'):k==='subjects'?'🎓 '+[v.code,v.name].filter(Boolean).join(' '):k==='semesters'?'📅 '+(v.name||'Semestr'):k==='maps'?'🧠 '+(v.title||'Myšlenková mapa'):'🗓️ '+(v.title||'Bez názvu')+(v.start?' '+v.start:'');
     if(lv&&rv) return t;
     if(inBase==null) return t+(lv?' (jen tady)':' (jen na Disku)');
     return t+(inBase?(lv?' (na Disku smazáno)':' (tady smazáno)'):(lv?' (nové tady)':' (nové na Disku)'));
   };
-  [['pages',pageSig],['events',evSig],['subjects',evSig],['semesters',evSig],['trash',evSig]].forEach(([k,sig])=>{
+  [['pages',pageSig],['events',evSig],['subjects',evSig],['semesters',evSig],['trash',evSig],['maps',evSig]].forEach(([k,sig])=>{
     const l=L[k]||{}, r=R[k]||{}, b=B?(B[k]||{}):null;
     new Set([...Object.keys(l),...Object.keys(r)]).forEach(id=>{
       const lv=l[id], rv=r[id], sl=sig(lv), sr=sig(rv); if(sl===sr) return;
@@ -88,8 +88,8 @@ function syncDiff(L,R,B){
   return out;
 }
 function mergeData(L,R,B){
-  const dev=deviceName(), out={pages:{},events:{},settings:{},subjects:{},semesters:{},trash:{}}; let copies=0;
-  [['pages',pageSig],['events',evSig],['subjects',evSig],['semesters',evSig],['trash',evSig]].forEach(([k,sig])=>{
+  const dev=deviceName(), out={pages:{},events:{},settings:{},subjects:{},semesters:{},trash:{},maps:{}}; let copies=0;
+  [['pages',pageSig],['events',evSig],['subjects',evSig],['semesters',evSig],['trash',evSig],['maps',evSig]].forEach(([k,sig])=>{
     const l=L[k]||{}, r=R[k]||{}, b=B?(B[k]||{}):null;
     new Set([...Object.keys(l),...Object.keys(r)]).forEach(id=>{
       const lv=l[id], rv=r[id], sl=sig(lv), sr=sig(rv);

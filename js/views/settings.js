@@ -1,7 +1,7 @@
 /* Úkolníček – Nastavení, motiv a velikost písma, návod a novinky */
 import { $, $$, downloadFile, esc, ICONS, lsGet, lsSet, plural } from '../core.js';
 import { defaultSettings, S } from '../state.js';
-import { applySkin, skinOf, SKINS, syncModeBtns, syncThemeColor } from '../theme.js';
+import { applySkin, fontOf, FONTS, setFont, setSkin, skinOf, SKINS, syncModeBtns, syncThemeColor } from '../theme.js';
 import { LOCK } from '../lock.js';
 import { applyData, dataForSave, META, normalizeImport, saveSettings, stateForStorage, Store } from '../store.js';
 import { HIST } from '../editor/history.js';
@@ -18,7 +18,7 @@ import { capsOff } from '../editor/caps.js';
 import { checkUpdate } from '../update.js';
 
 /* ================= settings ================= */
-const APP_VERSION='4.7.0';
+const APP_VERSION='4.12.0';
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
 const FS_STEPS=[1,1.15,1.3,1.45,1.6];
 function applyTheme(){
@@ -57,6 +57,8 @@ async function openSettings(focus){
       <h3 class="set-h">Levý panel</h3>
       <label class="chk"><input type="checkbox" id="st-mc" ${st.miniCal?'checked':''}> Mini kalendář pod číslem týdne</label>
       <label class="chk sub"><input type="checkbox" id="st-mcw" ${st.miniCalWeeks!==false?'checked':''} ${st.miniCal?'':'disabled'}> V kalendáři ukazovat čísla týdnů v roce</label>
+      <label class="chk"><input type="checkbox" id="st-mm" ${st.mindmap?'checked':''}> Myšlenková mapa</label>
+      <p class="note" style="margin-top:-8px;padding-left:26px">Plátno s bloky a čarami, propojitelné s projekty. Vypnutím se nic nesmaže.</p>
       <h3 class="set-h">Poznámky</h3>
       <label class="chk"><input type="checkbox" id="st-hid" ${st.showHidden!==false?'checked':''}> U sbaleného nadpisu ukazovat, kolik bloků je skrytých</label>
       <label class="chk"><input type="checkbox" id="st-caps" ${lsGet('uk-caps',true)!==false?'checked':''}> Podtrhnout text napsaný se zapnutým Caps Lockem</label>
@@ -65,7 +67,10 @@ async function openSettings(focus){
     <section class="set-pane" data-pane="look">
       <div class="fld"><span class="lbl" id="st-skin-l">Barevný motiv</span>
         <div class="skins" id="st-skin" role="group" aria-labelledby="st-skin-l">${SKINS.map(([id,nm])=>`<button type="button" class="skin ${id===skin?'on':''}" data-v="${id}" aria-pressed="${id===skin}"><span class="skin-sw" data-sk="${id}" aria-hidden="true"><b>Aa</b><i></i><i></i><i></i></span><span class="skin-nm">${nm}</span></button>`).join('')}</div>
-        <p class="note">Motiv se přes Disk přenese i do ostatních zařízení.</p></div>
+      </div>
+      <div class="fld"><span class="lbl" id="st-font-l">Písmo</span>
+        <div class="fonts" id="st-font" role="group" aria-labelledby="st-font-l">${FONTS.map(([id,nm])=>`<button type="button" class="fnt ${id===fontOf()?'on':''}" data-v="${id}" aria-pressed="${id===fontOf()}"${id==='auto'?'':` data-fnt="${id}"`}>${nm}</button>`).join('')}</div>
+        <p class="note">Motiv a písmo se přes Disk přenesou i do ostatních zařízení.</p></div>
       <div class="fld"><span class="lbl">Světlý nebo tmavý režim</span>${seg('st-theme',[['auto','Podle zařízení'],['light','☀︎ Světlý'],['dark','☾ Tmavý']],theme)}</div>
       <div class="fld"><span class="lbl">Velikost textu</span>${seg('st-fs',FS_STEPS.map(v=>[v,Math.round(v*100)+' %']),FS_STEPS.includes(fs)?fs:1)}
         <p class="note">Režim a velikost textu platí jen pro toto zařízení.</p></div>
@@ -165,8 +170,13 @@ async function openSettings(focus){
   $('#st-skin',m).addEventListener('click',e=>{
     const b=e.target.closest('[data-v]'); if(!b) return;
     const v=b.dataset.v;
-    if(skinOf()!==v){ if(v==='default') delete S.settings.theme; else S.settings.theme=v; saveSettings(); applySkin(); }
+    if(setSkin(v)){ saveSettings(); applySkin(); }
     $$('#st-skin .skin',m).forEach(x=>{ x.classList.toggle('on',x===b); x.setAttribute('aria-pressed',String(x===b)); });
+  });
+  $('#st-font',m).addEventListener('click',e=>{
+    const b=e.target.closest('[data-v]'); if(!b) return;
+    if(setFont(b.dataset.v)){ saveSettings(); applySkin(); }
+    $$('#st-font .fnt',m).forEach(x=>{ x.classList.toggle('on',x===b); x.setAttribute('aria-pressed',String(x===b)); });
   });
   $('#st-theme',m).addEventListener('click',e=>{ const b=e.target.closest('[data-v]'); if(!b) return; lsSet('uk-theme',b.dataset.v); applyTheme(); $$('#st-theme button',m).forEach(x=>x.classList.toggle('on',x===b)); });
   $('#st-fs',m).addEventListener('click',e=>{ const b=e.target.closest('[data-v]'); if(!b) return; lsSet('uk-fs',+b.dataset.v); applyFontScale(); $$('#st-fs button',m).forEach(x=>x.classList.toggle('on',x===b)); });
@@ -180,6 +190,7 @@ async function openSettings(focus){
   const iu=$('#st-img-up',m); if(iu) iu.addEventListener('click',()=>{ closeModal(); Sync.uploadImgs(); });
   const idn=$('#st-img-down',m); if(idn) idn.addEventListener('click',()=>{ closeModal(); Sync.downloadImgs(); });
   $('#st-autoup',m).addEventListener('change',e=>lsSet('uk-auto-push',e.target.checked));
+  $('#st-mm',m).addEventListener('change',e=>{ if(e.target.checked) S.settings.mindmap=true; else delete S.settings.mindmap; saveSettings(); renderSidebar(); renderMain(); });
   $('#st-caps',m).addEventListener('change',e=>{ lsSet('uk-caps',e.target.checked); if(!e.target.checked) capsOff(); });
   /* doba nečinnosti: uloží se v sekundách, mimo rozsah se srovná na 5 s / 2 h a políčko ukáže skutečnou hodnotu */
   const auSave=()=>{ const n=$('#st-au-n',m), u=+$('#st-au-u',m).value||60; const v=+n.value; if(!Number.isFinite(v)||v<=0){ n.value=idleSec()/u; return; }
@@ -218,7 +229,7 @@ function importFile(f){
       const d=JSON.parse(rd.result); if(!d||typeof d.pages!=='object') throw 0;
       await Local.addBackup(stateForStorage(),'Před importem ze souboru');
       const n=normalizeImport(d);
-      Object.assign(S.pages,n.pages); Object.assign(S.events,n.events); Object.assign(S.subjects,n.subjects); Object.assign(S.semesters,n.semesters); Object.assign(S.trash,n.trash);
+      Object.assign(S.pages,n.pages); Object.assign(S.events,n.events); Object.assign(S.subjects,n.subjects); Object.assign(S.semesters,n.semesters); Object.assign(S.trash,n.trash); Object.assign(S.maps,n.maps);
       if(d.settings){ S.settings=Object.assign(defaultSettings(),n.settings); applySkin(); }
       HIST.clear(); Store.queue();
       closeModal(); renderSidebar(); renderMain(); const np=Object.keys(n.pages).length, ne=Object.keys(n.events).length; toast(`Importováno: ${np} ${np===1?'stránka':np<5&&np>0?'stránky':'stránek'}, ${ne} ${ne===1?'událost':ne<5&&ne>0?'události':'událostí'}`);

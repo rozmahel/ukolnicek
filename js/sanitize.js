@@ -44,6 +44,14 @@ function sanitize(html){
         ch.textContent=lb==null?(old||'Smazáno'):lb;
         return;
       }
+      if(ch.tagName==='A'&&ch.hasAttribute('data-hp')){
+        /* skrytý odkaz na stránku (od 4.8.0): vypadá jako text, jen ID stránky */
+        const id=ch.getAttribute('data-hp')||'';
+        [...ch.attributes].forEach(a=>ch.removeAttribute(a.name));
+        if(!/^[A-Za-z0-9_-]{1,64}$/.test(id)||!ch.textContent){ const f=document.createDocumentFragment(); while(ch.firstChild) f.appendChild(ch.firstChild); ch.replaceWith(f); return; }
+        ch.setAttribute('class','hlnk'); ch.setAttribute('data-hp',id);
+        return;
+      }
       if(ch.tagName==='A'){
         const href=normUrl(ch.getAttribute('href'));
         [...ch.attributes].forEach(a=>ch.removeAttribute(a.name));

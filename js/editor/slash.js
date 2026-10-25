@@ -6,7 +6,7 @@ import { isIndex, openSubjPicker } from '../school.js';
 import { isBlank, isBlankEl, sanitize } from '../sanitize.js';
 import { caretOffset, caretRect, deleteOffsets, focusBlock, focusLine } from './caret.js';
 import { rerenderBlocks } from './render.js';
-import { insertSubjAt, insertTypeAt, noteShortcut, numShortcutOff, rememberTypedNum, setType } from './blocks.js';
+import { insertPageLinkAt, insertSubjAt, insertTypeAt, noteShortcut, numShortcutOff, openPagePicker, rememberTypedNum, setType } from './blocks.js';
 import { placePop } from '../ui.js';
 import { openLinkDialog } from './links.js';
 import { pickImageBlock, pickImageInline } from './images.js';
@@ -58,6 +58,12 @@ function chooseSlash(it){
     /* výběr předmětu z Indexu; prázdný řádek se nahradí blokem předmětu, jinak se vloží pod něj */
     savePage(pg);
     openSubjPicker(el,su=>{ const i=pg.blocks.indexOf(b); if(i<0) return; insertSubjAt(pg,i,su,isBlank(b.html)); });
+    return;
+  }
+  if(it.k==='page'){
+    /* odkaz na už vytvořenou stránku, nebo nová podstránka; prázdný řádek se nahradí, jinak se vloží pod něj */
+    savePage(pg);
+    openPagePicker(el,pg,(id,title)=>{ const i=pg.blocks.indexOf(b); if(i<0) return; if(id) insertPageLinkAt(pg,i,id,isBlank(b.html)); else insertTypeAt(pg,i,'page',isBlank(b.html),title); });
     return;
   }
   if(it.k==='mdimport'){ savePage(pg); importMd(pg,b.id); return; }

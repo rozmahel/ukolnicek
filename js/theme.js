@@ -1,4 +1,4 @@
-/* Úkolníček – Barevný motiv (Výchozí / Papír / Les / Mlha / Šípek / Levandule)
+/* Úkolníček – Barevný motiv (Výchozí / Papír / Les / Mlha / Šípek / Levandule) a písmo
    Motiv je v datech jako settings.theme ('paper' | 'forest' | 'mist' | 'rose' | 'lavender'); u Výchozího klíč v datech vůbec není (ukládá se až po první změně).
    Neznámá hodnota (třeba z novější verze) se chová jako Výchozí a v datech zůstane beze změny.
    Na <html> se motiv projeví atributem data-skin (barvy jsou v css/themes.css). Je nezávislý na režimu světlý/tmavý/auto,
@@ -8,6 +8,12 @@ import { S } from './state.js';
 
 const SKINS=[['default','Výchozí'],['paper','Papír'],['forest','Les'],['mist','Mlha'],['rose','Šípek'],['lavender','Levandule']];
 const skinOf=(st=S.settings)=>{ const t=st&&st.theme; return SKINS.some(s=>s[0]===t&&t!=='default')?t:'default'; };
+/* písmo zvlášť od motivu (od 4.8.0): settings.font, chybí = „Podle vzhledu“ (písmo motivu). Neznámá hodnota = Podle vzhledu.
+   Na <html> atribut data-font, písma v css/themes.css; kopie 'uk-font' v localStorage jen kvůli startu (index.html). */
+const FONTS=[['auto','Podle vzhledu'],['onest','Onest'],['plex','IBM Plex Sans'],['system','Systémové'],['newsreader','Newsreader'],['literata','Literata'],['sserif','Source Serif']];
+const fontOf=(st=S.settings)=>{ const t=st&&st.font; return FONTS.some(f=>f[0]===t&&t!=='auto')?t:'auto'; };
+function setFont(v){ if(fontOf()===v) return false; if(v==='auto') delete S.settings.font; else S.settings.font=v; return true; }
+function setSkin(v){ if(skinOf()===v) return false; if(v==='default') delete S.settings.theme; else S.settings.theme=v; return true; }
 
 /* barva lišty prohlížeče = pozadí aktuálního vzhledu (motiv × režim), čte se přímo z CSS */
 function syncThemeColor(){
@@ -21,6 +27,9 @@ function applySkin(){
   const k=skinOf(), root=document.documentElement;
   if(k==='default') root.removeAttribute('data-skin'); else root.setAttribute('data-skin',k);
   try{ if(k==='default') localStorage.removeItem('uk-skin'); else localStorage.setItem('uk-skin',JSON.stringify(k)); }catch(_){}
+  const fo=fontOf();
+  if(fo==='auto') root.removeAttribute('data-font'); else root.setAttribute('data-font',fo);
+  try{ if(fo==='auto') localStorage.removeItem('uk-font'); else localStorage.setItem('uk-font',JSON.stringify(fo)); }catch(_){}
   syncThemeColor();
 }
 
@@ -37,4 +46,4 @@ function modeAttrs(){ const d=isDarkNow(), t=d?'Světlý režim':'Tmavý režim'
 function modeBtn(){ const m=modeAttrs(); return `<button class="icon-btn mode-btn" data-act="mode" title="${m.t}" aria-label="${m.t}">${m.ic}</button>`; }
 function syncModeBtns(){ const m=modeAttrs(); document.querySelectorAll('.mode-btn').forEach(b=>{ b.innerHTML=m.ic; b.title=m.t; b.setAttribute('aria-label',m.t); }); }
 
-export { applySkin, isDarkNow, modeBtn, skinOf, SKINS, syncModeBtns, syncThemeColor };
+export { applySkin, fontOf, FONTS, isDarkNow, modeBtn, setFont, setSkin, skinOf, SKINS, syncModeBtns, syncThemeColor };

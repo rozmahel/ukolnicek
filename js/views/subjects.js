@@ -109,11 +109,13 @@ function renderIndex(){
   const shown=sems.filter(sm=>!sm.hidden||sm.id===peek), nHid=sems.filter(sm=>sm.hidden&&sm.id!==peek).length, stats=statSubs();
   $('#view').innerHTML=`<div class="view ix-view" style="max-width:920px">
     <div class="v-head"><div><h1 class="v-title">Index</h1></div>
-      <div class="v-tools">${sems.length?'<button class="btn" data-act="sem-new">＋ Semestr</button><button class="btn" data-act="subj-new">＋ Předmět</button><button class="icon-btn ix-cfg" data-act="ix-view" title="Které semestry ukazovat" aria-label="Zobrazení semestrů">'+ICONS.settings+'</button>':'<button class="btn pri" data-act="sem-new">＋ Semestr</button>'}${modeBtn()}</div></div>
+      <div class="v-tools"><button class="btn btn-text" data-act="sem-new"><span aria-hidden="true">＋</span> Semestr</button>${sems.length?'<button class="btn btn-text" data-act="subj-new"><span aria-hidden="true">＋</span> Předmět</button>':''}<span class="dash-sep" aria-hidden="true"></span>${modeBtn()}${sems.length?'<button class="icon-btn ix-cfg" data-act="ix-view" title="Které semestry ukazovat" aria-label="Zobrazení semestrů">'+ICONS.settings+'</button>':''}</div></div>
+    <div class="sheet ix-sheet">
     ${subs.length?`<div class="ix-sum">${sumInner(stats)}</div>${stats.length<subs.length?`<p class="note ix-sumnote">Souhrn bez ${sems.filter(sm=>sm.noStats).map(sm=>esc(sm.name||'Semestr')).join(', ')}.</p>`:''}`
     :sems.length?`<div class="card"><div class="empty" style="padding:18px">Index je databáze tvých předmětů: kredity, body a známky. Předměty se zakládají jen tady. V rozvrhu je pak vybereš u hodiny a do poznámek je vložíš přes <b>/předmět</b>. <div class="m-actions" style="margin-top:10px"><button class="btn pri" data-act="subj-new">＋ První předmět</button></div></div></div>`
     :`<div class="card"><div class="empty" style="padding:18px">Index je databáze tvých předmětů: kredity, body a známky. <b>Začni semestrem</b>, předměty se pak zakládají do něj. V rozvrhu je vybereš u hodiny a do poznámek je vložíš přes <b>/předmět</b>. <div class="m-actions" style="margin-top:10px"><button class="btn pri" data-act="sem-new">＋ První semestr</button></div></div></div>`}
     ${shown.map(semHtml).join('')}${semHtml(null)}
+    </div>
     ${nHid?`<p class="note ix-hidnote">${nHid===1?'1 semestr je skrytý':`${nHid} ${plural(nHid,'semestr','semestry','semestrů')} ${nHid<5?'jsou skryté':'je skrytých'}`} · <button class="linkbtn" data-act="ix-view">Zobrazení semestrů</button></p>`:''}
   </div>`;
   applyLock();
@@ -241,11 +243,20 @@ function openSemModal(sem,then){
     <div class="grid2"><div class="fld"><label for="sm-name">Název</label><input id="sm-name" value="${esc(sem.name)}" placeholder="ZS 2026/27"></div>
       <div class="fld"><label for="sm-t">Kredity na semestr</label><input id="sm-t" type="number" min="0" max="90" step="1" inputmode="numeric" value="${esc(sem.target??'')}" placeholder="30"></div></div>
     <p class="note">Podle počtu kreditů se ukazuje, kolik ti v semestru ještě chybí. Obvykle 30.</p>
-    <div class="m-actions">${isNew?'':n?`<span class="note">Smazat jde jen prázdný semestr (teď ${n} ${plural(n,'předmět','předměty','předmětů')}).</span>`:'<button type="button" class="btn danger lk-hide" id="sm-del">Smazat</button>'}<span class="sp"></span><button type="button" class="btn" data-close>Zrušit</button><button type="submit" class="btn pri">${then?'Přidat a pokračovat':isNew?'Přidat':'Uložit'}</button></div>
+    ${isNew?'':`<label class="chk"><input type="checkbox" id="sm-hide" ${sem.hidden?'checked':''}> Skrýt v Indexu <span class="note">(data zůstanou, vrátíš ho v ozubeném kole nahoře)</span></label>`}
+    <div class="m-actions">${isNew?'':'<button type="button" class="btn danger lk-hide" id="sm-del">Smazat</button>'}<span class="sp"></span><button type="button" class="btn" data-close>Zrušit</button><button type="submit" class="btn pri">${then?'Přidat a pokračovat':isNew?'Přidat':'Uložit'}</button></div>
   </form>`);
-  const del=$('#sm-del',m); if(del) del.addEventListener('click',()=>{ if(LOCK) return; delete S.semesters[sem.id]; Store.queue(); closeModal(); renderMain(); });
+  /* smazání: prázdný semestr hned, s předměty až po druhém kliknutí (smaže i předměty); obojí jde vrátit z oznámení */
+  const del=$('#sm-del',m); if(del) del.addEventListener('click',()=>{ if(LOCK) return;
+    if(n&&!del.dataset.sure){ del.dataset.sure='1'; del.textContent=`Opravdu smazat i ${n} ${plural(n,'předmět','předměty','předmětů')}?`; return; }
+    const o=S.semesters[sem.id], subs=subjsOf(sem.id); if(!o) return closeModal();
+    delete S.semesters[sem.id]; subs.forEach(su=>{ delete S.subjects[su.id]; });
+    Store.queue(); closeModal(); renderSidebar(); renderMain();
+    toast(`Semestr ${o.name||''} smazán${subs.length?` i s ${subs.length} ${plural(subs.length,'předmětem','předměty','předměty')}`:''}`,'Vrátit',()=>{ S.semesters[o.id]=o; subs.forEach(su=>{ S.subjects[su.id]=su; }); Store.queue(); renderSidebar(); renderMain(); }); });
   $('#smf',m).addEventListener('submit',e=>{ e.preventDefault();
-    S.semesters[sem.id]=Object.assign(sem,{name:$('#sm-name',m).value.trim()||semName(),target:num($('#sm-t',m).value)??''}); Store.queue(); closeModal(); renderMain();
+    S.semesters[sem.id]=Object.assign(sem,{name:$('#sm-name',m).value.trim()||semName(),target:num($('#sm-t',m).value)??''});
+    const hb=$('#sm-hide',m); if(hb){ if(hb.checked) S.semesters[sem.id].hidden=true; else delete S.semesters[sem.id].hidden; }
+    Store.queue(); closeModal(); renderMain();
     if(then) then(sem); });
   setTimeout(()=>$('#sm-name',m).select(),20);
 }

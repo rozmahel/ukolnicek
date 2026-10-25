@@ -26,7 +26,7 @@ import { openWidgetAdd, openWidgetMenu, openWidgetOpts } from './views/today.js'
 import { openSearch } from './views/search.js';
 import { applyFontScale, applyTheme, initSettings, openSettings } from './views/settings.js';
 import { openSyncMenu, Sync } from './sync/sync.js';
-import { openLinkPop } from './editor/links.js';
+import { openHiddenLink, openLinkPop } from './editor/links.js';
 import { initImages, lineAround, selectImage } from './editor/images.js';
 import { exportMd } from './editor/markdown.js';
 import { initCaps } from './editor/caps.js';
@@ -36,17 +36,26 @@ import { initTableSize } from './editor/tblsize.js';
 import { trashAct } from './trash.js';
 import { initUpdates, workerOk } from './update.js';
 import { quickAdd, wgDo, wgUi } from './views/dashWidgets.js';
+import { initMindmap } from './views/mindmap.js';
 
 /* posluchače ostatních modulů; pořadí je stejné jako dřív v jednom souboru app.js (na pořadí registrace záleží) */
-initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings(); initImages(); initIndex(); initTreeDrag(); initMath(); initSource(); initTableSize(); initCaps();
+initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings(); initImages(); initIndex(); initTreeDrag(); initMath(); initSource(); initTableSize(); initCaps(); initMindmap();
 
 /* ================= global actions ================= */
+document.addEventListener('dblclick',e=>{
+  const hl=e.target.closest&&e.target.closest('a.hlnk'); if(!hl) return;
+  e.preventDefault(); try{ getSelection().removeAllRanges(); }catch(_){}
+  openHiddenLink(hl);
+});
 document.addEventListener('click',e=>{
   if(e.target.closest('.pop,.modal,#fmt,#cellbar,#slash,#imgframe')) return;
   /* odkaz na stránku nebo předmět (@) */
   const mn=e.target.closest&&e.target.closest('a.mention');
   if(mn){ e.preventDefault(); if(mn.classList.contains('gone')) return toast('Stránka nebo předmět už neexistuje.');
     if(mn.dataset.page) go({kind:'page',pageId:mn.dataset.page}); else if(isSchool()) gotoSubject(mn.dataset.subj); return; }
+  /* skrytý odkaz na stránku: jeden klik = obyčejný text, ⌘/Ctrl + klik přejde (dvojklik níž) */
+  const hl=e.target.closest&&e.target.closest('a.hlnk');
+  if(hl&&(e.metaKey||e.ctrlKey)){ e.preventDefault(); openHiddenLink(hl); return; }
   const lk=e.target.closest&&e.target.closest('a.lnk');
   if(lk){
     if(!lk.closest('[contenteditable="true"]')) return; /* mimo editor (Úkoly) se otevře normálně v nové kartě */

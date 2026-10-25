@@ -79,3 +79,42 @@ body.locked .ev-add,body.locked .ag-dh [data-act="day-add"],body.locked .lk-hide
 /* světlý/tmavý vedle zámku */
 .filters .mode-btn{padding:0;display:grid;place-items:center;color:var(--muted)}
 .v-tools .mode-btn:hover,.filters .mode-btn:hover{color:var(--fg)}
+
+/* ================= vzhled „stránka“ (4.10.0) =================
+   mřížka bez rámečku (čára nahoře), dnešek červeně, hodiny jako bílé bloky s tenkým okrajem a barevným čtverečkem předmětu */
+.sch-view .sg{border:0;border-top:1px solid var(--rule);border-radius:0;background:none;overflow:visible}
+.sch-view .sg-head{border-bottom:1px solid var(--rule)}
+.sch-view .dh{padding:10px 10px 8px;border-left-color:transparent}
+.sch-view .dh span{font-size:calc(12.5px*var(--fs));font-weight:500;letter-spacing:0;text-transform:none;color:var(--muted)}
+.sch-view .dh b{font:600 calc(16px*var(--fs)) var(--f-body)}
+.sch-view .dh.today span,.sch-view .dh.today b{color:var(--now);background:none;padding:0}
+.sch-view .sg-col.today{background-color:color-mix(in srgb,var(--fg) 3%,transparent)}
+.sch-view .sg-times span{font-weight:400;color:var(--faint)}
+/* hodiny zůstávají v barvě předmětu (na první pohled je vidět přednáška a cvičení), jen menší zaoblení */
+.sch-view .ev{border-radius:5px}
+.sch-view .ev-add{border-radius:0 5px 5px 0;background:var(--fg);color:var(--bg)}
+.sch-view .ghost{border-color:var(--fg2);color:var(--fg2);border-radius:5px}
+/* rozsah týdne vedle nadpisu: při přepínání týdnů se tlačítka vpravo nehýbou */
+.sch-title{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 16px;min-width:0}
+.sch-view .wk-label{font-size:calc(14px*var(--fs));font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}
+/* agenda (úzké okno): den = čára a nadpis */
+.sch-view .ag-day{margin-bottom:18px;border:0;border-top:1px solid var(--rule);border-radius:0;background:none}
+.sch-view .ag-dh{padding:9px 0 4px;border-bottom:0}
+.sch-view .ag-dh.today{color:var(--now)}
+.sch-view .ag-empty{padding:2px 0 8px}
+.sch-view .ev-row{padding:8px 0;border-bottom:1px solid var(--line);grid-template-columns:calc(100px*var(--fs)) 7px minmax(0,1fr)}
+.sch-view .ev-row:hover{background:none}
+.sch-view .ev-row:hover b{text-decoration:underline;text-underline-offset:3px}
+.sch-view .ev-row .dot{width:7px;height:7px;border-radius:2px;margin-top:7px}
+/* bublina s informacemi: bez barevného okraje vlevo */
+.evtip{border-left:1px solid var(--line);border-radius:8px}
+.et-k{color:var(--muted)}
+
+/* ================= varianta B „deska“ (4.11.0): mřížka rozvrhu i agenda jako list s okrajem ================= */
+.sch-view .sg{border:1px solid var(--rule);border-radius:4px;background:var(--panel);overflow:hidden}
+.sch-view .dh{border-left-color:var(--line)}
+.sch-view .dh:first-child{border-left-color:transparent}
+.sch-view .agenda{border:1px solid var(--rule);border-radius:4px;background:var(--panel);padding:0 14px}
+.sch-view .ag-day{margin:0;border-top:1px solid var(--rule)}
+.sch-view .ag-day:first-child{border-top:0}
+.sch-view .ev-row:last-child{border-bottom:0}

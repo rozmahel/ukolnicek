@@ -77,12 +77,16 @@ function tkRow(t,showPage){
     ${t.due?dueChip(t.due,t.done):''}</div>`;
 }
 const tkActs=(id,label)=>`<span class="tk-acts"><button class="tk-ib" data-act="t-hide" data-id="${id}" title="Skrýt v Úkolech" aria-label="Skrýt ${esc(label)} v Úkolech">${ICONS.eyeOff}</button><button class="tk-ib tk-more" data-act="t-more" data-id="${id}" aria-haspopup="true" aria-label="Další volby">⋯</button></span>`;
+/* úkol odškrtnutý v Nesplněných zůstane přeškrtnutý vidět, dokud z Úkolů neodejdeš (omylem odškrtnutý jde hned vrátit) */
+const kept=new Set(); let keptFor=null;
 function renderTasks(){
+  if(keptFor!==S.view){ kept.clear(); keptFor=S.view; }
   const every=allTasks(), hid=taskHidden(), fold=tFold();
   const all=every.filter(t=>!hid.has(t.root.id));
-  const vis=t=>S.taskFilter!=='open'||!t.done;
+  const vis=t=>S.taskFilter!=='open'||!t.done||kept.has(t.key);
+  const dn=t=>t.done&&!kept.has(t.key)?1:0;   /* hotové dolů, právě odškrtnuté zůstanou na místě */
   const noDue=hid.has(DUE);
-  const datedAll=noDue?[]:all.filter(t=>t.due).sort((a,b)=>(a.done-b.done)||(a.due-b.due)||(a.i-b.i));
+  const datedAll=noDue?[]:all.filter(t=>t.due).sort((a,b)=>(dn(a)-dn(b))||(a.due-b.due)||(a.i-b.i));
   const dated=datedAll.filter(vis);
   const projs=[], pm=new Map();
   all.filter(t=>noDue||!t.due).forEach(t=>{
@@ -124,12 +128,14 @@ function renderTasks(){
   const fD=fold.has(DUE);
   $('#view').innerHTML=`<div class="view tk-view">
     <div class="v-head"><div><h1 class="v-title">Úkoly</h1></div>
-      <div class="filters"><button class="${S.taskFilter==='open'?'on':''}" data-act="tfilter" data-v="open">Nesplněné · ${openN}</button><button class="${S.taskFilter==='all'?'on':''}" data-act="tfilter" data-v="all">Vše · ${all.length}</button>
-        <button class="t-projbtn ${hiddenNames.length?'has':''}" data-act="t-projs" aria-haspopup="true">${ICONS.eyeOff}Projekty${hiddenNames.length?` · ${hiddenNames.length}`:''}</button>${modeBtn()}</div></div>
+      <div class="filters"><button class="${S.taskFilter==='open'?'on':''}" data-act="tfilter" data-v="open">Nesplněné (${openN})</button><button class="${S.taskFilter==='all'?'on':''}" data-act="tfilter" data-v="all">Vše (${all.length})</button>
+        <button class="t-projbtn ${hiddenNames.length?'has':''}" data-act="t-projs" aria-haspopup="true">${ICONS.eyeOff}Projekty${hiddenNames.length?` (${hiddenNames.length})`:''}</button><span class="dash-sep" aria-hidden="true"></span>${modeBtn()}</div></div>
+    <div class="sheet tk-sheet">
     ${all.length?`<div class="tk-sum">${tile('Po termínu',lateN,'',lateN?'late':'')}${tile('Příštích 7 dní',weekN)}${tile('Nesplněné',openN,` z ${all.length}`)}</div>`:''}
     ${empty?`<div class="card"><div class="empty" style="padding:18px">${empty}</div></div>`:''}
     ${dated.length?`<section class="tk-sec ${fD?'folded':''}"><div class="tk-h"><h2>S termínem</h2>${tkProg(datedAll.filter(t=>t.done).length,datedAll.length)}${tkActs(DUE,'S termínem')}</div>${fD?'':`<div class="tk-list">${dated.map(t=>tkRow(t,true)).join('')}</div>`}</section>`:''}
     ${shownProjs.map(projHtml).join('')}
+    </div>
     ${hiddenNames.length&&(dated.length||shownProjs.length)?`<p class="tk-hidnote">Skryté: ${hiddenNames.map(esc).join(', ')} <button class="linkbtn" data-act="t-showall">Zobrazit</button></p>`:''}
   </div>`;
 }
@@ -159,6 +165,7 @@ function openTaskProjects(anchor){
 function toggleTask(k){
   const t=taskByKey(k); if(!t) return;
   if(t.ln) t.ln.done=!t.ln.done; else t.b.done=!t.b.done;
+  if(S.view.kind==='tasks') kept.add(t.key);
   savePage(t.pg,300); renderSidebar(); renderMain();
 }
 

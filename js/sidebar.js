@@ -57,6 +57,7 @@ function renderSidebar(){
       ${nav('today','Dnes')}
       ${school?(isIndex()?nav('index','Index'):'')+nav('schedule','Rozvrh'):''}
       ${nav('tasks','Úkoly',open?`<span class="badge">${open}</span>`:'')}
+      ${S.settings.mindmap?nav('mindmap','Myšlenková mapa'):''}
       <button class="nv" data-act="search">${ICONS.search}<span>Hledat</span><kbd>${SEARCH_KEY}</kbd></button>
       <button class="nv" data-act="arch">${ICONS.archive}<span>Archiv</span>${archN?`<span class="badge">${archN}</span>`:''}</button>
       <button class="nv" data-act="trash">${TRASH_IC}<span>Koš</span></button>
@@ -75,9 +76,11 @@ function renderMiniCal(){
   const y=base.getFullYear(), mo=base.getMonth();
   const start=mondayOf(base), weeks=weeksBetween(start,new Date(y,mo+1,0))+1;
   const school=isSchool(), sem=school&&!!parseD(S.settings.semesterStart), today=ymd(now), wk=S.settings.miniCalWeeks!==false;
+  /* dny s nesplněnými úkoly s termínem (jen úkoly, které jsou vidět v Úkolech) dostanou tenký kroužek */
+  const tk=new Map(); shownTasks().forEach(t=>{ if(t.done||!t.due) return; const k=ymd(t.due); tk.set(k,(tk.get(k)||0)+1); });
   let h=`<div class="mc" aria-label="Kalendář">
-    <div class="mc-h"><button class="mc-nav" data-act="mc-prev" aria-label="Předchozí měsíc">‹</button><button class="mc-t ${S.calOffset?'':'cur'}" data-act="mc-now" title="Zpět na tento měsíc">${MONTHS_NOM[mo]} ${y}</button><button class="mc-nav" data-act="mc-next" aria-label="Další měsíc">›</button></div>
-    <div class="mc-g ${wk?'':'nowk'}">${wk?'<span class="mc-wk mc-dh" title="Kalendářní týden v roce">KT</span>':''}${DAYS.map((d,i)=>`<span class="mc-dh ${i>4?'we':''}">${d}</span>`).join('')}`;
+    <div class="mc-h"><button class="mc-t ${S.calOffset?'':'cur'}" data-act="mc-now" title="Zpět na tento měsíc">${MONTHS_NOM[mo]} ${y}</button><button class="mc-nav" data-act="mc-prev" aria-label="Předchozí měsíc">‹</button><button class="mc-nav" data-act="mc-next" aria-label="Další měsíc">›</button></div>
+    <div class="mc-g ${wk?'':'nowk'}">${wk?'<span class="mc-wk mc-dh" title="Kalendářní týden v roce"></span>':''}${DAYS.map((d,i)=>`<span class="mc-dh ${i>4?'we':''}">${d}</span>`).join('')}`;
   for(let w=0;w<weeks;w++){
     const mon=new Date(start); mon.setDate(start.getDate()+w*7);
     if(wk){
@@ -86,19 +89,21 @@ function renderMiniCal(){
     }
     for(let i=0;i<7;i++){
       const d=new Date(mon); d.setDate(mon.getDate()+i);
-      const cls=`mc-d ${d.getMonth()===mo?'':'out'} ${ymd(d)===today?'today':''} ${i>4?'we':''}`, tt=`${DAYS_FULL[i]} ${d.getDate()}. ${d.getMonth()+1}.`;
+      const nt=tk.get(ymd(d))||0, cls=`mc-d ${d.getMonth()===mo?'':'out'} ${ymd(d)===today?'today':''} ${i>4?'we':''} ${nt?'tk':''}`, tt=`${DAYS_FULL[i]} ${d.getDate()}. ${d.getMonth()+1}.${nt?` · ${nt} ${nt===1?'úkol':nt<5?'úkoly':'úkolů'}`:''}`;
       /* klik na den otevře týden v rozvrhu (jen ve školním režimu) */
-      h+=school?`<button class="${cls}" data-act="mc-day" data-date="${ymd(d)}" title="${tt} · otevřít v rozvrhu">${d.getDate()}</button>`:`<span class="${cls} nolink" title="${tt}">${d.getDate()}</span>`;
+      h+=school?`<button class="${cls}" data-act="mc-day" data-date="${ymd(d)}" title="${tt} · otevřít v rozvrhu"><i>${d.getDate()}</i></button>`:`<span class="${cls} nolink" title="${tt}"><i>${d.getDate()}</i></span>`;
     }
   }
   return h+'</div></div>';
 }
 
 
-/* ---- přesouvání projektů tažením myší (na dotyk zůstává menu ⋯ Posunout nahoru/dolů) ----
+/* ---- přesouvání projektů tažením: myší hned, na dotyku po podržení prstu (TD_HOLD ms, krátké zavibrování);
+   pohyb prstu před tím = posouvání panelu, tažení se nespustí. Menu ⋯ Posunout nahoru/dolů zůstává.
    puštění nad položkou = před ni, pod polovinou = za ni, na stejnou úroveň jako ona */
+const TD_HOLD=450;
 let td=null, tdJust=0;
-function tdClear(){ document.querySelectorAll('.ti.drop-before,.ti.drop-after,.ti.ti-dragging').forEach(x=>x.classList.remove('drop-before','drop-after','ti-dragging')); document.body.classList.remove('tree-drag'); }
+function tdClear(){ if(td&&td.tm) clearTimeout(td.tm); document.querySelectorAll('.ti.drop-before,.ti.drop-after,.ti.ti-dragging').forEach(x=>x.classList.remove('drop-before','drop-after','ti-dragging')); document.body.classList.remove('tree-drag'); }
 const isInside=(id,anc)=>{ let p=S.pages[id]; for(let n=0;p&&n<50;n++){ if(p.id===anc) return true; p=S.pages[p.parent]; } return false; };
 function tdTarget(x,y,drag){
   const el=document.elementFromPoint(x,y), it=el&&el.closest&&el.closest('#side .ti'); if(!it) return null;
@@ -108,19 +113,28 @@ function tdTarget(x,y,drag){
 function initTreeDrag(){
   const side=$('#side');
   side.addEventListener('pointerdown',e=>{
-    td=null; if(LOCK||S.archMode||e.button!==0||e.pointerType!=='mouse') return;
+    if(td&&td.tm) clearTimeout(td.tm);
+    td=null; if(LOCK||S.archMode||e.button!==0) return;
     const it=e.target.closest('.ti'); if(!it||e.target.closest('.ti-acts,.ti-tog')) return;
-    td={id:$('.ti-main',it).dataset.id,it,x:e.clientX,y:e.clientY,on:false};
+    const d=td={id:$('.ti-main',it).dataset.id,it,x:e.clientX,y:e.clientY,on:false,touch:e.pointerType!=='mouse'};
+    if(d.touch) d.tm=setTimeout(()=>{ if(td!==d) return; d.on=true; d.it.classList.add('ti-dragging'); document.body.classList.add('tree-drag');
+      try{ navigator.vibrate&&navigator.vibrate(15); }catch(_){} },TD_HOLD);
   });
+  /* na dotyku: když tažení běží, panel se neposouvá; podržení neotevře menu prohlížeče */
+  document.addEventListener('touchmove',e=>{ if(td&&td.on) e.preventDefault(); },{passive:false});
+  side.addEventListener('contextmenu',e=>{ if(td&&td.touch) e.preventDefault(); });
+  document.addEventListener('pointercancel',()=>{ if(td){ tdClear(); td=null; } });
   document.addEventListener('pointermove',e=>{
-    if(!td) return; if(!(e.buttons&1)){ td=null; tdClear(); return; }
-    if(!td.on){ if(Math.hypot(e.clientX-td.x,e.clientY-td.y)<6) return; td.on=true; td.it.classList.add('ti-dragging'); document.body.classList.add('tree-drag'); }
+    if(!td) return; if(!(e.buttons&1)){ tdClear(); td=null; return; }
+    if(!td.on){
+      if(td.touch){ if(Math.hypot(e.clientX-td.x,e.clientY-td.y)>8){ clearTimeout(td.tm); td=null; } return; }
+      if(Math.hypot(e.clientX-td.x,e.clientY-td.y)<6) return; td.on=true; td.it.classList.add('ti-dragging'); document.body.classList.add('tree-drag'); }
     e.preventDefault();
     document.querySelectorAll('.ti.drop-before,.ti.drop-after').forEach(x=>x.classList.remove('drop-before','drop-after'));
     const t=tdTarget(e.clientX,e.clientY,td.id); if(t) t.it.classList.add(t.after?'drop-after':'drop-before');
   });
   document.addEventListener('pointerup',e=>{
-    if(!td) return; const d=td; td=null; if(!d.on) return;
+    if(!td) return; const d=td; td=null; if(d.tm) clearTimeout(d.tm); if(!d.on) return;
     tdJust=Date.now(); const t=tdTarget(e.clientX,e.clientY,d.id); tdClear(); if(!t) return;
     const pg=S.pages[d.id], tg=S.pages[t.id]; if(!pg||!tg) return;
     const par=tg.parent||null, moved=(pg.parent||null)!==par;

@@ -38,6 +38,7 @@
 .ti:hover .ti-acts,.ti:focus-within .ti-acts{opacity:1}
 .ti{position:relative}
 .ti.ti-dragging{opacity:.45}
+@media (hover:none){ #side .ti{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none} }
 .ti.drop-before::before,.ti.drop-after::after{content:"";position:absolute;left:calc(var(--d)*14px + 6px);right:6px;height:2px;border-radius:1px;background:var(--accent);pointer-events:none}
 .ti.drop-before::before{top:-1px}
 .ti.drop-after::after{bottom:-1px}
@@ -54,24 +55,34 @@ body.tree-drag,body.tree-drag *{cursor:grabbing!important;user-select:none}
 #save-state.err{color:var(--danger);font-weight:600}
 
 /* ---------- mini kalendář v levém panelu ---------- */
+/* mini kalendář (4.9.0): název měsíce vlevo, šipky vpravo, dnešek = plné kolečko v barvě textu,
+   dny s úkolem = tenký šedý kroužek, aktuální týden v roce červeně */
 .mc{margin-top:10px;font-variant-numeric:tabular-nums}
-.mc-h{display:flex;align-items:center;gap:2px;margin:0 -4px 4px}
-.mc-t{flex:1;text-align:left;font-size:calc(13px*var(--fs));font-weight:600;color:var(--fg2);padding:3px 4px;border-radius:6px;text-transform:capitalize}
-.mc-t:hover{background:var(--hover);color:var(--fg)}
-.mc-t:not(.cur){color:var(--accent)}
-.mc-nav{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;color:var(--muted);font-size:calc(16px*var(--fs));line-height:1}
+.mc-h{display:flex;align-items:center;gap:0;margin:0 -4px 6px}
+.mc-t{flex:1;text-align:left;font-size:calc(13px*var(--fs));font-weight:600;color:var(--fg);padding:3px 4px;border-radius:6px;text-transform:capitalize}
+.mc-t:hover{background:var(--hover)}
+.mc-t:not(.cur){color:var(--fg2);text-decoration:underline dotted;text-underline-offset:3px}
+.mc-nav{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;color:var(--muted);font-size:calc(16px*var(--fs));line-height:1}
 .mc-nav:hover{background:var(--hover);color:var(--fg)}
-.mc-g{display:grid;grid-template-columns:20px repeat(7,minmax(0,1fr));row-gap:1px;align-items:center;margin:0 -4px}
-.mc-dh{font-size:calc(10.5px*var(--fs));font-weight:600;color:var(--faint);text-align:center;padding-bottom:2px}
+.mc-g{display:grid;grid-template-columns:20px repeat(7,minmax(0,1fr));row-gap:2px;align-items:center;margin:0 -4px}
+.mc-dh{font-size:calc(10.5px*var(--fs));font-weight:500;color:var(--faint);text-align:center;padding-bottom:3px;text-transform:lowercase}
 .mc-dh.we{color:color-mix(in srgb,var(--faint) 70%,transparent)}
-.mc-wk{font:500 calc(10.5px*var(--fs)) var(--f-body);color:var(--faint);text-align:center;border-right:1px solid var(--line);align-self:stretch;display:grid;place-items:center}
-.mc-wk.mc-dh{font-family:var(--f-body);border-right:0}
-.mc-wk.cur{color:var(--accent);font-weight:600}
-.mc-d{height:24px;border-radius:6px;font-size:calc(12px*var(--fs));color:var(--fg2);text-align:center;line-height:24px}
-button.mc-d:hover{background:var(--hover);color:var(--fg)}
+.mc-wk{font:400 calc(10px*var(--fs)) var(--f-body);color:var(--faint);text-align:center;align-self:stretch;display:grid;place-items:center}
+.mc-wk.mc-dh{font-family:var(--f-body)}
+.mc-wk.cur{color:var(--danger);font-weight:600}
+/* číslo dne je v <i> oříznutém na výšku číslic: v kolečku tak sedí přesně uprostřed v každém písmu */
+.mc-d{position:relative;display:grid;place-items:center;height:24px;font-size:calc(12px*var(--fs));color:var(--fg2);text-align:center;line-height:1;z-index:0}
+/* číslice v kolečku proporcionální: u stejně širokých číslic měla „1“ vpravo prázdné místo a „21“, „31“ seděly vlevo */
+.mc-d>i{font-style:normal;font-variant-numeric:proportional-nums;text-box:trim-both cap alphabetic}
+.mc-d::before{content:"";position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;box-sizing:border-box;z-index:-1;pointer-events:none}
+button.mc-d:hover{color:var(--fg)}
+button.mc-d:hover::before{background:var(--hover)}
 .mc-d.we{color:var(--muted)}
 .mc-d.out{color:var(--faint);opacity:.6}
-.mc-d.today{background:var(--accent);color:var(--on-accent);font-weight:700;opacity:1}
+.mc-d.tk::before{border:1.2px solid color-mix(in srgb,var(--fg) 32%,transparent)}
+.mc-d.today{justify-self:center;width:22px;height:22px;border-radius:50%;background:var(--fg);color:var(--bg);font-weight:600;opacity:1}
+.mc-d.today::before{display:none}
+button.mc-d.today:hover{color:var(--bg)}
 .mc-g.nowk{grid-template-columns:repeat(7,minmax(0,1fr))}
 /* tlačítka ⋯ a + u projektu zabírají místo jen při najetí (na dotykových zařízeních zůstávají) */
 @media (hover:hover){

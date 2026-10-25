@@ -1,7 +1,7 @@
 /* Úkolníček – Stránka Dnes: nástěnka z widgetů
    Rozložení (pořadí, sloupec, velikost, které widgety) je zvlášť pro počítač (settings.dashPc) a telefon (settings.dashMob).
    Dokud ho uživatel nezmění, nic se neukládá a platí výchozí rozložení. Každý widget má tři velikosti s jiným obsahem. */
-import { $, $$, clamp, DAYS_FULL, esc, MONTHS, pad, plural } from '../core.js';
+import { $, $$, clamp, DAYS, DAYS_FULL, esc, MONTHS, pad, plural } from '../core.js';
 import { S } from '../state.js';
 import { modeBtn } from '../theme.js';
 import { applyLock, LOCK } from '../lock.js';
@@ -30,7 +30,7 @@ const WG={
   quick:{name:'Rychlý úkol',ic:'✏️',multi:true,opts:'page',desc:'Zapíšeš úkol bez otevírání stránky',sizes:['s','m'],w:{s:1,m:2},h:{s:1,m:1},sz:{s:'Řádek na zápis',m:'Širší řádek na zápis'}},
   study:{name:'Studium',ic:'🎓',school:true,index:true,opts:'sem',desc:'Kredity a co v semestru chybí',w:{s:1,m:2,l:4},sz:{s:'Kredity a průměr',m:'K tomu předměty, kterým něco chybí',l:'Všechny předměty semestru s body a známkou'}},
   page:{free:true,name:'Stránka',ic:'📃',multi:true,opts:'page',desc:'Náhled vybrané stránky',sizes:['s','l'],w:{s:1,l:2},sz:{s:'Název a kolik úkolů zbývá',l:'Náhled stránky'}},
-  look:{name:'Vzhled',ic:'🎨',desc:'Motiv, den/noc a velikost textu',w:{s:1,m:1,l:2},h:{s:1},sz:{s:'Světlý nebo tmavý režim',m:'Motiv a den/noc',l:'Motiv, den/noc a velikost textu'}},
+  look:{name:'Vzhled',ic:'🎨',desc:'Motiv, písmo, den/noc a velikost textu',w:{s:1,m:1,l:2},h:{s:1},sz:{s:'Motiv, písmo, režim a text na klik',m:'Motiv, písmo a den/noc',l:'Motiv, písmo, den/noc a velikost textu'}},
   data:{name:'Zálohy',ic:'🗂️',desc:'Export, import a zálohy na Disku',w:{s:1,m:1,l:2},h:{s:1},sz:{s:'Export a import',m:'K tomu nahrání na Disk',l:'K tomu seznam záloh na Disku'}},
   uploads:{name:'Nahrávání na Disk',ic:'📈',desc:'Jak dlouho trvá nahrání a jak velké jsou zálohy',sizes:['m','l'],w:{m:2,l:4},sz:{m:'Posledních 20 nahrání',l:'Všechna nahrání'}},
 };
@@ -94,50 +94,83 @@ function ctxNow(){
     evs:school?byStart(eventsOnDate(now)):[],
     tm:(()=>{ const d=new Date(now); d.setDate(d.getDate()+1); return d; })()};
 }
+/* datum bez roku a bez čárky: „pátek 23. října“ */
+const dayDate=d=>`${DAYS_FULL[(d.getDay()+6)%7]} ${d.getDate()}. ${MONTHS[d.getMonth()]}`;
+/* datum je v nadpisu Dnes, hodiny pod časem ukážou, co je teď a co bude dál (ve školním režimu), jinak týden */
+function clockNext(c){
+  const {evs,nm,school,now}=c;
+  if(!school) return [dayDate(now),`${isoWeek(now)}. týden`,false];
+  const cur=evs.find(ev=>toMin(ev.start)<=nm&&nm<toMin(ev.end)), next=evs.find(ev=>toMin(ev.start)>nm);
+  if(cur) return [`teď ${esc(evTitle(cur))}`,next?`${esc(evTitle(next))} za ${fmtIn(toMin(next.start)-nm)}`:`ještě ${fmtIn(toMin(cur.end)-nm)}`,!!next];
+  if(next) return ['teď volno',`${esc(evTitle(next))} za ${fmtIn(toMin(next.start)-nm)}`,true];
+  return [evs.length?'dnes už nic':'dnes volno',`${isoWeek(now)}. týden`,false];
+}
 function wClock(s,c){
-  const {now,wd,wi,school}=c, date=`${now.getDate()}. ${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
-  const wkA=`${isoWeek(now)}. týden v roce`, wkB=school&&wi?`${wi.n}. týden výuky (${wi.parity})`:'';
-  const time=`<div class="clk-t"><span data-clk="hm">${hm(now)}</span><span class="clk-sec" data-clk="s">:${pad(now.getSeconds())}</span></div>`;
-  if(s==='s') return {body:`<div class="clk clk-s">${time}<div class="clk-d">${DAYS_FULL[wd]}, ${now.getDate()}. ${now.getMonth()+1}.<span class="clk-y"> ${now.getFullYear()}</span></div></div>`};
-  if(s==='m') return {body:`<div class="clk clk-m">${time}<div class="clk-i"><div class="clk-d">${DAYS_FULL[wd]}, ${date}</div><div class="clk-w">${wkA}${wkB?`<br>${wkB}`:''}</div></div></div>`};
-  return {body:`<div class="clk clk-l">${clockFace()}<div>${time}<div class="clk-d">${DAYS_FULL[wd]}, ${date}</div><div class="clk-w">${wkA}${wkB?` · ${wkB}`:''}</div></div></div>`};
+  const [a,b,soon]=clockNext(c);
+  const time=`<div class="clk-t"><span data-clk="hm">${hm(c.now)}</span><span class="clk-sec" data-clk="s">:${pad(c.now.getSeconds())}</span></div>`;
+  if(s==='s') return {body:`<div class="clk clk-s">${time}<div class="clk-d${soon?' soon':''}">${soon?b:a}</div></div>`};
+  const info=`<div class="clk-d">${a}</div><div class="clk-w${soon?' soon':''}">${b}</div>`;
+  if(s==='m') return {body:`<div class="clk clk-m">${time}${info}</div>`};
+  return {body:`<div class="clk clk-l">${clockFace()}<div>${time}${info}</div></div>`};
+}
+/* „za 48 min“, „za 1 h 20 min“ */
+const fmtIn=m=>m<60?`${m} min`:`${Math.floor(m/60)} h${m%60?` ${m%60} min`:''}`;
+/* dnešní hodiny na vodorovné ose: minulé potlumené, probíhající a další s obrysem, červená čára = teď */
+function tlAxis(evs,nm){
+  const a=Math.min(...evs.map(ev=>toMin(ev.start))), b=Math.max(...evs.map(ev=>toMin(ev.end)));
+  let h0=Math.floor(a/60), h1=Math.ceil(b/60); if(h1-h0<4) h1=Math.min(24,h0+4); if(h1-h0<4) h0=Math.max(0,h1-4);
+  const span=(h1-h0)*60, X=m=>clamp((m-h0*60)/span*100,0,100), step=h1-h0>7?2:1;
+  /* dvě hodiny ve stejný čas jdou pod sebe */
+  const lane=[], ends=[];
+  evs.forEach((ev,i)=>{ let k=ends.findIndex(e=>e<=toMin(ev.start)); if(k<0){ k=ends.length; ends.push(0); } ends[k]=toMin(ev.end); lane[i]=k; });
+  let ticks=''; for(let h=Math.ceil(h0/step)*step;h<=h1;h+=step) ticks+=`<span class="tl-tk" style="left:${X(h*60).toFixed(2)}%"><i>${h}</i></span>`;
+  const blocks=evs.map((ev,i)=>{ const s0=toMin(ev.start), e0=toMin(ev.end), st=e0<=nm?'past':s0<=nm?'now-ev':'up';
+    return `<button class="tl-ev hl-${esc(evColor(ev))} ${st}" data-act="ev" data-id="${ev.id}" style="left:${X(s0).toFixed(2)}%;width:${(X(e0)-X(s0)).toFixed(2)}%;top:${lane[i]*30}px" title="${esc(`${ev.start} – ${ev.end} ${evTitle(ev)}${ev.place?' · '+ev.place:''}`)}"><i></i><span>${esc(evTitle(ev))}</span></button>`; }).join('');
+  const now=nm>=h0*60&&nm<=h1*60?`<span class="tl-now" style="left:${X(nm).toFixed(2)}%"></span>`:'';
+  return `<div class="tl" style="--lanes:${ends.length}"><div class="tl-ticks">${ticks}</div><div class="tl-row">${blocks}${now}</div></div>`;
 }
 function wSched(s,c){
   const {evs,nm,now}=c, btn='<button class="btn" data-act="nav" data-v="schedule">Rozvrh</button>';
   const cur=evs.find(ev=>toMin(ev.start)<=nm&&nm<toMin(ev.end)), next=evs.find(ev=>toMin(ev.start)>nm);
   const prog=ev=>Math.round((nm-toMin(ev.start))/Math.max(1,toMin(ev.end)-toMin(ev.start))*100);
+  /* probíhající, nebo další hodina jako jeden řádek: čas, název, místo, kdy */
+  const when=ev=>ev===cur?`ještě ${fmtIn(toMin(cur.end)-nm)}`:`za ${fmtIn(toMin(ev.start)-nm)}`;
+  const focus=cur||next;
   /* malý (poloviční): jen probíhající, nebo další hodina, bez nadpisu */
   if(s==='s'){
     if(!evs.length) return {body:'<div class="empty">Dnes nic v rozvrhu.</div>'};
-    const big=(ev,lbl,bar)=>`<button class="wg-big hl-${esc(evColor(ev))}" data-act="ev" data-id="${ev.id}"><span class="wb-lbl">${lbl}</span><b>${esc(evTitle(ev))}</b><small>${wgEvMeta(ev)}</small>${bar?`<span class="bar"><i style="width:${prog(ev)}%"></i></span>`:''}</button>`;
-    return {body:cur?big(cur,`Právě teď · ještě ${hDur(toMin(cur.end)-nm)}`,true):next?big(next,`Další · za ${hDur(toMin(next.start)-nm)}`):'<div class="empty">Na dnes máš hotovo.</div>'};
+    if(!focus) return {body:'<div class="empty">Na dnes máš hotovo.</div>'};
+    return {body:`<button class="wg-big hl-${esc(evColor(focus))}" data-act="ev" data-id="${focus.id}"><span class="wb-lbl"><span>${focus===cur?'Teď':'Další hodina'}</span><em>${when(focus)}</em></span><b>${esc(evTitle(focus))}</b><small>${wgEvMeta(focus)}</small>${focus===cur?`<span class="bar"><i style="width:${prog(cur)}%"></i></span>`:''}</button>`};
   }
   if(!evs.length) return {title:'Dnes v rozvrhu',btn,body:'<div class="empty">Dnes nemáš v rozvrhu nic.</div>'};
-  /* střední: jen hodiny, které ještě neskončily */
-  if(s==='m'){ const up=evs.filter(ev=>toMin(ev.end)>nm);
-    return {title:'Dnes v rozvrhu',btn,body:up.length?up.map(ev=>evRow(ev,now).replace('class="ev-row',`class="ev-row ${ev===cur?'now-ev':''}`)).join(''):'<div class="empty">Na dnes máš hotovo.</div>'}; }
-  /* velký: časová osa, minulé hodiny potlumené, čára „teď“, průběh probíhající hodiny */
-  let rows='', lined=false;
-  const line=`<div class="now-line"><span>${hm(now)}</span></div>`;
-  evs.forEach(ev=>{
-    if(!lined&&!cur&&toMin(ev.start)>nm){ rows+=line; lined=true; }
-    let r=evRow(ev,now).replace('class="ev-row',`class="ev-row ${ev===cur?'now-ev':toMin(ev.end)<=nm?'past':''}`);
-    if(ev===cur){ r=r.replace(/<\/button>$/,`<span class="ev-prog"><i style="width:${prog(ev)}%"></i></span></button>`); lined=true; }
-    rows+=r;
-  });
-  if(!lined) rows+=line;
-  return {title:'Dnes v rozvrhu',btn,body:rows};
+  const axis=tlAxis(evs,nm);
+  /* střední: osa a pod ní probíhající nebo další hodina */
+  if(s==='m'){
+    const ln=focus?`<button class="tl-next" data-act="ev" data-id="${focus.id}"><span class="t">${esc(focus.start)} – ${esc(focus.end)}</span><b>${esc(evTitle(focus))}</b><small>${esc(focus.place||'')}</small><em>${when(focus)}</em></button>`:'<div class="empty">Na dnes máš hotovo.</div>';
+    return {title:'Dnes v rozvrhu',btn,body:axis+ln};
+  }
+  /* velký: osa a pod ní všechny hodiny, minulé potlumené, u probíhající průběh */
+  const rows=evs.map(ev=>{ let r=evRow(ev,now).replace('class="ev-row',`class="ev-row ${ev===cur?'now-ev':toMin(ev.end)<=nm?'past':''}`);
+    if(ev===cur) r=r.replace(/<\/button>$/,`<span class="ev-prog"><i style="width:${prog(ev)}%"></i></span></button>`);
+    return r; }).join('');
+  return {title:'Dnes v rozvrhu',btn,body:axis+`<div class="tl-list">${rows}</div>`};
 }
 function wTomorrow(s,c){
   const {tm}=c, evT=byStart(eventsOnDate(tm)), n=evT.length;
   const span=n?`${esc(evT[0].start)} – ${esc(evT[n-1].end)}`:'';
-  if(s==='s') return {title:'Zítra',body:n?`<div class="wg-pad"><div class="wg-stat"><b>${n}</b> ${plural(n,'hodina','hodiny','hodin')}</div><div class="wg-sub">${span}</div></div>`:'<div class="empty">Zítra volno.</div>'};
+  if(s==='s') return {title:'Zítra',body:n?`<div class="wg-pad"><div class="wg-stat"><b>${n} ${plural(n,'hodina','hodiny','hodin')}</b> ${span}</div></div>`:'<div class="empty">Zítra volno.</div>'};
   if(s==='m') return {title:'Zítra',body:n?evT.map(ev=>evRow(ev,tm)).join(''):'<div class="empty">Zítra volno.</div>'};
   if(n) return {title:'Zítra',sub:`${DAYS_FULL[(tm.getDay()+6)%7]} · ${n} ${plural(n,'hodina','hodiny','hodin')} · ${span}`,body:evT.map(ev=>evRow(ev,tm)).join('')};
   /* zítra volno: najít nejbližší další den s výukou (do dvou týdnů) */
   for(let i=1;i<=14;i++){ const d=new Date(tm); d.setDate(d.getDate()+i); const l=byStart(eventsOnDate(d));
     if(l.length) return {title:'Zítra volno',sub:`Další výuka: ${DAYS_FULL[(d.getDay()+6)%7]} ${shortDate(d)}`,body:l.map(ev=>evRow(ev,d)).join('')}; }
   return {title:'Zítra',body:'<div class="empty">Zítra volno a v příštích dvou týdnech taky nic.</div>'};
+}
+/* úkol s termínem: místo štítku jen krátké datum vpravo („dnes“, „zítra“, „po 26. 10.“), po termínu červeně */
+function dlRow(t){
+  const n=dayDiff(t.due,sod(new Date())), d=t.due;
+  const lbl=n===0?'dnes':n===1?'zítra':`${DAYS[(d.getDay()+6)%7].toLowerCase()} ${shortDate(d)}`;
+  return taskRow(t,true).replace(/<span class="chip[^"]*"([^>]*)>[^<]*<\/span>/,`<span class="dl-d${n<0?' late':n===0?' today':''}"$1>${lbl}</span>`);
 }
 function wDeadlines(s,c,id,o){
   const pr=o&&o.proj&&S.pages[o.proj]?o.proj:null;
@@ -146,16 +179,14 @@ function wDeadlines(s,c,id,o){
   const hint='<div class="empty">Na příštích 14 dní nic.</div>';
   if(s==='s'){
     const late=open.filter(t=>dayDiff(t.due,t0)<0).length, tod=open.filter(t=>dayDiff(t.due,t0)===0).length, wk=open.filter(t=>{ const n=dayDiff(t.due,t0); return n>0&&n<=7; }).length;
-    const row=(lbl,n,cls)=>`<button class="dl-n ${n&&cls?cls:''}" data-act="nav" data-v="tasks"><span>${lbl}</span><b>${n}</b></button>`;
-    return {title:'Termíny',body:`<div class="dl-ns">${row('Po termínu',late,'late')}${row('Do dnes',tod,'today')}${row('Do 7 dní',wk,'')}</div>`};
+    const row=(lbl,n,cls)=>`<button class="dl-n ${n&&cls?cls:''}" data-act="nav" data-v="tasks"><b>${n}</b><span>${lbl}</span></button>`;
+    return {title:'Termíny',btn,body:`<div class="dl-ns">${row('po termínu',late,'late')}${row('dnes',tod,'today')}${row('do 7 dní',wk,'')}</div>`};
   }
-  if(s==='m'){
-    const up=open.filter(t=>dayDiff(t.due,t0)<=14);
-    return {title:'Blížící se termíny',btn,body:up.length?up.map(t=>taskRow(t,true)).join(''):hint};
-  }
-  const G=[['Po termínu',n=>n<0],['Dnes',n=>n===0],['Zítra',n=>n===1],['Do konce týdne',n=>n>1&&n<=7],['Později',n=>n>7&&n<=30]];
-  const body=G.map(([lbl,f])=>{ const l=open.filter(t=>f(dayDiff(t.due,t0))); return l.length?`<div class="wg-grp">${lbl}<span>${l.length}</span></div>${l.map(t=>taskRow(t,true)).join('')}`:''; }).join('');
-  return {title:'Blížící se termíny',sub:'Na příštích 30 dní',btn,body:body||hint.replace('14','30')};
+  /* střední: 14 dní, velký: 30 dní; obojí po skupinách (po termínu, dnes, …) */
+  const G=s==='m'?[['Po termínu',n=>n<0],['Dnes',n=>n===0],['Tento týden',n=>n>0&&n<=7],['Později',n=>n>7&&n<=14]]
+    :[['Po termínu',n=>n<0],['Dnes',n=>n===0],['Zítra',n=>n===1],['Do konce týdne',n=>n>1&&n<=7],['Později',n=>n>7&&n<=30]];
+  const body=G.map(([lbl,f],i)=>{ const l=open.filter(t=>f(dayDiff(t.due,t0))); return l.length?`<div class="wg-grp${i?'':' late'}">${lbl}</div>${l.map(dlRow).join('')}`:''; }).join('');
+  return {title:'Termíny',sub:s==='l'?'Na příštích 30 dní':'',btn,body:body||(s==='l'?hint.replace('14','30'):hint)};
 }
 function wStatus(s,c){
   const {tasks,school}=c, subj=[];
@@ -165,7 +196,7 @@ function wStatus(s,c){
   const item=({p,sec,key,total,done,color})=>`<button class="subj hl-${esc(color||p.color||'gray')}" data-act="goto-task" data-k="${esc(key)}">${sec?'<span class="ti-ic"><span class="ti-dot"></span></span>':pIcon(p)}<span class="nm">${esc(sec||pTitle(p))}</span><span class="n">${done}/${total}</span><span class="bar"><i style="width:${Math.round(done/total*100)}%"></i></span></button>`;
   if(s==='s'){
     const done=tasks.filter(t=>t.done).length, pct=Math.round(done/tasks.length*100), wip=subj.filter(x=>x.done<x.total).length;
-    return {body:`<button class="st-sum st-half" data-act="nav" data-v="tasks"><span class="st-top"><span class="wg-stat"><b>${pct} %</b> <span class="st-w">úkolů </span>hotovo</span><span class="st-n">${done} / ${tasks.length}</span></span><span class="bar"><i style="width:${pct}%"></i></span><span class="wg-sub">${wip?`${wip} ${plural(wip,'rozpracovaná','rozpracované','rozpracovaných')}<span class="st-w2"> ${plural(wip,'sekce','sekce','sekcí')}</span>`:'Nic rozpracovaného'}</span></button>`};
+    return {body:`<button class="st-sum st-half" data-act="nav" data-v="tasks"><span class="st-top"><span class="wg-stat"><b>${done} z ${tasks.length}</b> hotovo</span><span class="st-n">${wip?`${wip} ${plural(wip,'sekce','sekce','sekcí')}`:'nic rozpracovaného'}</span></span><span class="bar"><i style="width:${pct}%"></i></span></button>`};
   }
   if(s==='m') return {title,body:subj.map(item).join('')};
   const wip=subj.filter(x=>x.done<x.total), fin=subj.filter(x=>x.done===x.total);
@@ -173,13 +204,14 @@ function wStatus(s,c){
 }
 const RENDER={clock:wClock,sched:wSched,tomorrow:wTomorrow,deadlines:wDeadlines,status:wStatus,week:wWeek,calendar:wCal,quick:wQuick,study:wStudy,page:wPage,look:wLook,data:wData,uploads:wUploads};
 
+const GRIP='<svg viewBox="0 0 10 16" aria-hidden="true"><circle cx="2.5" cy="3" r="1.4"/><circle cx="7.5" cy="3" r="1.4"/><circle cx="2.5" cy="8" r="1.4"/><circle cx="7.5" cy="8" r="1.4"/><circle cx="2.5" cy="13" r="1.4"/><circle cx="7.5" cy="13" r="1.4"/></svg>';
 function wgHtml({id,s,o},c){
   const t=typeOf(id), r=RENDER[t](s,c,id,o||{});
   /* filtr projektu u termínů ukáže v podtitulku */
   if(t==='deadlines'&&o&&o.proj&&S.pages[o.proj]) r.sub=`Jen ${esc(pTitle(S.pages[o.proj]))}`;
   const fh=WG[t].h&&WG[t].h[s];
   return `<section class="card wg sz-${s} wg-${t}${fh?fh===1?' half':' fixh':''}" data-wg="${esc(id)}">
-    <button class="wg-grip" data-act="wg-menu" title="Táhni pro přesun, klikni pro velikost" aria-label="${esc(WG[t].name)}: velikost, přesun, odebrání">⋮⋮</button>
+    <button class="wg-grip" data-act="wg-menu" title="Táhni pro přesun, klikni pro velikost" aria-label="${esc(WG[t].name)}: velikost, přesun, odebrání">${GRIP}</button>
     ${r.title?`<div class="card-h"><div><h2>${esc(r.title)}</h2>${r.sub?`<div class="wg-h-sub">${r.sub}</div>`:''}</div>${r.btn||''}</div>`:''}
     <div class="card-body">${r.body}</div></section>`;
 }
@@ -194,10 +226,12 @@ const baseW=(id,s,mob)=>{ const w=wgDef(id).w[s]; return mob?Math.min(w,2):w; };
 /* šířka sloupce: v širokém zobrazení aspoň MIN_COL; mřížka je široká jen po nejpravější použitý sloupec,
    takže posuvník do stran se ukáže, jen když widgety opravdu přesahují okno */
 const MIN_COL=200;
+/* „deska“ (4.11.0): widgety k sobě přiléhají bez mezer, list kolem má okraj 1 px z každé strany */
+const SHEET_B=2;
 function geom(){
   const g=$('#wg-grid'); if(!g) return null;
-  const sc=g.parentElement, cs=sc&&getComputedStyle(sc), room=sc?sc.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight):g.clientWidth;
-  const mob=isMob(), cols=mob?2:4, gap=mob?14:18;
+  const sc=g.parentElement, cs=sc&&getComputedStyle(sc), room=(sc?sc.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight):g.clientWidth)-SHEET_B;
+  const mob=isMob(), cols=mob?2:4, gap=0;
   const fs=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--fs'))||1;
   const colW=mob?(room-gap)/2:Math.max(MIN_COL*fs,(room-gap*3)/4);
   return {g,mob,cols,gap,colW,room};
@@ -224,7 +258,7 @@ function place(items,cols,H,gap){
 /* výška widgetu: násobky půl řádku (řádek = ROW_S), takže widgety vedle sebe i pod sebou lícují.
    WG.h = pevný počet půlřádků (1 = poloviční widget, dva pod sebou mají výšku jednoho řádku; víc = obsah se posouvá uvnitř).
    Ostatní mají aspoň celý řádek podle obsahu; seznamy (WG.free) ve středním a velkém přesně podle obsahu. */
-const ROW_S=180;
+const ROW_S=184;
 function snapH(el,id,s,gap){
   el.style.height='';
   const D=wgDef(id), fix=D.h&&D.h[s];
@@ -236,6 +270,7 @@ function snapH(el,id,s,gap){
   const H=Math.round(k*R+(k-1)*gap); el.style.height=H+'px'; return H;
 }
 const lastPos={}, lastC={};
+let natH={};   /* výšky widgetů před protažením (pro výpočet místa při tažení) */
 let lastGridH=0;   /* výška mřížky z minula: nová mřížka ji má hned, aby prohlížeč neposunul stránku nahoru */   /* poslední poloha (kvůli plynulému přesunu po překreslení) a sloupec v základní mřížce */
 function layoutGrid(listOverride){
   const G=geom(); if(!G||G.room<=0) return; const {g,mob,cols,gap,colW,room}=G;
@@ -250,10 +285,34 @@ function layoutGrid(listOverride){
     if(fresh){ const o=lastPos[it.id]; el.style.transform=`translate(${o?o.x:x}px,${o?o.y:y}px)`; }
     to.push([el,x,y]); lastPos[it.id]={x,y}; lastC[it.id]={c:p.c,w:p.w,base:p.c*sc}; });
   g.style.height=P.$h+'px'; lastGridH=P.$h;
+  /* deska bez děr: widget se protáhne dolů až k widgetu pod ním ve stejných sloupcích (poslední až ke spodku listu) */
+  const fin={};
+  items.forEach(it=>{ const el=cards.get(it.id), p=P[it.id]; if(!el||!p) return; let to=P.$h;
+    items.forEach(o=>{ const q=P[o.id]; if(o.id!==it.id&&q&&q.y>p.y&&q.c<p.c+p.w&&p.c<q.c+q.w&&q.y<to) to=q.y; });
+    const h=Math.max(H[it.id]||0,Math.round(to-p.y)); fin[it.id]=h; const hh=h+'px'; if(el.style.height!==hh) el.style.height=hh;
+    el.dataset.nh=H[it.id]||0; });   /* data-nh = výška před protažením */
+  natH=H;
+  fillHoles(g,items.map(it=>P[it.id]&&fin[it.id]!=null?{c:P[it.id].c,w:P[it.id].w,y:P[it.id].y,h:fin[it.id]}:null).filter(Boolean),cols,colW,P.$h);
   const right=Math.max(0,...items.map(it=>P[it.id]?P[it.id].c+P[it.id].w:0)), need=right*colW+Math.max(0,right-1)*gap;
   const gw=mob||need<=room+1?'':Math.ceil(need)+'px'; if(g.style.width!==gw) g.style.width=gw;
   if(fresh){ void g.offsetWidth; g.classList.add('anim'); }
   to.forEach(([el,x,y])=>{ el.style.transform=`translate(${x}px,${y}px)`; });
+}
+/* místa, kam se žádný widget nedostal (vedle širokého widgetu pod úzkým), dostanou prázdnou buňku se stejnými čarami,
+   takže deska je vždy celý obdélník rozdělený čarami */
+function fillHoles(g,rects,cols,colW,total){
+  g.querySelectorAll(':scope > .wg-fill').forEach(x=>x.remove());
+  const gaps=[];
+  for(let k=0;k<cols;k++){
+    const iv=rects.filter(r=>r.c<=k&&k<r.c+r.w).map(r=>[r.y,r.y+r.h]).sort((a,b)=>a[0]-b[0]);
+    let y=0; iv.forEach(([a,b])=>{ if(a-y>2) gaps.push({k,y0:y,y1:a}); y=Math.max(y,b); });
+    if(total-y>2) gaps.push({k,y0:y,y1:total});
+  }
+  /* sousední sloupce se stejnou dírou = jedna širší buňka */
+  gaps.sort((a,b)=>a.y0-b.y0||a.y1-b.y1||a.k-b.k);
+  const out=[]; gaps.forEach(gp=>{ const l=out[out.length-1]; if(l&&l.y0===gp.y0&&l.y1===gp.y1&&l.k+l.n===gp.k) l.n++; else out.push({k:gp.k,n:1,y0:gp.y0,y1:gp.y1}); });
+  out.forEach(f=>{ const d=document.createElement('div'); d.className='wg-fill'; d.setAttribute('aria-hidden','true');
+    Object.assign(d.style,{left:Math.round(f.k*colW)+'px',top:f.y0+'px',width:Math.round(f.n*colW)+'px',height:(f.y1-f.y0)+'px'}); g.appendChild(d); });
 }
 let ro=null, roRaf=0, fontsDone=false;
 function watchGrid(){
@@ -272,14 +331,17 @@ function renderToday(){
     $('#view').innerHTML=`<div class="view"><div class="welcome"><h1>Zatím tu nic není</h1><p class="muted">${school?'Založ první projekt, třeba pro semestr, a piš do něj poznámky a úkoly. Hodiny si zapíšeš do rozvrhu.':'Založ první projekt a piš do něj poznámky a úkoly. Rozvrh a Index zapneš v Nastavení jako školní režim.'}</p><div class="m-actions"><button class="btn pri" data-act="new-page">＋ Nový projekt</button>${school?'<button class="btn" data-act="nav" data-v="schedule">Otevřít rozvrh</button>':''}</div></div></div>`;
     return;
   }
-  const c=ctxNow(), {now,wd,wi}=c, mob=isMob(), main=$('#main'), st=main?main.scrollTop:0;
+  const c=ctxNow(), mob=isMob(), main=$('#main'), st=main?main.scrollTop:0;
   $$('#wg-grid > .wg.fixh').forEach(w=>{ const b=w.querySelector('.card-body'); if(b) inScroll[scrKey(w)]=b.scrollTop; });
   const list=readLayout(mob).filter(x=>avail(x.id));
-  const head=`<div class="v-head"><div><div class="eyebrow">${DAYS_FULL[wd][0].toUpperCase()+DAYS_FULL[wd].slice(1)}${school&&wi?` · ${wi.n}. týden výuky, ${wi.parity}`:''}</div><h1 class="v-title">${now.getDate()}. ${MONTHS[now.getMonth()]}</h1></div>
-    <div class="v-tools"><button class="btn wg-addbtn" data-act="wg-add">＋ Widget</button><button class="icon-btn lock-btn" data-act="lock"></button>${modeBtn()}</div></div>`;
+  /* datum je v hodinách, nahoře jen nástroje: Přidat widget | zámek, den/noc */
+  /* nadpis = dnešní datum, vedle týden (ve školním režimu i týden výuky) */
+  const wi=c.wi, wk=`${isoWeek(c.now)}. týden${c.school&&wi?` · ${wi.n}. týden výuky, ${wi.parity}`:''}`;
+  const head=`<div class="v-head dash-head"><div class="dash-title"><h1 class="v-title">${DAYS_FULL[(c.now.getDay()+6)%7].replace(/^./,x=>x.toUpperCase())} ${c.now.getDate()}. ${MONTHS[c.now.getMonth()]}</h1><span>${wk}</span></div>
+    <div class="v-tools"><button class="btn btn-text wg-addbtn" data-act="wg-add"><span aria-hidden="true">＋</span> Přidat widget</button><span class="dash-sep" aria-hidden="true"></span><button class="icon-btn lock-btn" data-act="lock"></button>${modeBtn()}</div></div>`;
   $('#view').innerHTML=`<div class="view dash">${head}
     <div class="wg-scroll"><div class="wg-grid" id="wg-grid" style="height:${lastGridH}px">${list.map(x=>wgHtml(x,c)).join('')}</div></div>
-    ${list.length?'':`<div class="card"><div class="empty" style="padding:18px">Na Dnes teď nic není. Odemkni zámek a přidej widget tlačítkem <b>＋ Widget</b>.</div></div>`}
+    ${list.length?'':`<div class="empty dash-empty">Na Dnes teď nic není. Odemkni zámek a přidej widget tlačítkem <b>Přidat widget</b>.</div>`}
   </div>`;
   applyLock(); tick(); layoutGrid(); watchGrid(); keepInScroll();
   if(document.fonts&&!fontsDone) document.fonts.ready.then(()=>{ fontsDone=true; layoutGrid(); });
@@ -303,6 +365,7 @@ MQ.addEventListener('change',()=>{ if(S.ready&&S.view.kind==='today'){ closePop(
 let popTrack=null;
 function dashPop(anchor,h,fn){
   const p=openPop(anchor,h,fn), r=anchor.getBoundingClientRect(), w=anchor.closest('.wg');
+  p.classList.add('dash-pop');
   popTrack={p,wid:w?w.dataset.wg:null,add:anchor.classList.contains('wg-addbtn'),y:r.top,x:r.left,pt:parseFloat(p.style.top)||0,pl:parseFloat(p.style.left)||0};
   return p;
 }
@@ -322,8 +385,8 @@ function openWidgetAdd(anchor){
   const miss=Object.keys(WG).filter(t=>(WG[t].multi||!have.has(t))&&avail(t));
   const stored=Array.isArray(S.settings[layKey(mob)]);
   const h=`<div class="pop-h">Přidat na Dnes</div>
-    ${miss.length?miss.map(t=>`<button class="pop-item" data-v="add:${t}"><span class="pi-ic">${WG[t].ic}</span><span>${esc(WG[t].name)}${WG[t].multi&&have.has(t)?' (další)':''}<small>${esc(WG[t].desc)}</small></span></button>`).join(''):'<p class="note" style="padding:4px 8px 8px">Všechny widgety už na Dnes jsou.</p>'}
-    ${stored?`<div class="pop-sep"></div><button class="pop-item" data-v="reset"><span class="pi-ic">↺</span><span>Výchozí rozložení<small>Jen pro tuto šířku okna, druhé rozložení se nezmění</small></span></button>`:''}`;
+    ${miss.length?miss.map(t=>`<button class="pop-item" data-v="add:${t}"><span>${esc(WG[t].name)}${WG[t].multi&&have.has(t)?' (další)':''}<small>${esc(WG[t].desc)}</small></span></button>`).join(''):'<p class="note" style="padding:4px 8px 8px">Všechny widgety už na Dnes jsou.</p>'}
+    ${stored?`<div class="pop-sep"></div><button class="pop-item" data-v="reset"><span>Výchozí rozložení<small>Jen pro tuto šířku okna, druhé rozložení se nezmění</small></span></button>`:''}`;
   dashPop(anchor,h,v=>{
     if(v==='reset'){ delete S.settings[layKey(mob)]; saveSettings(); renderMain(); return; }
     const t=v.slice(4); if(!WG[t]) return;
@@ -351,17 +414,17 @@ function openWidgetMenu(anchor){
   const up=colNeighbour(l,id,-1), down=colNeighbour(l,id,1);
   const D=wgDef(id);
   const h=`<div class="pop-h">${esc(D.name)}</div>
-    ${sizesOf(id).map(s=>`<button class="pop-item ${it.s===s?'on':''}" data-v="${s}" role="menuitemradio" aria-checked="${it.s===s}"><span class="pi-ic">${it.s===s?'✓':s.toUpperCase()}</span><span>${SIZE_CZ[s]}<small>${esc(D.sz[s])}</small></span></button>`).join('')}
-    ${D.opts?`<div class="pop-sep"></div><button class="pop-item" data-v="opts"><span class="pi-ic">⚙</span><span>Nastavit<small>${esc(OPT_CZ[D.opts])}</small></span></button>`:''}
+    <div class="wg-sizes" role="radiogroup" aria-label="Velikost">${sizesOf(id).map(s=>`<button class="${it.s===s?'on':''}" data-v="${s}" role="radio" aria-checked="${it.s===s}" title="${esc(D.sz[s])}">${SIZE_CZ[s]}</button>`).join('')}</div>
+    <div class="wg-sz-note">${esc(D.sz[it.s])}</div>
     <div class="pop-sep"></div>
-    <div class="wg-moves">
-      <button class="pop-item" data-v="up" ${up?'':'disabled'} title="Výš" aria-label="Posunout výš">↑</button>
-      <button class="pop-item" data-v="down" ${down?'':'disabled'} title="Níž" aria-label="Posunout níž">↓</button>
-      <button class="pop-item" data-v="left" ${me.c>0?'':'disabled'} title="Doleva" aria-label="Posunout doleva">←</button>
-      <button class="pop-item" data-v="right" ${me.c+me.w<cols?'':'disabled'} title="Doprava" aria-label="Posunout doprava">→</button>
+    <div class="wg-moves"><span>Posunout</span>
+      <button data-v="up" ${up?'':'disabled'} title="Výš" aria-label="Posunout výš">↑</button>
+      <button data-v="down" ${down?'':'disabled'} title="Níž" aria-label="Posunout níž">↓</button>
+      <button data-v="left" ${me.c>0?'':'disabled'} title="Doleva" aria-label="Posunout doleva">←</button>
+      <button data-v="right" ${me.c+me.w<cols?'':'disabled'} title="Doprava" aria-label="Posunout doprava">→</button>
     </div>
-    <div class="pop-sep"></div>
-    <button class="pop-item danger" data-v="del"><span class="pi-ic">✕</span>Odebrat z Dnes</button>`;
+    ${D.opts?`<button class="pop-item" data-v="opts">${esc(OPT_CZ[D.opts])}…</button>`:''}
+    <button class="pop-item danger" data-v="del">Odebrat z Dnes</button>`;
   dashPop(anchor,h,v=>{
     if(v==='opts'){ setTimeout(()=>openWidgetOpts(w),0); return; }
     const L=readLayout(mob), x=L.find(y=>y.id===id); if(!x) return;
@@ -409,7 +472,7 @@ function dragTarget(gx,gy){
   const G=geom(); if(!G) return null; const {g,mob,cols,gap,colW}=G, gr=g.getBoundingClientRect();
   const id=drag.w.dataset.wg, me=drag.orig.find(x=>x.id===id), rest=drag.orig.filter(x=>x.id!==id), vis=rest.filter(x=>avail(x.id));
   const w=effItems([me],cols,mob)[0].w, c=clamp(Math.round((gx-gr.left)/(colW+gap)),0,cols-w), ry=gy-gr.top;
-  const H={}; $$('#wg-grid > .wg').forEach(el=>{ H[el.dataset.wg]=el.offsetHeight; });
+  const H={}; $$('#wg-grid > .wg').forEach(el=>{ H[el.dataset.wg]=natH[el.dataset.wg]||el.offsetHeight; });
   let best=null;
   for(let i=0;i<=vis.length;i++){
     const items=effItems(vis,cols,mob); items.splice(i,0,{id,c,w});

@@ -46,7 +46,7 @@ const SLASH=[
   {k:'draw',hint:'Rychlá skica perem, fixem nebo zvýrazňovačem',kw:'kreslit kresba nakreslit malovat skica nacrt tuzka pero fix draw sketch'},
   {k:'eq',hint:'LaTeX; v prázdném řádku na samostatný řádek, jinak do textu',kw:'rovnice vzorec latex tex math matematika equation jednotka velicina symbol zlomek'},
   {k:'link',hint:'Webová adresa s vlastním názvem',kw:'odkaz link url web adresa hypertext'},
-  {k:'page',hint:'Nová stránka uvnitř této',kw:'podstranka stranka page'},
+  {k:'page',hint:'Odkaz na stránku nebo nová podstránka',kw:'podstranka stranka page odkaz'},
   {k:'mdimport',hint:'Vloží obsah souboru .md (nadpisy, seznamy, úkoly, tabulky)',kw:'markdown md import soubor nahrat obsidian'}
 ];
 const PH={p:'Piš, nebo stiskni / pro příkazy',h1:'Nadpis 1',h2:'Nadpis 2',h3:'Nadpis 3',bullet:'Odrážka',num:'Položka',todo:'Úkol',quote:'Citace',callout:'Poznámka',code:'Vlož nebo napiš kód'};
@@ -57,6 +57,7 @@ const ICONS={
   tasks:'<svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="m8 12 3 3 5-6"/></svg>',
   search:'<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>',
   index:'<svg viewBox="0 0 24 24"><path d="M2.5 9 12 4.5 21.5 9 12 13.5z"/><path d="M6.5 11.2v4.6c1.5 1.4 3.4 2.2 5.5 2.2s4-.8 5.5-2.2v-4.6"/><path d="M21.5 9v5"/></svg>',
+  mindmap:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.8"/><circle cx="4.5" cy="5.5" r="1.9"/><circle cx="19.5" cy="5.5" r="1.9"/><circle cx="4.5" cy="18.5" r="1.9"/><circle cx="19.5" cy="18.5" r="1.9"/><path d="M5.9 6.9 9.9 10.2M18.1 6.9l-4 3.3M5.9 17.1l4-3.3M18.1 17.1l-4-3.3"/></svg>',
   archive:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4.5" rx="1.2"/><path d="M4.8 8.5v9.5a2 2 0 0 0 2 2h10.4a2 2 0 0 0 2-2V8.5"/><path d="M10 12.5h4"/></svg>',
   back:'<svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>',
   eyeOff:'<svg viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6 0 9.5 7 9.5 7a16.5 16.5 0 0 1-2.7 3.5M6.6 6.6C3.9 8.4 2.5 12 2.5 12s3.5 7 9.5 7c1.9 0 3.5-.5 4.9-1.4"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>',

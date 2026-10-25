@@ -127,12 +127,12 @@ function mentionLabel(kind,id){
 function htmlsOf(b){ if(b.type==='table') return (b.rows||[]).flatMap(r=>r.cells.flatMap(c=>c.lines.map(l=>l.html||''))); return [b.html||'']; }
 /* bloky na jiných stránkách, které odkazují na stránku nebo předmět (odkaz na podstránku od rodiče se nepočítá) */
 function mentionsOf(kind,id){
-  const attr=`data-${kind}="${id}"`, out=[];
+  const attr=`data-${kind}="${id}"`, hp=kind==='page'?`data-hp="${id}"`:'', out=[];
   Object.values(S.pages).forEach(p=>{
     if(kind==='page'&&p.id===id) return;
     (p.blocks||[]).forEach(b=>{
       const blockLink=kind==='page'&&b.type==='page'&&b.pageId===id&&(S.pages[id]||{}).parent!==p.id;
-      if(blockLink||htmlsOf(b).some(h=>h.includes(attr))) out.push({pg:p,b});
+      if(blockLink||htmlsOf(b).some(h=>h.includes(attr)||(hp&&h.includes(hp)))) out.push({pg:p,b});
     });
   });
   return out;

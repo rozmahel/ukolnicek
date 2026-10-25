@@ -71,6 +71,10 @@ body.navod-page section[data-tab]::before{content:attr(data-title);display:block
 .skin{display:grid;gap:7px;padding:6px 6px 9px;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);text-align:center;font-size:calc(13.5px*var(--fs));font-weight:600;color:var(--fg2)}
 .skin:hover{background:var(--hover)}
 .skin.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);color:var(--fg)}
+.fonts{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:6px}
+.fnt{padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);color:var(--fg2);font-size:calc(15px*var(--fs));line-height:1.25;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fnt:hover{background:var(--hover)}
+.fnt.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);color:var(--fg)}
 .skin-sw{display:flex;align-items:center;gap:5px;height:46px;padding:0 10px;border-radius:8px;background:var(--bg);color:var(--fg);border:1px solid var(--line);overflow:hidden}
 .skin-sw b{margin-right:auto;font:600 18px/1 var(--f-body)}
 .skin-sw i{flex:none;width:12px;height:12px;border-radius:50%;border:1px solid var(--line)}

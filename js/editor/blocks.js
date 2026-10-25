@@ -1,13 +1,15 @@
 /* Úkolníček – Šablony stránek a převody typů bloků */
-import { $, esc, TEXT_TYPES } from '../core.js';
+import { $, esc, norm, TEXT_TYPES } from '../core.js';
+import { S } from '../state.js';
 import { savePage } from '../store.js';
-import { createPage, newBlock, newTable } from '../pages.js';
+import { createPage, flatPages, newBlock, newTable, pIcon, pTitle } from '../pages.js';
 import { subjAsH1, subjLabel } from '../school.js';
 import { isBlank } from '../sanitize.js';
 import { focusBlock, focusLine } from './caret.js';
 import { renderSidebar } from '../sidebar.js';
 import { go } from '../router.js';
 import { isHeading, renderPage, rerenderBlocks } from './render.js';
+import { closePop, openPop } from '../ui.js';
 import { codeNorm } from './code.js';
 
 /* ---- templates ---- */
@@ -60,10 +62,10 @@ function setType(pg,b,k,backToText){
   if(k==='code') b.html=codeNorm(b.html);   /* v kódu není žádné formátování, odkazy ani rovnice */
   return kept;
 }
-function insertTypeAt(pg,bi,k,replace){
+function insertTypeAt(pg,bi,k,replace,title){
   const b=pg.blocks[bi];
   if(k==='page'){
-    const child=createPage(pg.id);
+    const child=createPage(pg.id,title?{title}:null);
     const link=newBlock('page',{pageId:child.id});
     if(replace) pg.blocks.splice(bi,1,link); else pg.blocks.splice(bi+1,0,link);
     savePage(pg,0); renderSidebar();
@@ -85,6 +87,39 @@ function insertTypeAt(pg,bi,k,replace){
 }
 
 /* blok předmětu (/předmět): nahradí prázdný řádek, nebo se vloží pod něj; pod ním je vždy řádek na psaní */
+/* /podstránka: nabídne odkaz na už vytvořenou stránku (hledání podle názvu), první řádek založí novou podstránku
+   (s napsaným textem jako názvem). onPick(id) = existující stránka, onPick(null, název) = nová. */
+function openPagePicker(anchor,pg,onPick){
+  const pages=flatPages().filter(x=>x.p.id!==pg.id);
+  const p=openPop(anchor,`<input class="inp sp-q" placeholder="Hledat stránku nebo napsat název nové…" aria-label="Hledat stránku" autocomplete="off"><div class="sp-list" role="listbox"></div>`,v=>{ if(v==='*new') onPick(null,q.value.trim()); else if(S.pages[v]) onPick(v); });
+  p.classList.add('subj-pick','page-pick');
+  const q=$('.sp-q',p); let idx=0, items=[];
+  const draw=()=>{
+    const t=q.value.trim(), nq=norm(t); items=['*new'];
+    let h=`<button class="pop-item sp-it ${idx===0?'act':''}" data-v="*new" role="option"><span class="pi-ic">+</span><span class="sp-t">Nová podstránka${t?` <b>${esc(t)}</b>`:''}</span></button>`;
+    const l=pages.filter(x=>!nq||norm(pTitle(x.p)).includes(nq));
+    if(l.length) h+='<div class="pop-h">Odkaz na stránku</div>'+l.map(({p:pp,depth})=>{ const i=items.push(pp.id)-1;
+      return `<button class="pop-item sp-it ${i===idx?'act':''}" data-v="${pp.id}" role="option"${!nq&&depth?` style="padding-left:${8+depth*14}px"`:''}>${pIcon(pp)}<span class="sp-t">${esc(pTitle(pp))}</span></button>`; }).join('');
+    $('.sp-list',p).innerHTML=h;
+    const act=$('.sp-it.act',p); if(act) act.scrollIntoView({block:'nearest'});
+  };
+  q.addEventListener('input',()=>{ idx=0; draw(); });
+  q.addEventListener('keydown',e=>{
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); idx=(idx+(e.key==='ArrowDown'?1:-1)+items.length)%items.length; draw(); }
+    else if(e.key==='Enter'){ e.preventDefault(); const v=items[idx]; closePop(); if(v==='*new') onPick(null,q.value.trim()); else onPick(v); }
+  });
+  draw(); setTimeout(()=>q.focus({preventScroll:true}),0);
+  return p;
+}
+/* odkaz na existující stránku (stránka zůstává ve stromu, kde je) */
+function insertPageLinkAt(pg,bi,id,replace){
+  const nb=newBlock('page',{pageId:id});
+  if(replace) pg.blocks.splice(bi,1,nb); else pg.blocks.splice(bi+1,0,nb);
+  const ni=pg.blocks.indexOf(nb);
+  let next=pg.blocks[ni+1];
+  if(!next||next.type!=='p'||!isBlank(next.html)){ next=newBlock('p'); pg.blocks.splice(ni+1,0,next); }
+  savePage(pg); rerenderBlocks(); focusBlock(next.id,0);
+}
 function insertSubjAt(pg,bi,su,replace){
   const nb=newBlock('subj',{subj:su.id,html:esc(subjLabel(su))});
   if(replace) pg.blocks.splice(bi,1,nb); else pg.blocks.splice(bi+1,0,nb);
@@ -98,4 +133,4 @@ function toSubject(pg,b,su){ b.type='subj'; b.subj=su.id; b.html=esc(subjLabel(s
 /* blok předmětu → obyčejný nadpis H1 s názvem předmětu */
 function subjToH1(pg,b){ subjAsH1(b); savePage(pg); rerenderBlocks(); focusBlock(b.id,'end'); }
 
-export { applyTemplate, clearShortcut, insertSubjAt, insertTypeAt, noteShortcut, numShortcutOff, rememberTypedNum, setType, subjToH1, takeShortcut, toSubject };
+export { applyTemplate, clearShortcut, insertPageLinkAt, insertSubjAt, insertTypeAt, noteShortcut, numShortcutOff, openPagePicker, rememberTypedNum, setType, subjToH1, takeShortcut, toSubject };

@@ -81,15 +81,15 @@ function renderSchedule(){
   const agenda=`<div class="agenda">${dates.map((d,i)=>{ const evs=eventsOnDate(d);
     return `<div class="ag-day"><div class="ag-dh ${ymd(d)===today?'today':''}"><span>${DAYS_FULL[i][0].toUpperCase()+DAYS_FULL[i].slice(1)} <span class="mono">${shortDate(d)}</span></span><button class="icon-btn" data-act="day-add" data-day="${i}" data-date="${ymd(d)}" aria-label="Přidat událost">+</button></div>
       ${evs.length?evs.map(ev=>evRow(ev,d)).join(''):'<div class="ag-empty">Nic naplánováno</div>'}</div>`; }).join('')}</div>`;
-  $('#view').innerHTML=`<div class="view">
-    <div class="v-head"><div><div class="eyebrow">${wi?`${wi.n}. týden výuky · ${wi.parity}`:'Týdenní rozvrh'}</div><h1 class="v-title">Rozvrh</h1></div>
+  $('#view').innerHTML=`<div class="view sch-view">
+    <div class="v-head"><div><div class="eyebrow">${wi?`${wi.n}. týden výuky · ${wi.parity}`:'Týdenní rozvrh'}</div><div class="sch-title"><h1 class="v-title">Rozvrh</h1><span class="wk-label">${shortDate(dates[0])} – ${shortDate(last)} ${last.getFullYear()}</span></div></div>
       <div class="v-tools">
+        <button class="btn btn-text sch-add" data-act="ev-add"><span aria-hidden="true">＋</span> Přidat</button>
         <button class="navbtn" data-act="wk-prev" aria-label="Předchozí týden">‹</button>
         <button class="btn" data-act="wk-today">Tento týden</button>
         <button class="navbtn" data-act="wk-next" aria-label="Další týden">›</button>
-        <span class="wk-label"><span>${shortDate(dates[0])} – ${shortDate(last)} ${last.getFullYear()}</span></span>
+        <span class="dash-sep" aria-hidden="true"></span>
         <button class="icon-btn lock-btn" data-act="lock"></button>${modeBtn()}
-        <button class="btn pri" data-act="ev-add">＋ Přidat</button>
       </div></div>
     ${grid}${agenda}
     ${(()=>{ /* nápověda jen když je k něčemu: prázdný rozvrh, zámek, chybějící začátek semestru */

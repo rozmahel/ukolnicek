@@ -268,3 +268,13 @@
   --hl-gray-bg:#2E2B35; --hl-gray-fg:#BFB9CB;
   color-scheme:dark;
 }
+
+/* ===== Písmo zvlášť od motivu (od 4.8.0, settings.font → data-font na <html>) =====
+   html:root má vyšší přednost než :root[data-skin], takže písmo přebije písmo motivu. [data-fnt] = ukázky v Nastavení a ve widgetu Vzhled. */
+html:root[data-font="onest"],[data-fnt="onest"]{--f-display:"Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, sans-serif; --f-body:"Onest", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif}
+html:root[data-font="plex"],[data-fnt="plex"]{--f-display:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; --f-body:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif}
+html:root[data-font="system"],[data-fnt="system"]{--f-display:system-ui, -apple-system, "Segoe UI", sans-serif; --f-body:system-ui, -apple-system, "Segoe UI", sans-serif}
+html:root[data-font="newsreader"],[data-fnt="newsreader"]{--f-display:"Newsreader", Georgia, "Iowan Old Style", serif; --f-body:"Newsreader", Georgia, "Iowan Old Style", serif}
+html:root[data-font="literata"],[data-fnt="literata"]{--f-display:"Literata", Georgia, "Iowan Old Style", serif; --f-body:"Literata", Georgia, "Iowan Old Style", serif}
+html:root[data-font="sserif"],[data-fnt="sserif"]{--f-display:"Source Serif 4", Georgia, "Iowan Old Style", serif; --f-body:"Source Serif 4", Georgia, "Iowan Old Style", serif}
+[data-fnt]{font-family:var(--f-body)}
