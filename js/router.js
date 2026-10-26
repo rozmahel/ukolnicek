@@ -67,6 +67,7 @@ function renderMain(){
   else if(v.kind==='index'){ renderIndex(); title='Index'; }
   else { renderToday(); title='Dnes'; }
   $('#tb-t').textContent=title;
+  document.dispatchEvent(new Event('uk-view'));   /* panel AI se schová mimo stránky a na jiné stránce začne znovu */
 }
 
 export { go, renderMain, restoreScroll };

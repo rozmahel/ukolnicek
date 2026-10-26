@@ -14,10 +14,11 @@ import { focusBlock, nodeAt } from './caret.js';
 import { isHeading, keepVisible, onBlocksRendered, renderBlock, rerenderBlocks, sectionEnd } from './render.js';
 import { slash } from './slash.js';
 import { hideFmt } from './toolbar.js';
-import { closePop, openPop, toast } from '../ui.js';
+import { openPop, toast } from '../ui.js';
 import { blockMd, cleanBlock, htmlToMd, mdToBlocks } from './markdown.js';
-import { AI_CTX_MAX, AI_ERR, AI_PROVIDERS, aiAsk, aiConfigured, aiCtxOf, aiDefault, aiErrText, aiMaxChars, aiUsable } from '../ai.js';
+import { AI_ERR, AI_PROVIDERS, aiAsk, aiConfigured, aiCtxOf, aiDefault, aiErrText, aiMaxChars, aiUsable } from '../ai.js';
 import { AI_ACTIONS, AI_MENU, aiNoIssues } from '../ai/actions.js';
+import { aipIsOpen } from './aipanel.js';
 import { clearBsel } from './multisel.js';
 
 let AP=null;
@@ -238,26 +239,10 @@ function aiSlash(k,pg,b){
   aiRun('pagesum',{kind:'insert',pgId:pg.id,after:b.id,blank,src,state:'run'});
 }
 
-/* ---- kontext pro AI: ✦ v horní liště stránky ---- */
+/* ---- ✦ v horní liště stránky: otevře panel s chatem (kontext je nahoře v panelu) ---- */
 function aiCtxBtn(pg){
-  const c=aiCtxOf(pg), t=c.text?'Kontext pro AI: '+c.text.slice(0,80)+(c.text.length>80?'…':''):'Kontext pro AI';
-  return `<button class="icon-btn ai-ctx-btn${c.text?' on':''}" data-act="ai-ctx" data-popanchor title="${esc(t)}" aria-label="Kontext pro AI"><svg viewBox="0 0 24 24"><path d="M12 3.5c.6 4.4 3.1 6.9 7.5 7.5-4.4.6-6.9 3.1-7.5 7.5-.6-4.4-3.1-6.9-7.5-7.5 4.4-.6 6.9-3.1 7.5-7.5z"/></svg></button>`;
-}
-function openAiCtx(anchor,pg){
-  const par=aiCtxOf(S.pages[pg.parent]), own=String(pg.aiCtx||'');
-  const note=()=>{ if(!par.text) return ''; const n=esc(pTitle(par.from));
-    return pg.aiCtx&&pg.aiCtx.trim()?`Přepisuje kontext ze stránky „${n}“.`:`Platí kontext ze stránky „${n}“: ${esc(par.text.slice(0,140))}${par.text.length>140?'…':''}`; };
-  const p=openPop(anchor,`<div class="pop-h">Kontext pro AI</div><textarea class="inp aic-ta" rows="4" maxlength="${AI_CTX_MAX}" placeholder="Např. Jsi odborník na stavební materiály. Poznámky jsou z přednášek." aria-label="Kontext pro AI">${esc(own)}</textarea><div class="aic-note">${note()}</div><div class="aic-note">Platí i pro podstránky.</div>`,()=>true);
-  p.classList.add('aic-pop');
-  const ta=$('.aic-ta',p); let tm=null;
-  ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length);
-  ta.addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Escape'){ e.preventDefault(); closePop(); } });
-  ta.addEventListener('input',()=>{
-    if(ta.value.trim()) pg.aiCtx=ta.value; else delete pg.aiCtx;   /* prázdný kontext se do dat nezapisuje */
-    $('.aic-note',p).innerHTML=note();
-    const b=$('#doc[data-page="'+pg.id+'"] .ai-ctx-btn'); if(b){ const c=aiCtxOf(pg); b.classList.toggle('on',!!c.text); b.title=c.text?'Kontext pro AI: '+c.text.slice(0,80):'Kontext pro AI'; }
-    clearTimeout(tm); tm=setTimeout(()=>savePage(pg),400);
-  });
+  const c=aiCtxOf(pg), t='AI: chat nad stránkou'+(c.text?' · kontext: '+c.text.slice(0,60)+(c.text.length>60?'…':''):'');
+  return `<button class="icon-btn ai-ctx-btn${aipIsOpen()?' on':''}" data-act="ai-ctx" title="${esc(t)}" aria-label="AI: chat nad stránkou"><svg viewBox="0 0 24 24"><path d="M12 3.5c.6 4.4 3.1 6.9 7.5 7.5-4.4.6-6.9 3.1-7.5 7.5-.6-4.4-3.1-6.9-7.5-7.5 4.4-.6 6.9-3.1 7.5-7.5z"/></svg></button>`;
 }
 
 export function initAi(){
@@ -270,4 +255,4 @@ export function initAi(){
   },true);
 }
 
-export { aiCapture, aiCtxBtn, aiMenu, aiSlash, openAiCtx };
+export { aiCapture, aiClose, aiCtxBtn, aiMenu, aiSlash };

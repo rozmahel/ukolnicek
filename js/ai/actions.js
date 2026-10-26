@@ -12,7 +12,8 @@ const AI_ACTIONS={
   translate:{label:'Přeložit',task:'Přelož text. Když je česky nebo slovensky, přelož ho do angličtiny, jinak do češtiny. Zachovej strukturu bloků a formátování.',lang:false,keep:true},
   pagesum:{label:'Shrnutí',task:AI_SUM,insert:true,vary:true,brief:true},
   write:{label:'AI',task:'Napiš to, co uživatel zadá. Text stránky je jen podklad a kontext; když se zadání týká stránky, vycházej jen z něj.',insert:true,vary:true},
-  verify:{label:'Ověření',task:'Odpověz jen slovem OK.'}
+  verify:{label:'Ověření',task:'Odpověz jen slovem OK.'},
+  chat:{label:'Chat'}
 };
 const AI_MENU=['fix','check','rephrase','shorten','expand','summary','translate'];
 const AI_STYLES=[['study','Studijní'],['formal','Formální'],['brief','Stručný']];
@@ -67,6 +68,34 @@ function aiClean(t){
   return t;
 }
 
+/* chat v panelu: AI vidí celou stránku jako řádky bloků „@ID typ | HTML“ a změny vrací v bloku [ZMĚNY] (čte je aipParse v js/editor/aipanel.js) */
+const AI_HL='purple, pink, red, orange, yellow, green, blue, gray (fialová, růžová, červená, oranžová, žlutá, zelená, modrá, šedá)';
+function aiChatSystem(o){
+  return ['Jsi pomocník v poznámkové aplikaci Úkolníček (školní poznámky a úkoly). Uživatel s tebou mluví v panelu vedle otevřené stránky a ty vidíš celou stránku.',
+    o.lang==='en'?'Odpovídej anglicky.':'Odpovídej česky.',
+    AI_STYLE_TXT[o.style]||AI_STYLE_TXT.study,
+    o.ctx?'Kontext od uživatele (role, obor, druh poznámek), řiď se jím:\n<<<\n'+o.ctx+'\n>>>':'',
+    `Stránka je seznam bloků, každý blok na jednom řádku: @ID typ | obsah
+Typy: p odstavec, h1 h2 h3 nadpisy, bullet odrážka, num číslovaný seznam, todo úkol, done hotový úkol, quote citace, callout zvýrazněný rámeček. Za typem může být úroveň odsazení, např. bullet.1.
+Obsah je HTML jen s těmito značkami: <b> tučně, <i> kurzíva, <u> podtržení, <s> přeškrtnutí, <code>, <br>, <mark class="hl-BARVA"> podbarvení textu. BARVA je jedna z: ${AI_HL}.
+Značky ⟦číslo|text⟧ jsou rovnice, odkazy a zmínky: v obsahu je zachovej přesně tak, jak jsou.
+Řádky „@ID ! …“ jsou obrázky, tabulky, rovnice a další bloky jen ke čtení: neměň je a nemaž.`,
+    `Když se uživatel ptá, odpověz stručně v Markdownu (odstavce, odrážky "- ", **tučně**). Nic nevymýšlej mimo stránku a obecně známá fakta.
+Když chce stránku změnit (formátování, úpravy textu, převod na úkoly, doplnění…), napiš jednou krátkou větou, co měníš, a pak připoj změny přesně v tomto tvaru:
+[ZMĚNY]
+@ID typ | celý nový obsah bloku
++ID typ | obsah nového bloku vloženého za blok ID (+^ = na začátek stránky)
+-ID
+[/ZMĚNY]
+Pravidla změn:
+- Uveď jen bloky, které se mění. Nezměněné bloky vynech.
+- U @ napiš vždy celý nový obsah bloku, ne jen změněnou část.
+- Když jde jen o formátování, slova ani interpunkci neměň, jen přidej nebo odeber značky.
+- Jeden blok = jeden řádek. Nepoužívej Markdown ani jiné HTML značky uvnitř [ZMĚNY].
+- Změny piš jen do bloku [ZMĚNY], jinde ID bloků nepiš.`,
+    o.allow?'Měnit, mazat a vkládat za smíš jen bloky s těmito ID (uživatel je vybral): '+o.allow.join(', ')+'. Ostatní bloky jsou jen kontext.':''].filter(Boolean).join('\n\n');
+}
+
 const aiNoIssues=t=>/^bez připomínek\.?$/i.test(String(t||'').trim());
 
-export { AI_ACTIONS, AI_LANGS, AI_MENU, AI_STYLES, aiClean, aiNoIssues, aiSystem, aiUserMsg };
+export { AI_ACTIONS, AI_LANGS, AI_MENU, AI_STYLES, aiChatSystem, aiClean, aiNoIssues, aiSystem, aiUserMsg };

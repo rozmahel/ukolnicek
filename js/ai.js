@@ -44,14 +44,14 @@ function aiUpdate(fn){
   saveSettings();
 }
 
-/* jeden dotaz: onText(celý text zatím) při streamování; vrací {text, usage, cost, provider, model}; chyby jako AiError, zrušení AbortError */
+/* jeden dotaz (chat v panelu: o.system, o.user a o.history = [{role:'user'|'ai', text}]): onText(celý text zatím) při streamování; vrací {text, usage, cost, provider, model}; chyby jako AiError, zrušení AbortError */
 async function aiAsk(o){
   const id=o.provider||aiDefault(); if(!id||!AI_PROVIDERS[id]) throw new AiError('none');
   const P=AI_PROVIDERS[id], model=o.model||aiModel(id), key=o.key||aiKey(id);
   if(P.needsKey&&!key) throw new AiError('none');
   if((o.text||'').length>P.maxChars) throw new AiError('long');
   if(navigator.onLine===false) throw new AiError('net');
-  const c=aiCfg(), msg={system:aiSystem(o.action,{inline:o.inline,style:c.style,lang:c.lang,ctx:o.ctx}),user:aiUserMsg(o.action,o)};
+  const c=aiCfg(), msg={system:o.system||aiSystem(o.action,{inline:o.inline,style:c.style,lang:c.lang,ctx:o.ctx}),user:o.user!=null?o.user:aiUserMsg(o.action,o),history:o.history};
   const req=P.buildRequest(msg,{model,key,maxTokens:o.maxTokens});
   let res;
   try{ res=await fetch(req.url,Object.assign({},req.init,{signal:o.signal})); }

@@ -13,6 +13,7 @@ function applyLock(){
   document.body.classList.toggle('locked',LOCK);
   const t=(LOCK?'Odemknout':'Zamknout')+` (${LOCK_KEY})`;
   const ta=document.getElementById('src-ed'); if(ta) ta.readOnly=LOCK;   /* zdroj stránky: zamčeno = jen čtení */
+  document.dispatchEvent(new Event('uk-lock'));
   $$('.lock-btn').forEach(b=>{ b.classList.toggle('on',LOCK); b.innerHTML=lockSvg(LOCK); b.setAttribute('aria-pressed',String(LOCK)); b.title=t; b.setAttribute('aria-label',t); });
 }
 function toggleLock(){

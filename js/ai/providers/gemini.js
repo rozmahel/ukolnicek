@@ -12,7 +12,7 @@ const GEMINI={
     if(/^gemini-3/.test(o.model)) gen.thinkingConfig={thinkingLevel:'low'};
     return {url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(o.model)}:streamGenerateContent?alt=sse`,
       init:{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':o.key},
-        body:JSON.stringify({systemInstruction:{parts:[{text:m.system}]},contents:[{role:'user',parts:[{text:m.user}]}],generationConfig:gen})}};
+        body:JSON.stringify({systemInstruction:{parts:[{text:m.system}]},contents:[...(m.history||[]).map(h=>({role:h.role==='ai'?'model':'user',parts:[{text:h.text}]})),{role:'user',parts:[{text:m.user}]}],generationConfig:gen})}};
   },
   async *parseStream(res){
     let any=false, blocked=false;

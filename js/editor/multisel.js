@@ -174,14 +174,14 @@ function markSel(){
   $$('#blocks .blk.bsel').forEach(x=>x.classList.remove('bsel'));
   const r=bRange(); if(!r){ clearBsel(); return; }
   r.ids.forEach(id=>{ const el=$(`#blocks > .blk[data-id="${id}"]`); if(el) el.classList.add('bsel'); });
-  drawBar(r);
+  drawBar(r); document.dispatchEvent(new Event('uk-bsel'));
 }
 function selectBlocks(a,f){
   endCross(); const ae=document.activeElement; if(ae&&ae!==document.body&&ae.closest&&ae.closest('#view')) ae.blur();
   getSelection().removeAllRanges(); bs={a,f:f||a}; document.body.classList.add('bmode'); markSel();
 }
 function clearBsel(){
-  if(!bs&&bar.hidden) return; bs=null; document.body.classList.remove('bmode');
+  if(!bs&&bar.hidden) return; bs=null; document.body.classList.remove('bmode'); document.dispatchEvent(new Event('uk-bsel'));
   $$('#blocks .blk.bsel').forEach(x=>x.classList.remove('bsel')); bar.hidden=true;
 }
 function drawBar(r){
@@ -240,6 +240,8 @@ async function copyItems(items){
   toast('Zkopírováno');
 }
 /* ⋮⋮ menu bloku: patří blok do výběru víc celých bloků? Pak se akce z menu použijí na všechny vybrané */
+/* ID vybraných celých bloků (i obsah sbalené sekce) pro panel AI, jinak null */
+export function bselIds(){ const r=bs&&bRange(); return r?r.pg.blocks.slice(r.i0,r.i1+1).map(b=>b.id):null; }
 export function bselCount(id){ const r=bs&&bRange(); return r&&r.ids.length>1&&r.ids.includes(id)?r.ids.length:0; }
 export const bulk={type:k=>typeBlocks(k),indent:d=>indentBlocks(d),move:d=>moveBlocks(d),dup:()=>dupBlocks(),del:()=>delBlocks(),copy:()=>{ const r=bRange(); if(r) copyBlocks(r); }};
 export function copyOne(b){ return copyItems([{b,el:$(`#blocks > .blk[data-id="${b.id}"]`),part:null}]); }
@@ -292,7 +294,7 @@ export function initMultiSel(){
     }
     clearBsel();
     /* tažení z prázdného místa (okraj, mezera mezi bloky): rámeček vybírá celé bloky */
-    if(!e.shiftKey&&$('#doc')&&!e.target.closest('.txt,.cap,button,a,input,textarea,select,img,.tbl-wrap,[contenteditable],.pop,.backlinks,.pagebar,.doc-head,.tpl,.ai-prev')){
+    if(!e.shiftKey&&$('#doc')&&!e.target.closest('.txt,.cap,button,a,input,textarea,select,img,.tbl-wrap,[contenteditable],.pop,.backlinks,.pagebar,.doc-head,.tpl,.ai-prev,.aip-chg')){
       band={x:e.clientX,y:e.clientY,st:$('#main').scrollTop,on:false,lx:e.clientX,ly:e.clientY};
     }
   });

@@ -145,7 +145,8 @@
       <h3><span class="g-ic">✦</span>AI asistent</h3>
       <p>Volitelný. V <b>Nastavení → AI</b> vlož vlastní API klíč: <b>Gemini</b> je zdarma (klíč z Google AI Studia bez karty), <b>Claude</b> je placený kreditem. Bez klíče se AI nikde neukáže.</p>
       <p>Označ text a v liště klikni na <b>✦</b>: Opravit, Přeformulovat, Zkrátit, Rozvést, Shrnout, Přeložit. Jde to i přes víc bloků a s výběrem celých bloků (<b>✦ AI</b> v liště výběru). Výsledek se ukáže na místě: staré přeškrtnuté, nové zvýrazněné. <b>Použít</b> (<kbd>⌘↵</kbd>) ho vloží, <kbd>Esc</kbd> zruší, <kbd>⌘Z</kbd> vrátí celou změnu jedním krokem. Shrnout vloží pod výběr stručné body a původní text nechá. <b>Ověřit</b> nic nepřepisuje, jen vypíše věcně chybná nebo sporná místa.</p>
-      <p><b>✦</b> v horní liště stránky otevře <b>kontext pro AI</b>, např. „Jsi odborník na betony, poznámky jsou z přednášek.“ Platí pro každý dotaz na stránce i na jejích podstránkách. Podstránka může mít vlastní, který ten zděděný přepíše.</p>
+      <p><b>✦</b> v horní liště stránky otevře <b>panel s chatem</b>. AI vidí celou stránku: zeptej se na ni, nebo napiš, co změnit (např. „informace tučně, moje poznámky podbarvi zeleně“). Změny se nejdřív ukážou ve stránce, každou jde odmítnout křížkem, <b>Použít</b> (<kbd>⌘↵</kbd>) je provede a <kbd>⌘Z</kbd> je vrátí najednou. Když něco ve stránce označíš, změní se jen označené bloky. Obrázky, tabulky a rovnice AI nemění. Šířku panelu změníš tažením za jeho okraj. Na jiné stránce začne konverzace znovu.</p>
+      <p>Nahoře v panelu je <b>kontext pro AI</b>, např. „Jsi odborník na betony, poznámky jsou z přednášek.“ Platí pro každý dotaz na stránce i na jejích podstránkách. Podstránka může mít vlastní, který ten zděděný přepíše.</p>
       <p><kbd>/shrnutí</kbd> shrne celou stránku do pár bodů. <kbd>/ai</kbd> ukáže pole <b>Co napsat?</b> a napíše text podle zadání (stránka slouží jako podklad). Seznamy přijdou jako odrážky a úkoly jako zaškrtávátka i s termínem.</p>
     </div>
 
@@ -172,6 +173,15 @@
 <section data-tab="novinky" data-title="Novinky">
 
   <article class="g-rel new">
+    <h3>Chat s AI nad stránkou <span class="v">4.15.0</span> <time datetime="2026-10-26">26. 10. 2026</time></h3>
+    <ul>
+      <li><b>✦</b> v horní liště otevře panel vpravo s chatem. AI vidí celou stránku, odpoví na otázku nebo navrhne změny přes celou stránku.</li>
+      <li>Změny se ukážou ve stránce, jdou po jedné odmítnout a <b>Použít</b> je provede jedním krokem <kbd>⌘Z</kbd>.</li>
+      <li>S označeným textem nebo bloky se mění jen výběr. Kontext pro AI je nahoře v panelu.</li>
+    </ul>
+  </article>
+
+  <article class="g-rel">
     <h3>Kontext pro AI <span class="v">4.14.0</span> <time datetime="2026-10-26">26. 10. 2026</time></h3>
     <ul>
       <li><b>✦</b> v horní liště stránky: kontext pro AI (role, obor, druh poznámek). Platí pro všechny dotazy na stránce a dědí se na podstránky.</li>

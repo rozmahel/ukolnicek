@@ -12,7 +12,7 @@ const ANTHROPIC={
   buildRequest(m,o){
     return {url:'https://api.anthropic.com/v1/messages',
       init:{method:'POST',headers:{'content-type':'application/json','x-api-key':o.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body:JSON.stringify({model:o.model,max_tokens:o.maxTokens||4096,system:m.system,messages:[{role:'user',content:m.user}],stream:true})}};
+        body:JSON.stringify({model:o.model,max_tokens:o.maxTokens||4096,system:m.system,messages:[...(m.history||[]).map(h=>({role:h.role==='ai'?'assistant':'user',content:h.text})),{role:'user',content:m.user}],stream:true})}};
   },
   async *parseStream(res){
     for await (const ev of aiSse(res)){
