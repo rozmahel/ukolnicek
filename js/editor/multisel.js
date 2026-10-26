@@ -14,6 +14,8 @@ import { ctxOf, isHeading, keepVisible, rerenderBlocks, sectionEnd } from './ren
 import { setType } from './blocks.js';
 import { openPop, toast } from '../ui.js';
 import { rangeFromPoint } from './images.js';
+import { aiUsable } from '../ai.js';
+import { aiMenu } from './aiedit.js';
 import { fragText, htmlToCode } from './code.js';
 import { textToEq } from './math.js';
 
@@ -185,7 +187,7 @@ function clearBsel(){
 function drawBar(r){
   const n=r.ids.length, cnt=n===1?'1 blok':n<5?`${n} bloky`:`${n} bloků`;
   /* smazat vybrané bloky jde i se zámkem: výběr je záměrný a ⌘Z je vrátí */
-  bar.innerHTML=`<span class="bs-n">${cnt}</span>`+(LOCK?'':`<button data-b="type" data-popanchor>Převést na ▾</button><button data-b="dup" title="⌘D">Duplikovat</button>`)
+  bar.innerHTML=`<span class="bs-n">${cnt}</span>`+(aiUsable()?'<button data-b="ai" class="bs-ai" data-popanchor title="AI: opravit, přeformulovat, shrnout…">✦ AI</button>':'')+(LOCK?'':`<button data-b="type" data-popanchor>Převést na ▾</button><button data-b="dup" title="⌘D">Duplikovat</button>`)
     +`<button data-b="copy" title="⌘C">Kopírovat</button><button data-b="del" class="danger" title="⌫">Smazat</button><button data-b="x" class="bs-x" aria-label="Zrušit výběr" title="Esc">×</button>`;
   bar.hidden=false; placeBar();
 }
@@ -266,6 +268,7 @@ export function initMultiSel(){
   bar.addEventListener('mousedown',e=>e.preventDefault());
   bar.addEventListener('click',e=>{
     const b=e.target.closest('[data-b]'); if(!b) return; const v=b.dataset.b, r=bRange(); if(!r) return clearBsel();
+    if(v==='ai'){ const sel={kind:'blocks',pgId:r.pg.id,ids:r.pg.blocks.slice(r.i0,r.i1+1).map(x=>x.id)}; aiMenu(b,sel); return; }
     if(v==='x') clearBsel(); else if(v==='del') delBlocks(); else if(v==='dup') dupBlocks(); else if(v==='copy') copyBlocks(r);
     else if(v==='type') openPop(b,`<div class="pop-h">Převést na</div>`+[...TEXT_TYPES,'eq'].map(k=>`<button class="pop-item" data-v="${k}"><span class="pi-ic">${TYPE_ICON[k]}</span>${TYPE_LABEL[k]}</button>`).join(''),k=>typeBlocks(k));
   });
@@ -289,7 +292,7 @@ export function initMultiSel(){
     }
     clearBsel();
     /* tažení z prázdného místa (okraj, mezera mezi bloky): rámeček vybírá celé bloky */
-    if(!e.shiftKey&&$('#doc')&&!e.target.closest('.txt,.cap,button,a,input,textarea,select,img,.tbl-wrap,[contenteditable],.pop,.backlinks,.pagebar,.doc-head,.tpl')){
+    if(!e.shiftKey&&$('#doc')&&!e.target.closest('.txt,.cap,button,a,input,textarea,select,img,.tbl-wrap,[contenteditable],.pop,.backlinks,.pagebar,.doc-head,.tpl,.ai-prev')){
       band={x:e.clientX,y:e.clientY,st:$('#main').scrollTop,on:false,lx:e.clientX,ly:e.clientY};
     }
   });
@@ -374,3 +377,5 @@ function bandMove(x,y){
   else clearBsel();
 }
 function endBand(){ if(band&&band.on){ bandJust=Date.now(); if(band.el) band.el.remove(); } band=null; }
+
+export { clearBsel };

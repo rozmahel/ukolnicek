@@ -1,0 +1,56 @@
+/* Úkolníček – AI: ✦ v liště formátu a ve výběru bloků, náhled výsledku přímo v textu, Nastavení → AI.
+   Jen stávající proměnné motivu, žádné nové barvy. */
+.fmt.no-ai .fmt-ai{display:none}
+.fmt.only-ai > :not(.fmt-ai),.fmt.only-ai > .sep{display:none}
+.fmt .fmt-ai,.bselbar .bs-ai{color:var(--accent)}
+
+/* nahrazované bloky a text */
+#blocks > .blk.ai-old .txt,#blocks > .blk.ai-old .tbl-wrap,#blocks > .blk.ai-old .eqb,#blocks > .blk.ai-old .divider{text-decoration:line-through;text-decoration-color:var(--danger);opacity:.5}
+#blocks > .blk.ai-hide{display:none}
+::highlight(ai-old){text-decoration:line-through;text-decoration-color:var(--danger);color:var(--muted)}
+
+/* náhled */
+.ai-prev{clear:both;margin:4px 0 12px;padding:6px 0 6px;border-left:2px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;cursor:default}
+.ai-out:empty{display:none}
+.ai-out .gut{visibility:hidden}
+.ai-out .blk{pointer-events:none}
+.ai-inl{padding:4px 14px;line-height:1.6}
+.ai-ask{display:flex;align-items:center;gap:8px;padding:0 14px}
+.ai-ic{color:var(--accent)}
+.ai-ask input{flex:1;min-width:0;border:0;background:transparent;font:inherit;color:var(--fg);outline:none;padding:6px 0}
+.ai-ask input::placeholder{color:var(--muted)}
+.ai-bar{display:flex;align-items:center;gap:2px;flex-wrap:wrap;padding:2px 10px 0 14px;font-size:calc(13px*var(--fs))}
+.ai-msg{flex:1;min-width:0;display:flex;align-items:center;gap:7px;color:var(--muted)}
+.ai-bar button{padding:5px 10px;border-radius:7px;color:var(--fg2);font-weight:500;white-space:nowrap}
+.ai-bar button:hover{background:var(--hover);color:var(--fg)}
+.ai-bar button.pri{background:var(--accent);color:var(--on-accent)}
+.ai-bar button.pri:hover{background:var(--accent);filter:brightness(1.08)}
+.ai-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:ai-pulse 1s ease-in-out infinite}
+@keyframes ai-pulse{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.ai-dot{animation:none}}
+.locked .ai-bar [data-ai="ok"]{display:none}
+
+/* Nastavení → AI */
+.ai-pv{display:grid;gap:8px;margin:14px 0;padding:12px;border:1px solid var(--line);border-radius:10px}
+.ai-pv-h{display:flex;align-items:center;gap:8px}
+.ai-pv-h .sp{flex:1}
+.ai-tag{padding:1px 8px;border-radius:99px;font-size:calc(12px*var(--fs));background:var(--hl-gray-bg);color:var(--hl-gray-fg)}
+.ai-tag.free{background:var(--hl-green-bg);color:var(--hl-green-fg)}
+.ai-def{display:flex;align-items:center;gap:6px;cursor:pointer}
+.ai-key,.ai-model{display:flex;gap:6px}
+.ai-key .inp,.ai-model .inp{flex:1;min-width:0}
+.ai-pv .m-actions{margin:0}
+.ai-pv .note{margin:0}
+.ai-pv a{color:var(--accent)}
+.ai-vs.good{color:var(--ok)}
+.ai-vs.bad{color:var(--danger)}
+.ai-pv .btn.arm{background:var(--danger);color:var(--on-danger);border-color:var(--danger)}
+
+/* kontext pro AI (✦ v liště stránky) */
+.ai-ctx-btn.on{color:var(--accent);background:var(--accent-soft)}
+.ai-ctx-btn.on:hover{background:var(--accent-soft);color:var(--accent)}
+body.locked .ai-ctx-btn{display:none}
+.aic-pop{width:min(320px,calc(100vw - 16px))}
+.aic-ta{display:block;resize:vertical;min-height:88px;font:inherit;font-size:calc(14px*var(--fs));line-height:1.45;color:var(--fg);margin:2px 0 4px}
+.aic-note{font-size:calc(12.5px*var(--fs));color:var(--muted);padding:2px 4px;line-height:1.4}
+.aic-note:empty{display:none}

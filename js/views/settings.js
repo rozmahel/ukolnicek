@@ -16,9 +16,10 @@ import { ImgSync, withImgs } from '../sync/images.js';
 import { placeFrame } from '../editor/images.js';
 import { capsOff } from '../editor/caps.js';
 import { checkUpdate } from '../update.js';
+import { aiPaneBind } from './aiset.js';
 
 /* ================= settings ================= */
-const APP_VERSION='4.12.0';
+const APP_VERSION='4.14.0';
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
 const FS_STEPS=[1,1.15,1.3,1.45,1.6];
 function applyTheme(){
@@ -34,8 +35,8 @@ function applyFontScale(){
 
 /* ---- nastavení po kategoriích ---- */
 /* ikony kategorií: stejné čárové jako v levém panelu (ne emoji) */
-const SET_IC={general:'<svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg>',look:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17z" fill="currentColor" stroke="none"/></svg>',sync:'<svg viewBox="0 0 24 24"><path d="M7 18.5h10a4 4 0 0 0 .6-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 18.5z"/></svg>',backup:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4.5" rx="1.2"/><path d="M4.8 8.5v9.5a2 2 0 0 0 2 2h10.4a2 2 0 0 0 2-2V8.5"/><path d="M10 12.5h4"/></svg>',help:'<svg viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H14a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z"/></svg>'};
-const SET_TABS=[['general','Obecné',SET_IC.general],['look','Vzhled',SET_IC.look],['school','Škola',ICONS.index],['sync','Google Disk',SET_IC.sync],['backup','Zálohy',SET_IC.backup],['help','Návod a novinky',SET_IC.help]];
+const SET_IC={general:'<svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg>',look:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17z" fill="currentColor" stroke="none"/></svg>',sync:'<svg viewBox="0 0 24 24"><path d="M7 18.5h10a4 4 0 0 0 .6-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 18.5z"/></svg>',backup:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4.5" rx="1.2"/><path d="M4.8 8.5v9.5a2 2 0 0 0 2 2h10.4a2 2 0 0 0 2-2V8.5"/><path d="M10 12.5h4"/></svg>',ai:'<svg viewBox="0 0 24 24"><path d="M12 3.5c.6 4.2 2.3 5.9 6.5 6.5-4.2.6-5.9 2.3-6.5 6.5-.6-4.2-2.3-5.9-6.5-6.5 4.2-.6 5.9-2.3 6.5-6.5z"/><path d="M18.5 15.5c.2 1.6.9 2.3 2.5 2.5-1.6.2-2.3.9-2.5 2.5-.2-1.6-.9-2.3-2.5-2.5 1.6-.2 2.3-.9 2.5-2.5z"/></svg>',help:'<svg viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H14a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z"/></svg>'};
+const SET_TABS=[['general','Obecné',SET_IC.general],['look','Vzhled',SET_IC.look],['school','Škola',ICONS.index],['sync','Google Disk',SET_IC.sync],['backup','Zálohy',SET_IC.backup],['ai','AI',SET_IC.ai],['help','Návod a novinky',SET_IC.help]];
 /* stav obrázků podle dat a poslední kontroly Disku */
 function imgState(){
   ImgSync.refresh(); const n=ImgSync.refs.size, s=ImgSync.summary();
@@ -133,6 +134,8 @@ async function openSettings(focus){
       </div>
     </section>
 
+    <section class="set-pane" data-pane="ai" id="st-ai"></section>
+
     <section class="set-pane" data-pane="help">
       <button type="button" class="guide-link" data-guide="navod"><span class="gl-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H14a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z"/></svg></span><span><b>Návod</b><small>Základní funkce v kostce</small></span><span class="gl-arr" aria-hidden="true">›</span></button>
       <button type="button" class="guide-link" data-guide="novinky"><span class="gl-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="8.5"/></svg></span><span><b>Novinky</b><small>Co přibylo v posledních verzích</small></span><span class="gl-arr" aria-hidden="true">›</span></button>
@@ -181,6 +184,7 @@ async function openSettings(focus){
   $('#st-theme',m).addEventListener('click',e=>{ const b=e.target.closest('[data-v]'); if(!b) return; lsSet('uk-theme',b.dataset.v); applyTheme(); $$('#st-theme button',m).forEach(x=>x.classList.toggle('on',x===b)); });
   $('#st-fs',m).addEventListener('click',e=>{ const b=e.target.closest('[data-v]'); if(!b) return; lsSet('uk-fs',+b.dataset.v); applyFontScale(); $$('#st-fs button',m).forEach(x=>x.classList.toggle('on',x===b)); });
   $$('[data-guide]',m).forEach(b=>b.addEventListener('click',()=>openGuide(b.dataset.guide)));
+  aiPaneBind($('#st-ai',m));
 
   const saveCid=()=>{ const v=$('#st-cid',m).value.trim(); if(v!==DriveSync.clientId()){ DriveSync.setClientId(v); DriveSync.preload(); updateSyncUI(); } };
   $('#st-cid',m).addEventListener('change',saveCid);

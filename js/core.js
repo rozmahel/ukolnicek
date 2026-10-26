@@ -26,8 +26,8 @@ const EMOJI=['📘','📗','📙','📕','📓','📒','🎓','⚛️','⚙️',
 const CALLOUT_IC=['💡','📌','⚠️','🗓️','✅','❗','📎','🔴'];
 const TEXT_TYPES=['p','h1','h2','h3','bullet','num','todo','quote','callout','code'];
 const LIST_TYPES=['bullet','num','todo'];
-const TYPE_ICON={link:'🔗',p:'T',h1:'H1',h2:'H2',h3:'H3',bullet:'•',num:'1.',todo:'☐',quote:'❝',callout:'!',code:'&lt;/&gt;',table:'▦',divider:'—',page:'↗',image:'▣',subj:'🎓',mdimport:'M↓',eq:'∑',draw:'✎'};
-const TYPE_LABEL={link:'Odkaz',p:'Text',h1:'Nadpis 1',h2:'Nadpis 2',h3:'Nadpis 3',bullet:'Odrážky',num:'Číslovaný seznam',todo:'Úkol',quote:'Citace',callout:'Zvýrazněný blok',code:'Kód',table:'Tabulka',divider:'Oddělovač',page:'Podstránka',image:'Obrázek',subj:'Předmět',mdimport:'Import Markdownu',eq:'Rovnice',draw:'Kresba'};
+const TYPE_ICON={link:'🔗',p:'T',h1:'H1',h2:'H2',h3:'H3',bullet:'•',num:'1.',todo:'☐',quote:'❝',callout:'!',code:'&lt;/&gt;',table:'▦',divider:'—',page:'↗',image:'▣',subj:'🎓',mdimport:'M↓',eq:'∑',draw:'✎',ai:'✦',aisum:'✦'};
+const TYPE_LABEL={link:'Odkaz',p:'Text',h1:'Nadpis 1',h2:'Nadpis 2',h3:'Nadpis 3',bullet:'Odrážky',num:'Číslovaný seznam',todo:'Úkol',quote:'Citace',callout:'Zvýrazněný blok',code:'Kód',table:'Tabulka',divider:'Oddělovač',page:'Podstránka',image:'Obrázek',subj:'Předmět',mdimport:'Import Markdownu',eq:'Rovnice',draw:'Kresba',ai:'AI',aisum:'Shrnutí'};
 const SLASH=[
   {k:'p',hint:'Obyčejný odstavec',kw:'text odstavec paragraph'},
   {k:'h1',hint:'Velký nadpis sekce',kw:'nadpis heading h1'},
@@ -47,7 +47,9 @@ const SLASH=[
   {k:'eq',hint:'LaTeX; v prázdném řádku na samostatný řádek, jinak do textu',kw:'rovnice vzorec latex tex math matematika equation jednotka velicina symbol zlomek'},
   {k:'link',hint:'Webová adresa s vlastním názvem',kw:'odkaz link url web adresa hypertext'},
   {k:'page',hint:'Odkaz na stránku nebo nová podstránka',kw:'podstranka stranka page odkaz'},
-  {k:'mdimport',hint:'Vloží obsah souboru .md (nadpisy, seznamy, úkoly, tabulky)',kw:'markdown md import soubor nahrat obsidian'}
+  {k:'mdimport',hint:'Vloží obsah souboru .md (nadpisy, seznamy, úkoly, tabulky)',kw:'markdown md import soubor nahrat obsidian'},
+  {k:'ai',hint:'Napíše text podle zadání',kw:'ai umela inteligence napsat napis generovat vytvor gemini claude',ai:true},
+  {k:'aisum',hint:'Shrne celou stránku do pár bodů',kw:'shrnuti shrnout souhrn ai summary',ai:true}
 ];
 const PH={p:'Piš, nebo stiskni / pro příkazy',h1:'Nadpis 1',h2:'Nadpis 2',h3:'Nadpis 3',bullet:'Odrážka',num:'Položka',todo:'Úkol',quote:'Citace',callout:'Poznámka',code:'Vlož nebo napiš kód'};
 

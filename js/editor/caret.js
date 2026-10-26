@@ -44,4 +44,4 @@ function keepCaretVisible(el){
 function focusBlock(id,pos){ focusEl($(`#blocks .blk[data-id="${id}"] .txt`),pos); }
 function focusLine(bid,r,c,l,pos){ focusEl($(`#blocks .blk[data-id="${bid}"] td[data-r="${r}"][data-c="${c}"] .ln[data-l="${l}"] .txt`),pos); }
 
-export { caretAtEnd, caretAtStart, caretOffset, caretRect, deleteOffsets, focusBlock, focusEl, focusLine, onFirstLine, onLastLine, splitAtCaret };
+export { caretAtEnd, caretAtStart, caretOffset, caretRect, deleteOffsets, focusBlock, focusEl, focusLine, nodeAt, onFirstLine, onLastLine, splitAtCaret };

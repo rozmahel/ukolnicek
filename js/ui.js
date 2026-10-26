@@ -6,17 +6,18 @@ import { Sync } from './sync/sync.js';
 import { hideImgSel, imgSel } from './editor/images.js';
 
 /* ================= popovers, modal, toast ================= */
-function placePop(p,rc){
+function placePop(p,rc,follow){
   const w=p.offsetWidth,h=p.offsetHeight;
   let x=clamp(rc.left,8,innerWidth-w-8), y=rc.bottom+6;
   if(y+h>innerHeight-8) y=Math.max(8,rc.top-h-6);
   p.style.left=x+'px'; p.style.top=y+'px';
   p._fol={x:rc.left,y:rc.top,pl:x,pt:y};   /* při posunu stránky jede bublina s tlačítkem, ze kterého se otevřela */
+  if(follow){ const fr=follow.getBoundingClientRect(); p._fol.x=fr.left; p._fol.y=fr.top; p._folEl=follow; }   /* nebo s blokem, když tlačítko zmizí */
 }
-function openPop(anchor,html,handler){
+function openPop(anchor,html,handler,at){
   closePop();
   const p=document.createElement('div'); p.className='pop'; p.innerHTML=html; document.body.appendChild(p);
-  placePop(p,anchor.getBoundingClientRect());
+  placePop(p,at&&at.rect||anchor.getBoundingClientRect(),at&&at.follow);
   p.addEventListener('click',e=>{ const b=e.target.closest('[data-v]'); if(b){ const keep=handler(b.dataset.v,b,p); if(keep!==true) closePop(); } });
   S.pop=p; S.popAnchor=anchor; return p;
 }
@@ -58,7 +59,7 @@ export function initUi(){
     if(slash.open&&!e.target.closest('#slash')&&e.target!==slash.el) closeSlash();
   },true);
   document.addEventListener('scroll',()=>{
-    const p=S.pop, a=S.popAnchor, f=p&&p._fol; if(!f||!a||!a.isConnected||!a.closest('#main')) return;
+    const p=S.pop, a=p&&p._folEl||S.popAnchor, f=p&&p._fol; if(!f||!a||!a.isConnected||!a.closest('#main')) return;
     const r=a.getBoundingClientRect(), top=$('#main').getBoundingClientRect().top;
     if(r.bottom<top||r.top>innerHeight){ closePop(); return; }
     p.style.top=(f.pt+r.top-f.y)+'px'; p.style.left=(f.pl+r.left-f.x)+'px';

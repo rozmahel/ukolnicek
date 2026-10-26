@@ -29,6 +29,7 @@ import { openSyncMenu, Sync } from './sync/sync.js';
 import { openHiddenLink, openLinkPop } from './editor/links.js';
 import { initImages, lineAround, selectImage } from './editor/images.js';
 import { exportMd } from './editor/markdown.js';
+import { initAi, openAiCtx } from './editor/aiedit.js';
 import { initCaps } from './editor/caps.js';
 import { initMath, openEqEditor } from './editor/math.js';
 import { initSource, srcOn, toggleSource } from './editor/source.js';
@@ -39,7 +40,7 @@ import { quickAdd, wgDo, wgUi } from './views/dashWidgets.js';
 import { initMindmap } from './views/mindmap.js';
 
 /* posluchače ostatních modulů; pořadí je stejné jako dřív v jednom souboru app.js (na pořadí registrace záleží) */
-initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings(); initImages(); initIndex(); initTreeDrag(); initMath(); initSource(); initTableSize(); initCaps(); initMindmap();
+initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings(); initImages(); initIndex(); initTreeDrag(); initMath(); initSource(); initTableSize(); initCaps(); initMindmap(); initAi();
 
 /* ================= global actions ================= */
 document.addEventListener('dblclick',e=>{
@@ -84,6 +85,7 @@ document.addEventListener('click',e=>{
     case 'mode': { lsSet('uk-theme',isDarkNow()?'light':'dark'); applyTheme(); if(S.view.kind==='today') renderMain(); break; }
     case 'mdexport': exportMd(pg); break;
     case 'source': toggleSource(pg); break;
+    case 'ai-ctx': if(pg) openAiCtx(a,pg); break;
     case 'mc-prev': S.calOffset--; renderSidebar(); break;
     case 'mc-next': S.calOffset++; renderSidebar(); break;
     case 'mc-now': S.calOffset=0; renderSidebar(); break;

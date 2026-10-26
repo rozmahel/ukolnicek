@@ -11,13 +11,15 @@ import { placePop } from '../ui.js';
 import { openLinkDialog } from './links.js';
 import { pickImageBlock, pickImageInline } from './images.js';
 import { importMd } from './markdown.js';
+import { aiUsable } from '../ai.js';
+import { aiSlash } from './aiedit.js';
 import { openDraw } from './draw.js';
 import { insertEq, openEqEditor, toEqBlock } from './math.js';
 
 /* ---- slash menu ---- */
 let slash={open:false};
 /* položky nabídky; „Předmět“ jen ve školním režimu se zapnutým Indexem */
-const slashItems=()=>SLASH.filter(it=>!it.school||isIndex());
+const slashItems=()=>SLASH.filter(it=>(!it.school||isIndex())&&(!it.ai||aiUsable()));   /* AI jen s nastaveným poskytovatelem, odemčeno a online */
 function openSlash(el,bid,start,mode){ slash={open:true,el,bid,start,mode,idx:0,items:slashItems()}; drawSlash(); }
 function closeSlash(){ if(slash.open){ slash.open=false; const p=$('#slash'); if(p) p.remove(); } }
 function slashQuery(){
@@ -67,6 +69,7 @@ function chooseSlash(it){
     return;
   }
   if(it.k==='mdimport'){ savePage(pg); importMd(pg,b.id); return; }
+  if(it.k==='ai'||it.k==='aisum'){ savePage(pg); aiSlash(it.k,pg,b); return; }
   if(it.k==='eq'){
     /* prázdný odstavec → rovnice na samostatném řádku, jinak rovnice v textu na místě kurzoru */
     if(b.type==='p'&&isBlank(b.html)){ toEqBlock(pg,b); return; }

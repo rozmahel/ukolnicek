@@ -141,6 +141,14 @@
       <p>Tažení myší do prázdna = výběr rámečkem, posun plátna = kolečko, mezerník + tažení nebo prst, přiblížení = <kbd>⌘</kbd> + kolečko nebo dva prsty. <kbd>⌘Z</kbd>, <kbd>⌘D</kbd>, <kbd>⌘C</kbd>/<kbd>⌘V</kbd> (vložený text = nový blok), šipky posouvají vybrané. Víc map, novou mapu, přejmenování a ikonu (smajlík) najdeš pod tlačítkem <b>Mapy</b>, export a import <b>.canvas</b> (Obsidian) jsou ikony vedle zámku.</p>
     </div>
 
+    <div class="g-card hl-purple">
+      <h3><span class="g-ic">✦</span>AI asistent</h3>
+      <p>Volitelný. V <b>Nastavení → AI</b> vlož vlastní API klíč: <b>Gemini</b> je zdarma (klíč z Google AI Studia bez karty), <b>Claude</b> je placený kreditem. Bez klíče se AI nikde neukáže.</p>
+      <p>Označ text a v liště klikni na <b>✦</b>: Opravit, Přeformulovat, Zkrátit, Rozvést, Shrnout, Přeložit. Jde to i přes víc bloků a s výběrem celých bloků (<b>✦ AI</b> v liště výběru). Výsledek se ukáže na místě: staré přeškrtnuté, nové zvýrazněné. <b>Použít</b> (<kbd>⌘↵</kbd>) ho vloží, <kbd>Esc</kbd> zruší, <kbd>⌘Z</kbd> vrátí celou změnu jedním krokem. Shrnout vloží pod výběr stručné body a původní text nechá. <b>Ověřit</b> nic nepřepisuje, jen vypíše věcně chybná nebo sporná místa.</p>
+      <p><b>✦</b> v horní liště stránky otevře <b>kontext pro AI</b>, např. „Jsi odborník na betony, poznámky jsou z přednášek.“ Platí pro každý dotaz na stránce i na jejích podstránkách. Podstránka může mít vlastní, který ten zděděný přepíše.</p>
+      <p><kbd>/shrnutí</kbd> shrne celou stránku do pár bodů. <kbd>/ai</kbd> ukáže pole <b>Co napsat?</b> a napíše text podle zadání (stránka slouží jako podklad). Seznamy přijdou jako odrážky a úkoly jako zaškrtávátka i s termínem.</p>
+    </div>
+
     <div class="g-card hl-gray">
       <h3><span class="g-ic">🔒</span>Zámek</h3>
       <p>Ikona vedle šipek zpět a vpřed a v rozvrhu vedle tlačítek nahoře (<kbd>⌘⇧L</kbd>). Skryje tečky, plusy a tlačítka pro přidávání a mazání, takže se nic nepřesune omylem. V rozvrhu pak nejde hodiny upravovat: klik na hodinu nabídne skok na předmět v Indexu nebo v poznámkách. Přejetím ani klikem do prázdna nevytvoří nová hodina. Psaní, zaškrtávání a úpravy fungují dál.</p>
@@ -164,6 +172,26 @@
 <section data-tab="novinky" data-title="Novinky">
 
   <article class="g-rel new">
+    <h3>Kontext pro AI <span class="v">4.14.0</span> <time datetime="2026-10-26">26. 10. 2026</time></h3>
+    <ul>
+      <li><b>✦</b> v horní liště stránky: kontext pro AI (role, obor, druh poznámek). Platí pro všechny dotazy na stránce a dědí se na podstránky.</li>
+      <li>Nová akce <b>Ověřit</b>: zkontroluje fakta, čísla a pojmy a vypíše sporná místa, text nemění.</li>
+      <li>Shrnutí je vždy stručné v bodech, <kbd>/shrnutí</kbd> shrne celou stránku.</li>
+      <li>✦ a jeho nabídka se ukážou u kurzoru a při posunu stránky jedou s textem.</li>
+    </ul>
+  </article>
+
+  <article class="g-rel">
+    <h3>AI asistent <span class="v">4.13.0</span> <time datetime="2026-10-26">26. 10. 2026</time></h3>
+    <ul>
+      <li>Nová karta <b>Nastavení → AI</b>: vlastní klíč pro <b>Gemini</b> (zdarma) nebo <b>Claude</b> (placený), výběr modelu, Ověřit, Smazat klíč, styl a jazyk odpovědí. Klíč se přes Disk přenese do ostatních zařízení.</li>
+      <li><b>✦</b> u označeného textu i u výběru celých bloků: Opravit, Přeformulovat, Zkrátit, Rozvést, Shrnout, Přeložit. Výsledek je jen náhled, data se změní až tlačítkem Použít a <kbd>⌘Z</kbd> ho vrátí jedním krokem.</li>
+      <li><kbd>/shrnutí</kbd> a <kbd>/ai</kbd> v nabídce bloků. Odpovědi přicházejí jako bloky Úkolníčku (nadpisy, odrážky, úkoly s termínem).</li>
+      <li>Při vyčerpaném limitu nabídne druhého poskytovatele, pokud ho máš nastaveného.</li>
+    </ul>
+  </article>
+
+  <article class="g-rel">
     <h3>Myšlenková mapa <span class="v">4.12.0</span> <time datetime="2026-10-25">25. 10. 2026</time></h3>
     <ul>
       <li>Nová záložka <b>Myšlenková mapa</b> (zapíná se v Nastavení → Obecné): plátno s bloky, texty, skupinami a čarami podobně jako Canvas v Obsidianu.</li>

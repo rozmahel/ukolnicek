@@ -9,6 +9,8 @@ import { curPage, isArchived, pIcon, pTitle } from '../pages.js';
 import { isSchool, subjBlockText, subjLabel } from '../school.js';
 import { imgSrc, isBlank, sanitize } from '../sanitize.js';
 import { applyRatio, hideImgSel, imgSel } from './images.js';
+import { aiConfigured } from '../ai.js';
+import { aiCtxBtn } from './aiedit.js';
 import { codeNorm } from './code.js';
 import { backlinksHtml } from './mention.js';
 import { fitSource, flushSource, sourceHtml } from './source.js';
@@ -22,6 +24,9 @@ function numLabel(blocks,i){
   for(let j=i-1;j>=0;j--){ const b=blocks[j], l=b.level||0; if(l>lv) continue; if(l<lv) break; if(b.type==='num') n++; else break; }
   return lv%2?('abcdefghijklmnopqrstuvwxyz'[(n-1)%26]+'.'):n+'.';
 }
+/* po každém vykreslení bloků (náhled AI se vrátí na místo) */
+const RENDERED=[];
+function onBlocksRendered(fn){ RENDERED.push(fn); }
 function renderPage(pg){
   flushSource(true);
   const src=sourceHtml(pg), items=src!=null?[]:blockList(pg);
@@ -37,7 +42,7 @@ function renderPage(pg){
         <button class="icon-btn" id="undo-btn" data-act="undo" title="Zpět (⌘Z)" aria-label="Zpět"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
         <button class="icon-btn" id="redo-btn" data-act="redo" title="Znovu (⇧⌘Z)" aria-label="Znovu"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
         <button class="icon-btn" id="md-btn" data-act="mdexport" title="Stáhnout stránku jako Markdown (.md)" aria-label="Stáhnout jako Markdown"><svg viewBox="0 0 24 24"><path d="M12 3.5v11"/><path d="m7.5 10.5 4.5 4.5 4.5-4.5"/><path d="M4.5 16v2.5a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V16"/></svg></button>
-        <button class="icon-btn src-btn${src!=null?' on':''}" id="src-btn" data-act="source" title="${src!=null?'Zpět na bloky':'Zobrazit zdroj (Markdown)'}" aria-label="Zobrazit zdroj v Markdownu" aria-pressed="${src!=null}"><svg viewBox="0 0 24 24"><path d="m8.5 7-5 5 5 5"/><path d="m15.5 7 5 5-5 5"/></svg></button>
+        <button class="icon-btn src-btn${src!=null?' on':''}" id="src-btn" data-act="source" title="${src!=null?'Zpět na bloky':'Zobrazit zdroj (Markdown)'}" aria-label="Zobrazit zdroj v Markdownu" aria-pressed="${src!=null}"><svg viewBox="0 0 24 24"><path d="m8.5 7-5 5 5 5"/><path d="m15.5 7 5 5-5 5"/></svg></button>${aiConfigured().length?aiCtxBtn(pg):''}
         <span class="pb-sep"></span><button class="icon-btn lock-btn" id="lock-btn" data-act="lock"></button>${modeBtn()}
       </div>
     </div>
@@ -53,6 +58,7 @@ function renderPage(pg){
   </article>`;
   if(src==null) tagBlocks($('#blocks'),items);
   hist(pg); updateUndoBtns(); applyLock(); if(src!=null) fitSource();
+  RENDERED.forEach(f=>f());
 }
 function renderProps(pg){
   const props=pg.props||[];
@@ -172,7 +178,7 @@ function renderTable(b){
   });
   return h+`</tbody></table></div><div class="tbl-tools"><button data-act="add-row">＋ Řádek</button><button data-act="add-col">＋ Sloupec</button></div>`;
 }
-function rerenderBlocks(){ const pg=curPage(); if(!pg) return; if(imgSel) hideImgSel(); const el=$('#blocks'); if(el) patchBlocks(el,blockList(pg)); const tpl=$('.tpl'); if(tpl&&!((pg.blocks||[]).length<=1&&isBlank((pg.blocks[0]||{}).html))) tpl.remove(); }
+function rerenderBlocks(){ const pg=curPage(); if(!pg) return; if(imgSel) hideImgSel(); const el=$('#blocks'); if(el) patchBlocks(el,blockList(pg)); const tpl=$('.tpl'); if(tpl&&!((pg.blocks||[]).length<=1&&isBlank((pg.blocks[0]||{}).html))) tpl.remove(); RENDERED.forEach(f=>f()); }
 function rerenderProps(){ const pg=curPage(); if(pg) $('#props').innerHTML=renderProps(pg); }
 
 function ctxOf(el){
@@ -188,4 +194,4 @@ function ctxOf(el){
   return {pg,b,bi,blkEl};
 }
 
-export { COL_DEF, COL_MIN, colW, ctxOf, defaultEnd, hiddenMask, hLevel, isHeading, keepVisible, renderBlocks, renderPage, rerenderBlocks, rerenderProps, sectionEnd };
+export { COL_DEF, COL_MIN, colW, ctxOf, defaultEnd, hiddenMask, hLevel, isHeading, keepVisible, onBlocksRendered, renderBlock, renderBlocks, renderPage, rerenderBlocks, rerenderProps, sectionEnd };

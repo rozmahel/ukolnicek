@@ -241,4 +241,4 @@ function exportMd(pg){
   toast(`Stránka uložena jako „${name}“`);
 }
 
-export { blockMd, cleanBlock, exportMd, importMd, mdToBlocks };
+export { blockMd, cleanBlock, exportMd, htmlToMd, importMd, mdToBlocks };

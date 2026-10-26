@@ -8,6 +8,8 @@ import { drawSlash, slash } from './slash.js';
 import { hasFiles, viewEl } from './events.js';
 import { openLinkDialog } from './links.js';
 import { hideImgSel, imgSel, pickImageInline, placeFrame } from './images.js';
+import { aiUsable } from '../ai.js';
+import { aiCapture, aiMenu } from './aiedit.js';
 import { eqFromSelection } from './math.js';
 
 /* ---- format toolbar ---- */
@@ -33,17 +35,47 @@ function updateFmt(){
   const s=getSelection();
   if(!s.rangeCount||s.isCollapsed){ hideFmt(); return; }
   const n=s.anchorNode; const el=n&&(n.nodeType===1?n:n.parentElement); const host=el&&el.closest('.txt');
-  if(!host||!host.closest('#doc')||host.closest('.b-code')||!host.contains(s.focusNode)){ hideFmt(); return; }
+  /* výběr přes víc bloků: jen ✦ (formátování jde jen v jednom bloku) */
+  const multi=!!host&&document.body.classList.contains('xsel')&&!!host.closest('#blocks')&&!host.contains(s.focusNode);
+  if(!host||!host.closest('#doc')||(!multi&&(host.closest('.b-code')||!host.contains(s.focusNode)))||(multi&&!aiUsable())){ hideFmt(); return; }
+  fmt.classList.toggle('only-ai',multi); fmt.classList.toggle('no-ai',!aiUsable());
   const rc=s.getRangeAt(0).getBoundingClientRect(); if(!rc.width&&!rc.height){ hideFmt(); return; }
   fmt.hidden=false; hideCellbar();
   const w=fmt.offsetWidth,h=fmt.offsetHeight;
+  if(!TOUCH.matches){
+    /* počítač: lišta u kurzoru (konec výběru), ✦ jako první tlačítko hned pod ním; výběr zpět nahoru → nad řádek */
+    const back=selBack(s), fr=selEndRect(s,back)||rc;
+    let top=back?fr.top-h-6:fr.bottom+6;
+    if(top+h>innerHeight-8) top=fr.top-h-6; if(top<8) top=fr.bottom+6;
+    fmt.style.left=clamp(multi?fr.right+2:fr.left-14,8,innerWidth-w-8)+'px'; fmt.style.top=top+'px';
+    return;
+  }
   fmt.style.left=clamp(rc.left+rc.width/2-w/2,8,innerWidth-w-8)+'px';
-  if(TOUCH.matches){
+  {
     /* telefon: nad výběrem je systémová nabídka (Kopírovat, Vyjmout…), naše lišta jde pod výběr, za úchyty výběru.
        Když se pod výběr nevejde (klávesnice), dá se nad systémovou nabídku. */
     const vv=window.visualViewport, bottom=vv?vv.offsetTop+vv.height:innerHeight, below=rc.bottom+34;
     fmt.style.top=(below+h<=bottom-8?below:Math.max(8,rc.top-h-64))+'px';
-  } else fmt.style.top=(rc.top-h-8<8?rc.bottom+8:rc.top-h-8)+'px';
+  }
+}
+/* poloha kurzoru na konci výběru (tam, kde se pustila myš) */
+function selEndRect(s,back){
+  try{
+    /* kurzor v textu: přesná poloha */
+    if(s.focusNode&&s.focusNode.nodeType===3){
+      const c=document.createRange(); c.setStart(s.focusNode,s.focusOffset); c.collapse(true);
+      const r=c.getClientRects()[0]; if(r&&r.height) return r;
+    }
+    /* výběr dotažený až za konec textu (kurzor mimo text): konec posledního vybraného řádku */
+    const rs=[...s.getRangeAt(0).getClientRects()].filter(r=>r.width>1&&r.height>1);
+    const r=back?rs[0]:rs[rs.length-1];
+    if(r) return back?{left:r.left,right:r.left,top:r.top,bottom:r.bottom}:{left:r.right,right:r.right,top:r.top,bottom:r.bottom};
+  }catch(_){}
+  return null;
+}
+function selBack(s){
+  if(s.anchorNode===s.focusNode) return s.focusOffset<s.anchorOffset;
+  return !!(s.anchorNode&&s.focusNode&&(s.anchorNode.compareDocumentPosition(s.focusNode)&Node.DOCUMENT_POSITION_PRECEDING));
 }
 function hideFmt(){ fmt.hidden=true; }
 
@@ -63,10 +95,15 @@ function hideCellbar(){ cellbar.hidden=true; cellTarget=null; }
 
 /* posluchače a nastavení při startu (volá main.js ve stejném pořadí jako dřív) */
 export function initToolbar(){
-  fmt.innerHTML=`<button data-f="bold" aria-label="Tučně"><b>B</b></button><button data-f="italic" aria-label="Kurzíva"><i>I</i></button><button data-f="underline" aria-label="Podtržení"><u>U</u></button><button data-f="strikeThrough" aria-label="Přeškrtnutí"><s>S</s></button><button data-f="link" aria-label="Odkaz" title="Udělat z textu odkaz">🔗</button><button data-f="eq" aria-label="Rovnice" title="Udělat z textu rovnici (LaTeX, ⌘⇧E)">∑</button><span class="sep"></span>${COLORS.map(c=>`<button class="sw hl-${c}" data-f="hl-${c}" aria-label="Zvýraznit: ${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}<span class="sep"></span><button data-f="clear" aria-label="Zrušit formátování" title="Zrušit formátování">⌫</button>`;
+  fmt.innerHTML=`<button data-f="ai" class="fmt-ai" aria-label="AI" title="AI: opravit, přeformulovat, shrnout…">✦</button><span class="sep fmt-ai"></span><button data-f="bold" aria-label="Tučně"><b>B</b></button><button data-f="italic" aria-label="Kurzíva"><i>I</i></button><button data-f="underline" aria-label="Podtržení"><u>U</u></button><button data-f="strikeThrough" aria-label="Přeškrtnutí"><s>S</s></button><button data-f="link" aria-label="Odkaz" title="Udělat z textu odkaz">🔗</button><button data-f="eq" aria-label="Rovnice" title="Udělat z textu rovnici (LaTeX, ⌘⇧E)">∑</button><span class="sep"></span>${COLORS.map(c=>`<button class="sw hl-${c}" data-f="hl-${c}" aria-label="Zvýraznit: ${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}<span class="sep"></span><button data-f="clear" aria-label="Zrušit formátování" title="Zrušit formátování">⌫</button>`;
   fmt.addEventListener('mousedown',e=>e.preventDefault());
   fmt.addEventListener('click',e=>{
     const b=e.target.closest('[data-f]'); if(!b) return; const f=b.dataset.f;
+    if(f==='ai'){
+      const sel=aiCapture(), s=getSelection(), fn=s.focusNode, fe=fn&&(fn.nodeType===1?fn:fn.parentElement);
+      const at={rect:b.getBoundingClientRect(),follow:fe&&fe.closest('#blocks > .blk')};
+      hideFmt(); aiMenu(b,sel,at); return;
+    }
     if(f==='link'){ const s=getSelection(); if(!s.rangeCount) return; const r=s.getRangeAt(0); const n=r.commonAncestorContainer; const host=(n.nodeType===1?n:n.parentElement).closest('.txt'); if(host){ hideFmt(); openLinkDialog(host,r.cloneRange(),true); } return; }
     if(f==='eq'){ hideFmt(); eqFromSelection(); return; }
     if(f.startsWith('hl-')) applyMark(f);
