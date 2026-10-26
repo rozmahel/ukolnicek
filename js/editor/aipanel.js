@@ -15,7 +15,7 @@ import { setTypingNow } from './history.js';
 import { curPage, newBlock, pTitle } from '../pages.js';
 import { sanitize } from '../sanitize.js';
 import { focusBlock } from './caret.js';
-import { isHeading, keepVisible, onBlocksRendered, renderBlock, rerenderBlocks, sectionEnd } from './render.js';
+import { hiddenMask, isHeading, keepVisible, onBlocksRendered, renderBlock, rerenderBlocks, sectionEnd } from './render.js';
 import { toast } from '../ui.js';
 import { cleanBlock, mdToBlocks } from './markdown.js';
 import { AI_CTX_MAX, AI_PROVIDERS, aiAsk, aiCfg, aiConfigured, aiCtxOf, aiDefault, aiErrText, aiMaxChars, aiModel } from '../ai.js';
@@ -56,16 +56,19 @@ function aipRo(b){
   if(b.type==='subj') return 'předmět: '+cut(plain(b.html));
   return b.type+': '+cut(plain(b.html));
 }
+/* bloky ve sbalených sekcích AI vůbec nedostane (vis = viditelné ID, fold = sbalené nadpisy) */
 function aipSerialize(pg){
-  const toks=[], own={}, lines=[];
-  for(const b of pg.blocks||[]){
+  const toks=[], own={}, lines=[], bl=pg.blocks||[], hid=hiddenMask(bl), vis=new Set(), fold=new Set();
+  for(const [i,b] of bl.entries()){
+    if(hid[i]) continue;
+    vis.add(b.id); if(isHeading(b.type)&&b.collapsed) fold.add(b.id);
     if(AIP_EDIT.includes(b.type)){
       const n0=toks.length, h=aipTok(b.html,toks);
       own[b.id]=toks.slice(n0).map((_,i)=>n0+i+1);
       lines.push(`@${b.id} ${b.type==='todo'&&b.done?'done':b.type}${b.level?'.'+b.level:''} | ${h}`);
     } else lines.push(`@${b.id} ! ${aipRo(b)}`);
   }
-  return {text:lines.join('\n'),toks,own};
+  return {text:lines.join('\n'),toks,own,vis,fold};
 }
 /* text bloku bez značek (porovnání, jestli AI měnila i slova) */
 function aipTxt(h){ const t=document.createElement('template'); t.innerHTML=String(h||'').replace(/<br\s*\/?>/gi,' '); return (t.content.textContent||'').replace(/\s+/g,' ').trim(); }
@@ -77,7 +80,7 @@ function aipParse(raw,pg,ser,allow){
   const {msg,body}=aipSplit(raw); if(body==null) return {msg,chg:null};
   const j=body.indexOf('[/ZMĚNY]'), cut=j<0; let lines=(cut?body:body.slice(0,j)).split('\n');
   if(cut) lines.pop();   /* poslední řádek useknuté odpovědi může být neúplný */
-  const ok=new Set(allow||[]), may=id=>!allow||ok.has(id);
+  const ok=new Set(allow||[]), may=id=>ser.vis.has(id)&&(!allow||ok.has(id));
   const byId=new Map(pg.blocks.map((b,i)=>[b.id,{b,i}]));
   const untok=h=>sanitize(String(h).replace(/⟦(\d+)(?:\|[^⟧]*)?⟧/g,(m,n)=>ser.toks[+n-1]||''));
   const list=[]; let bad=0;
@@ -85,7 +88,7 @@ function aipParse(raw,pg,ser,allow){
     ln=ln.trim(); if(!ln||/^```/.test(ln)) continue;
     let m=ln.match(/^-\s*([^\s|]+)$/);
     if(m){
-      const x=byId.get(m[1]); if(!x||!AIP_EDIT.includes(x.b.type)||!may(m[1])){ bad++; continue; }
+      const x=byId.get(m[1]); if(!x||!AIP_EDIT.includes(x.b.type)||!may(m[1])||ser.fold.has(m[1])){ bad++; continue; }   /* sbalený nadpis nejde smazat (skryté bloky by se přesunuly) */
       for(let i=list.length-1;i>=0;i--) if(list[i].id===m[1]&&list[i].op!=='add') list.splice(i,1);
       list.push({op:'del',id:m[1],old:JSON.stringify(x.b)}); continue;
     }
@@ -95,7 +98,7 @@ function aipParse(raw,pg,ser,allow){
     if(!AIP_EDIT.includes(t)){ bad++; continue; }
     const nums=aipNums(h);
     if(op==='@'){
-      const x=byId.get(id); if(!x||!AIP_EDIT.includes(x.b.type)||!may(id)){ bad++; continue; }
+      const x=byId.get(id); if(!x||!AIP_EDIT.includes(x.b.type)||!may(id)||(ser.fold.has(id)&&t!==x.b.type)){ bad++; continue; }   /* sbalený nadpis si nechá typ */
       const own=ser.own[id]||[]; if(nums.length!==own.length||own.some(n=>!nums.includes(n))){ bad++; continue; }   /* rovnice, odkazy a zmínky musí zůstat */
       const nb=clone(x.b); nb.type=t; nb.html=untok(h);
       if(t==='todo'&&t0==='done') nb.done=true; else delete nb.done;
@@ -297,7 +300,7 @@ async function aipSend(again){
   if(AIQ.ctrl) AIQ.ctrl.abort();
   aiClose(); aipDropAll();
   if(again!=null) AIQ.msgs.splice(again-1);
-  const ser=aipSerialize(pg), allow=AIQ.sel&&AIQ.sel.length?AIQ.sel.filter(id=>pg.blocks.some(b=>b.id===id)):null;
+  const ser=aipSerialize(pg), allow=AIQ.sel&&AIQ.sel.length?AIQ.sel.filter(id=>ser.vis.has(id)):null;
   const prov=PM&&aiConfigured().includes(PM.id)?PM.id:aiDefault(), max=aiMaxChars(prov);
   if(ser.text.length>max-6000){ toast(allow?'Stránka je na AI moc dlouhá.':'Stránka je na AI moc dlouhá. Vyber jen část stránky.'); return; }
   /* předchozí výměny (bez textu stránky, ten jde jen s posledním dotazem) */
@@ -343,7 +346,8 @@ function aipApply(){
   if(!on.length){ if(skip) toast('Text se mezitím změnil. Zkus to znovu.'); return; }
   on.filter(c=>c.op==='set').forEach(c=>{ const i=pg.blocks.findIndex(b=>b.id===c.id); pg.blocks[i]=clone(c.b); });
   const adds=new Map(); on.filter(c=>c.op==='add').forEach(c=>{ if(!adds.has(c.id)) adds.set(c.id,[]); adds.get(c.id).push(clone(c.b)); });
-  adds.forEach((bl,id)=>{ const i=id==='^'?-1:pg.blocks.findIndex(b=>b.id===id); pg.blocks.splice(i+1,0,...bl); });
+  /* za sbalený nadpis se vkládá až za jeho skryté bloky */
+  adds.forEach((bl,id)=>{ const i=id==='^'?-1:pg.blocks.findIndex(b=>b.id===id), a=pg.blocks[i]; pg.blocks.splice(a&&isHeading(a.type)&&a.collapsed?sectionEnd(pg.blocks,i):i+1,0,...bl); });
   const del=new Set(on.filter(c=>c.op==='del').map(c=>c.id)); pg.blocks=pg.blocks.filter(b=>!del.has(b.id));
   if(!pg.blocks.length) pg.blocks.push(newBlock('p'));
   ch.state='done'; ch.applied=on.length; ch.list.forEach(c=>{ if(c.el) c.el.remove(); });
