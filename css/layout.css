@@ -1,7 +1,7 @@
 /* Úkolníček – Rozložení aplikace a levý panel (menu, strom projektů, mini kalendář) */
 
 /* ---------- rozložení a levý panel ---------- */
-#app{display:grid;grid-template-columns:268px minmax(0,1fr);height:100%}
+#app{--side-w:268px;display:grid;grid-template-columns:var(--side-w) minmax(0,1fr);height:100%;transition:grid-template-columns .15s ease}
 .side{background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:4px;padding:16px 10px 10px;overflow-x:hidden;overflow-y:auto;min-height:0;min-width:0}
 #main{overflow:auto;min-width:0;position:relative}
 .topbar{display:none}
@@ -98,3 +98,64 @@ button.mc-d.today:hover{color:var(--bg)}
 .sec-h .tr-empty{font-size:calc(12.5px*var(--fs));color:var(--muted)}
 .sec-h .tr-empty:hover{color:var(--danger)}
 body.locked .tr-del,body.locked .tr-empty{display:none}
+
+/* ---------- schovaný levý panel (4.16.0) ----------
+   ☰ vlevo od názvu, aby ikonky zůstaly vodorovně na stejném místě; schovaný panel = úzký pruh (jen na širokém okně).
+   Texty zmizí, ikonky (menu, projekty, mráček, Nastavení) zůstanou; bublina s názvem .side-tip, bublina projektu .side-pop */
+.ws-top{display:flex;align-items:center;gap:6px;min-width:0}
+/* název a týden se nezalamují: při schování a rozbalení panelu by se jinak zalomily a ikonky pod nimi poskočily */
+.ws-top .ws-name,.ws-week{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-tog{flex:none;margin-left:-4px;font-size:calc(15px*var(--fs))}
+.nv>span{white-space:nowrap}
+.side-tip{position:fixed;z-index:90;pointer-events:none;background:var(--fg);color:var(--bg);font-size:calc(12.5px*var(--fs));font-weight:500;padding:4px 8px;border-radius:6px;white-space:nowrap;box-shadow:var(--shadow-sm)}
+.side-pop{min-width:200px}
+.side-pop .sp-it{padding-left:calc(8px + (var(--d) - 1)*14px)}
+.side-pop .sp-h{font-weight:650}
+.side-pop .sp-t{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-pop .ti-ic{width:18px}
+@media (max-width:860px){ .side-tog{display:none} .side-tip{display:none} }
+@media (min-width:861px){
+  #app.side-mini{--side-w:66px}
+  #app.side-mini .ws-name,#app.side-mini .nv>span,#app.side-mini .sec-h>*,#app.side-mini .ti-t{opacity:0;pointer-events:none}
+  /* bez mini kalendáře zůstane místo po čísle týdne, aby ikonky neposkočily; s kalendářem se řádek schová */
+  #app.side-mini .ws-week,#app.side-mini .ws>.linkbtn{visibility:hidden}
+  #app.side-mini .ws:has(.mc) :is(.ws-week,.linkbtn),#app.side-mini .mc,#app.side-mini .nv>.badge,#app.side-mini .nv>kbd,#app.side-mini .ti-acts,#app.side-mini .tree-empty,#app.side-mini .sync-lbl,#app.side-mini .sync-io,#app.side-mini #save-state{display:none}
+  #app.side-mini .side{overflow-y:auto;scrollbar-width:none}
+  #app.side-mini .ti,#app.side-mini .ti:hover,#app.side-mini .ti.on{background:none}
+  /* projekty ve sloupci s ikonkami menu (střed 26 px od kraje) */
+  #app.side-mini .ti-tog{display:none}
+  #app.side-mini .ti-main{border-radius:7px;flex:none;width:32px;padding:4px 6px}
+  #app.side-mini .ti:hover .ti-main,#app.side-mini .ti.on .ti-main{background:var(--hover)}
+  #app.side-mini .syncbar{flex-wrap:nowrap}
+}
+@media (prefers-reduced-motion:reduce){ #app{transition:none} }
+
+/* ---------- rozdělená obrazovka (4.17.0, js/split.js) ----------
+   #panes = sloupec mezi levým panelem a AI panelem. #main je vždy aktivní (živá) polovina, .split-ghost náhled druhé stránky.
+   Při rozdělení je #panes mřížka: nahoře jedna lišta #split-bar přes obě poloviny (patří aktivní stránce), pod ní polovina | táhlo | polovina.
+   Strana se řídí třídami .sp-l/.sp-r, poměr --sr (jen v zařízení). Na úzkém okně jen aktivní polovina. */
+#panes{display:flex;min-width:0;min-height:0;overflow:hidden}
+#panes>#main{flex:1 1 0}
+#panes.split{display:grid;grid-template-columns:calc((100% - 7px)*var(--sr,.5)) 7px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+#split-bar{grid-column:1/-1;grid-row:1;min-width:0;border-bottom:1px solid var(--line);background:var(--bg)}
+#split-bar .pagebar{position:static;margin:0;padding:8px 20px;border:0}
+#panes.split>.sp-l{grid-column:1;grid-row:2}
+#panes.split>.split-h{grid-column:2;grid-row:2}
+#panes.split>.sp-r{grid-column:3;grid-row:2}
+#panes.split>#main,.split-ghost{min-width:0;min-height:0;border-top:2px solid transparent}
+#panes.split>#main{border-top-color:color-mix(in srgb,var(--accent) 75%,transparent)}
+@media (min-width:861px){ #panes.split #doc,.split-ghost .doc{padding-top:18px} }
+.split-ghost{overflow:auto;position:relative;cursor:default}
+.split-h{cursor:col-resize;background:linear-gradient(90deg,transparent 3px,var(--line) 3px,var(--line) 4px,transparent 4px);touch-action:none}
+.split-h:hover,body.split-drag .split-h{background:linear-gradient(90deg,transparent 2px,var(--accent) 2px,var(--accent) 5px,transparent 5px)}
+body.split-drag,body.split-drag *{cursor:col-resize!important;user-select:none!important}
+/* náhled jen ke čtení: ovládací prvky schované, ale drží místo (po kliknutí je živá stránka na stejném místě) */
+.split-ghost :is(.gut,.tbl-tools,.tpl,.add-prop,.prop .icon-btn,.ta,.rh,.ch,.head-acts){visibility:hidden!important}
+.split-ghost [contenteditable]{cursor:default}
+.split-x{font-size:calc(19px*var(--fs))}
+@media (max-width:860px){
+  #panes.split{display:flex}
+  #panes>.split-ghost,#panes>.split-h,#split-bar .split-x,#split-bar .split-sep{display:none!important}
+  #split-bar{display:none}
+  #panes.split>#main{flex:1 1 0;min-width:0;border-top:0}
+}

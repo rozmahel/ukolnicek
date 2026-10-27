@@ -51,7 +51,7 @@
 .ai-ctx-btn.on:hover{background:var(--accent-soft);color:var(--accent)}
 
 /* panel vpravo (šířka --aip-w jen v zařízení) */
-#app.aip-on{grid-template-columns:268px minmax(0,1fr) var(--aip-w,360px)}
+#app.aip-on{grid-template-columns:var(--side-w) minmax(0,1fr) var(--aip-w,360px)}
 .aip{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--panel);border-left:1px solid var(--line);position:relative;font-size:calc(14px*var(--fs))}
 .aip[hidden]{display:none}
 .aip-grip{position:absolute;left:-4px;top:0;bottom:0;width:8px;cursor:col-resize;z-index:2}

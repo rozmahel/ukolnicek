@@ -81,6 +81,8 @@
 .b-callout>.row{background:var(--c-bg);border-radius:9px;padding:6px 12px 6px 8px;margin:6px 0;gap:8px}
 .b-callout>.gut{top:50%;transform:translateY(-50%)}
 .callout-ic{width:28px;font-size:calc(18px*var(--fs));margin-top:1px;border-radius:6px}
+.callout-ic.none{display:none}
+.b-callout>.row:has(>.callout-ic.none){padding-left:12px}
 .callout-ic:hover{background:color-mix(in srgb,var(--c-fg) 12%,transparent)}
 /* oddělovač má výšku řádku textu a čára je přesně uprostřed */
 .divider{display:flex;align-items:center;min-height:calc(1.6em + 6px);padding:0 2px}
