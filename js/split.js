@@ -42,7 +42,12 @@ function spOpen(side,pg){
 function spSync(){
   const v=S.view;
   if(v.kind==='page') spNoteLast(v.pageId);
-  if(SP.on&&v.kind!=='page'){ SP.on=false; spSave(); }
+  if(SP.on&&v.kind!=='page'){ SP.on=false; SP.park=true; spSave(); }   /* odskok na Dnes, Úkoly…: rozložení se zapamatuje */
+  else if(!SP.on&&SP.park&&v.kind==='page'){   /* návrat na jednu z obou stránek rozložení obnoví, jiná stránka ho zapomene */
+    const side=v.pageId===SP.L?'L':v.pageId===SP.R?'R':null;
+    if(side&&S.pages[SP[spOth(side)]]&&SP_WIDE.matches){ SP.on=true; SP.act=side; }
+    delete SP.park; spSave();
+  }
   if(SP.on){
     const id=v.pageId;
     if(id!==SP[SP.act]){
@@ -131,7 +136,7 @@ function spActivate(x,y){
 /* × v aktivní polovině: druhá stránka se roztáhne přes celé okno */
 function spCloseActive(){
   const id=SP[spOth(SP.act)]; if(spGhost) noteScroll(id,spGhost.scrollTop,true);
-  SP.on=false; spSave(); go({kind:'page',pageId:id});
+  SP.on=false; delete SP.park; spSave(); go({kind:'page',pageId:id});
 }
 export function initSplit(){
   onBlocksRendered(spBar);

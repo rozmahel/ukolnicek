@@ -9,6 +9,7 @@ import { isIndex, isSchool } from './school.js';
 import { go } from './router.js';
 import { renderPage } from './editor/render.js';
 import { closePop, openPop } from './ui.js';
+import { openPageMenu } from './editor/menus.js';
 import { shownTasks } from './views/tasks.js';
 import { updateSyncUI } from './sync/sync.js';
 import { TRASH_IC, trashSidebar } from './trash.js';
@@ -95,11 +96,14 @@ function openProjPop(a){
   if(S.pop&&S.popAnchor===a){ closePop(); return; }
   hideTip();
   const v=S.view, on=pid=>v.kind==='page'&&v.pageId===pid?'act':'';
-  const rows=(pid,d)=>kids(pid).map(p=>`<button class="pop-item sp-it ${on(p.id)}" data-v="p:${p.id}" style="--d:${d}">${pIcon(p)}<span class="sp-t">${esc(pTitle(p))}</span></button>`+rows(p.id,d+1)).join('');
-  const h=`<button class="pop-item sp-h ${on(id)}" data-v="p:${id}">${pIcon(root)}<span class="sp-t">${esc(pTitle(root))}</span></button>${rows(id,1)}`
+  /* řádek stránky + ⋯ (stejné menu jako ve stromu: posunout, Otevřít vpravo/vlevo…) */
+  const more=pid=>`<button class="icon-btn sp-more" data-v="m:${pid}" aria-label="Možnosti" title="Možnosti">⋯</button>`;
+  const rows=(pid,d)=>kids(pid).map(p=>`<div class="sp-row"><button class="pop-item sp-it ${on(p.id)}" data-v="p:${p.id}" style="--d:${d}">${pIcon(p)}<span class="sp-t">${esc(pTitle(p))}</span></button>${more(p.id)}</div>`+rows(p.id,d+1)).join('');
+  const h=`<div class="sp-row"><button class="pop-item sp-h ${on(id)}" data-v="p:${id}">${pIcon(root)}<span class="sp-t">${esc(pTitle(root))}</span></button>${more(id)}</div>${rows(id,1)}`
     +(LOCK?'':`<div class="pop-sep"></div><button class="pop-item sp-new" data-v="new"><span class="pi-ic">＋</span>Stránka</button>`);
   const p=openPop(a,h,val=>{
     if(val==='new'){ const np=createPage(id); renderSidebar(); go({kind:'page',pageId:np.id}); setTimeout(()=>$('#page-title')&&$('#page-title').focus(),30); return; }
+    if(val.startsWith('m:')){ const pg=S.pages[val.slice(2)], b=p.querySelector(`[data-v="${val}"]`); if(pg&&b) openPageMenu(a,pg,{rect:b.getBoundingClientRect()}); return true; }   /* true: bublinu zavře až nové menu */
     go({kind:'page',pageId:val.slice(2)});
   });
   p.classList.add('side-pop'); p._fol=null;

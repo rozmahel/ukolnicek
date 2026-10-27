@@ -187,11 +187,11 @@ function openIconPop(anchor,pg){
     savePage(pg); renderSidebar(); renderPage(pg);
   });
 }
-function openPageMenu(anchor,pg){
+function openPageMenu(anchor,pg,at){   /* at = {rect}: menu u jiného místa než anchor (⋯ v bublině schovaného panelu) */
   /* stránka v archivu: jen obnovit nebo smazat */
   if(isArchived(pg)){
     const h=`<button class="pop-item" data-v="unarch"><span class="pi-ic">↺</span>Obnovit z archivu</button><div class="pop-sep"></div><button class="pop-item danger" data-v="del"><span class="pi-ic">×</span>Smazat</button>`;
-    openPop(anchor,h,v=>{ if(v==='unarch') unarchivePage(pg.id); if(v==='del') deletePage(pg.id); });
+    openPop(anchor,h,v=>{ if(v==='unarch') unarchivePage(pg.id); if(v==='del') deletePage(pg.id); },at);
     return;
   }
   /* rozdělená obrazovka (js/split.js): jen na širokém okně */
@@ -212,7 +212,7 @@ function openPageMenu(anchor,pg){
     }
     if(v==='arch'){ archivePage(pg.id); return; }
     if(v==='del') deletePage(pg.id);
-  });
+  },at);
 }
 
 export { CALLOUT_KINDS, openBlockMenu, openIconPop, openPageMenu, openSubjBlockMenu, openTableMenu };
