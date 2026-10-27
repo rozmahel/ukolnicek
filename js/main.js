@@ -1,5 +1,5 @@
 /* Úkolníček – Start aplikace: globální kliknutí a klávesy, spuštění, Service Worker, upozornění při zavírání */
-import { $, $$, clamp, esc, lsGet, lsSet } from './core.js';
+import { $, $$, clamp, esc, lsGet, lsSet, simpleUi } from './core.js';
 import { S } from './state.js';
 import { isDarkNow } from './theme.js';
 import { applyLock, LOCK, toggleLock } from './lock.js';
@@ -96,6 +96,7 @@ document.addEventListener('click',e=>{
   const act=a.dataset.act, pg=curPage();
   /* zamčeno: nic, co mění strukturu stránky */
   if(LOCK&&['add-after','img-line','row-menu','col-menu','add-row','add-col','prop-add','prop-del','tpl'].includes(act)) return;
+  if(simpleUi()&&['row-menu','col-menu','add-row','add-col','source','mdexport','ai-ctx','subj','sem-edit'].includes(act)) return;   /* jednoduchý režim: tabulky jen psaní, bez zdroje, exportu, AI a nastavení předmětů */
   if(act.startsWith('trash')&&trashAct(act,a)) return;
   switch(act){
     case 'lock': toggleLock(); break;

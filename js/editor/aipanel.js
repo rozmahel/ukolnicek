@@ -7,7 +7,7 @@
    Konverzace se neukládá a na jiné stránce začne znovu. Otevření a šířka panelu jen v zařízení (uk-aip, uk-aip-w).
    AIQ = {pgId, msgs:[{role:'user'|'ai', text, raw, state, err, chg}], ctrl, sel:[ID]|null, last:ID|null, min}
    chg = {list:[{k, op:'set'|'add'|'del', id, b, old, txt, off, el}], cut, bad, state:'wait'|'done'|'drop'} */
-import { $, clamp, clone, esc, lsGet, lsSet, plain, plural, TEXT_TYPES } from '../core.js';
+import { $, clamp, clone, esc, lsGet, lsSet, plain, plural, simpleUi, TEXT_TYPES } from '../core.js';
 import { S } from '../state.js';
 import { LOCK } from '../lock.js';
 import { savePage } from '../store.js';
@@ -31,7 +31,7 @@ const AIP_X='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 
 const AIP_UNDO='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>';
 
 const aipBox=()=>$('#blocks');
-const aipOn=()=>OPEN&&S.view.kind==='page'&&!!S.pages[S.view.pageId]&&aiConfigured().length>0;
+const aipOn=()=>OPEN&&!simpleUi()&&S.view.kind==='page'&&!!S.pages[S.view.pageId]&&aiConfigured().length>0;
 const aipNarrow=()=>matchMedia('(max-width:860px)').matches;
 const aipBlk=(n)=>n===1?'blok':n>1&&n<5?'bloky':'bloků';
 
@@ -399,6 +399,7 @@ const aipIsOpen=()=>OPEN;
 
 export function initAiPanel(){
   document.addEventListener('uk-view',aipView);
+  matchMedia('(max-width:860px)').addEventListener('change',aipView);   /* v úzkém okně (jednoduchý režim) je panel schovaný, stav zůstává */
   onBlocksRendered(()=>{ if(AIQ&&curPage()&&curPage().id===AIQ.pgId) aipPlace(); });
   document.addEventListener('selectionchange',()=>aipSelSync());
   document.addEventListener('uk-bsel',()=>aipSelSync('bsel'));

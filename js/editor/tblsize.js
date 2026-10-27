@@ -2,7 +2,7 @@
    Tažením mění jen ten jeden sloupec, ostatní si nechají šířku a posunou se – celá tabulka se zúží nebo rozšíří.
    Data: b.cw = šířky všech sloupců v px (nastaví se při prvním tažení podle toho, jak tabulka zrovna vypadá),
    b.rh = výšky řádků v px (null = podle obsahu). Tabulka bez tažení data nemění. Dvojklik na okraji vrátí výchozí. */
-import { clamp, clone } from '../core.js';
+import { clamp, clone, simpleUi } from '../core.js';
 import { LOCK } from '../lock.js';
 import { savePage } from '../store.js';
 import { COL_DEF, COL_MIN, colW, ctxOf, rerenderBlocks } from './render.js';
@@ -12,7 +12,7 @@ let hot=null, rsz=null;
 
 /* je ukazatel na pravém/spodním okraji buňky? (levý/horní okraj = okraj sousední buňky) */
 function hit(e){
-  if(LOCK||e.pointerType==='touch') return null;
+  if(LOCK||e.pointerType==='touch'||simpleUi()) return null;   /* v jednoduchém režimu jen psaní do buněk */
   const td=e.target.closest&&e.target.closest('.tbl td'); if(!td) return null;
   const rc=td.getBoundingClientRect(), tr=td.parentElement;
   if(rc.right-e.clientX<=EDGE) return {td,k:'c'};

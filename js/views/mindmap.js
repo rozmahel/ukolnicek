@@ -4,7 +4,7 @@
    Čára {id, from, to, end: chybí = šipka | 'both' | 'none', color, label}; strany se volí samy podle polohy bloků.
    Posun a přiblížení (uk-mm-v) a otevřená mapa (uk-mm-cur) jsou jen v zařízení.
    Export/import: formát JSON Canvas (.canvas) z Obsidianu. */
-import { $, clamp, clone, downloadFile, EMOJI, esc, lsGet, lsSet, norm, plain, plural, rid } from '../core.js';
+import { $, clamp, clone, downloadFile, EMOJI, esc, lsGet, lsSet, norm, plain, plural, rid, simpleUi } from '../core.js';
 import { S } from '../state.js';
 import { modeBtn } from '../theme.js';
 import { applyLock, LOCK } from '../lock.js';
@@ -15,6 +15,8 @@ import { go } from '../router.js';
 import { closePop, openPop, toast } from '../ui.js';
 import { TRASH_IC } from '../trash.js';
 
+/* jen ke čtení: zámek, nebo jednoduchý režim (úzké okno = mapa jen k prohlížení a posunu) */
+const mmRO=()=>LOCK||simpleUi();
 const MM_COLORS=['red','orange','yellow','green','blue','purple'];
 const COL_CZ={red:'Červená',orange:'Oranžová',yellow:'Žlutá',green:'Zelená',blue:'Modrá',purple:'Fialová'};
 const TO_CANVAS={red:'1',orange:'2',yellow:'3',green:'4',blue:'5',purple:'6'};
@@ -259,7 +261,7 @@ function updateSel(){
 function buildBar(){
   const bar=vp&&$('.mm-selbar',vp); if(!bar) return;
   const ns=[...sel].map(node).filter(Boolean), e=selE&&M.edges.find(x=>x.id===selE);
-  if(LOCK||editing||(!ns.length&&!e)){ bar.hidden=true; bar.innerHTML=''; return; }
+  if(mmRO()||editing||(!ns.length&&!e)){ bar.hidden=true; bar.innerHTML=''; return; }
   const objs=e?[e]:ns, cur=objs.every(o=>o.color===objs[0].color)?objs[0].color:'?';
   let h=`<button class="mm-dot none${!cur?' on':''}" data-mb="col" data-c="" title="Bez barvy" aria-label="Bez barvy"></button>`
     +MM_COLORS.map(c=>`<button class="mm-dot c-${c}${cur===c?' on':''}" data-mb="col" data-c="${c}" title="${COL_CZ[c]}" aria-label="${COL_CZ[c]}"></button>`).join('')+'<span class="mm-bsep"></span>';
@@ -285,7 +287,7 @@ function mmPlaceBar(){
   bar.style.top=clamp(top,6,Math.max(6,r.h-bh-6))+'px';
 }
 function barClick(e){
-  const b=e.target.closest('[data-mb]'); if(!b||LOCK) return;
+  const b=e.target.closest('[data-mb]'); if(!b||mmRO()) return;
   const ed=selE&&M.edges.find(x=>x.id===selE), ns=[...sel].map(node).filter(Boolean);
   switch(b.dataset.mb){
     case 'col': { const c=b.dataset.c; mmSnap(); (ed?[ed]:ns).forEach(o=>{ if(c) o.color=c; else delete o.color; }); touch(); mmDraw(); break; }
@@ -301,7 +303,7 @@ function barClick(e){
 /* ---- úpravy ---- */
 function newNode(k,x,y,extra){ const [w,h]=SIZE[k]; return Object.assign({id:rid(),k,x:Math.round(x),y:Math.round(y),w,h},k==='group'?{label:''}:{text:''},extra||{}); }
 function addAt(k){
-  if(LOCK) return;
+  if(mmRO()) return;
   const r=vpSize(), now=Date.now(); addN=now-addT<4000?addN+1:0; addT=now;
   let n; const inside=[...sel].filter(id=>node(id));
   if(k==='group'&&inside.length){ const bb=bounds(inside); n=newNode('group',snapv(bb.x-30),snapv(bb.y-30),{w:snapv(bb.w+60),h:snapv(bb.h+60)}); }
@@ -322,7 +324,7 @@ function addEdge(a,b){
   mmSnap(); const e={id:rid(),from:a,to:b}; M.edges.push(e); sel.clear(); selE=e.id; touch(); mmDraw();
 }
 function removeSel(){
-  if(LOCK) return; const ids=new Set(sel); if(!ids.size&&!selE) return;
+  if(mmRO()) return; const ids=new Set(sel); if(!ids.size&&!selE) return;
   mmSnap();
   M.nodes=M.nodes.filter(n=>!ids.has(n.id)); M.edges=M.edges.filter(e=>e.id!==selE&&!ids.has(e.from)&&!ids.has(e.to));
   sel.clear(); selE=null; touch(); mmDraw();
@@ -334,7 +336,7 @@ function cloneInto(ns,es,dx,dy){
   M.nodes.push(...add); sel=new Set(add.map(n=>n.id)); selE=null;
 }
 function duplicate(){
-  if(LOCK||!sel.size) return;
+  if(mmRO()||!sel.size) return;
   const ns=[...sel].map(node).filter(Boolean); mmSnap(); cloneInto(ns,M.edges,30,30); touch(); mmDraw();
 }
 function toggleCheck(n,i){
@@ -443,7 +445,7 @@ function toolClick(e){
   if(v==='zin'||v==='zout') return zoomAt(r.w/2,r.h/2,v==='zin'?1.2:1/1.2);
   if(v==='z100') return zoomAt(r.w/2,r.h/2,1/V.z);
   if(v==='fit') return mmFit();
-  if(LOCK) return;
+  if(mmRO()) return;
   if(v==='line'){
     if(tool==='line') return cancelTool();
     const ns=[...sel].filter(id=>node(id));
@@ -471,8 +473,8 @@ function mmDown(e){
   if(nEl){
     const id=nEl.dataset.id, n=node(id); if(!n) return;
     if(tool==='line'){ lineClick(id); return; }
-    if(t.closest('.mm-hd')&&!LOCK){ G=Object.assign(base,{type:'connect',from:id,side:t.closest('.mm-hd').dataset.side}); return; }
-    if(t.closest('.mm-rz')&&!LOCK){ const b=box(id); G=Object.assign(base,{type:'resize',nid:id,w0:n.w,h0:n.k==='card'?b.h:n.h}); return; }
+    if(t.closest('.mm-hd')&&!mmRO()){ G=Object.assign(base,{type:'connect',from:id,side:t.closest('.mm-hd').dataset.side}); return; }
+    if(t.closest('.mm-rz')&&!mmRO()){ const b=box(id); G=Object.assign(base,{type:'resize',nid:id,w0:n.w,h0:n.k==='card'?b.h:n.h}); return; }
     if(e.shiftKey){ if(sel.has(id)) sel.delete(id); else sel.add(id); } else if(!sel.has(id)) sel=new Set([id]);
     selE=null; updateSel();
     G=Object.assign(base,{type:'move',nid:id});
@@ -484,7 +486,7 @@ function mmDown(e){
   G=Object.assign(base,{type:'marquee',p0:wpt(e),keep:e.shiftKey?new Set(sel):null});
 }
 function begin(g){
-  if(g.type==='edge'||(g.type==='move'&&LOCK)){ g.type='pan'; g.vx=V.x; g.vy=V.y; vp.classList.add('panning'); return; }   /* zamčeno: tažením bloku se jen posouvá plátno */
+  if(g.type==='edge'||(g.type==='move'&&mmRO())){ g.type='pan'; g.vx=V.x; g.vy=V.y; vp.classList.add('panning'); return; }   /* zamčeno: tažením bloku se jen posouvá plátno */
   vp.classList.add('dragging');
   if(g.type==='move'){ mmSnap(); g.start=new Map([...moving()].map(id=>{ const n=node(id); return [id,{x:n.x,y:n.y}]; })); }
   else if(g.type==='resize') mmSnap();
@@ -568,7 +570,7 @@ function tap(g,e){
   }
   if(g.type==='edge'){ if(dbl) editEdgeLabel(g.eid); return; }
   if(g.type==='connect'||g.type==='resize') return;
-  if(dbl&&!LOCK){
+  if(dbl&&!mmRO()){
     const p=wpt(e), [w,h]=SIZE.card;
     mmSnap(); const n=newNode('card',snapv(p.x-w/2),snapv(p.y-h/2)); M.nodes.push(n); sel=new Set([n.id]); selE=null; touch(); mmDraw(); startEdit(n.id,true); return;
   }
@@ -746,7 +748,7 @@ function mmKey(e){
   if(e.target&&e.target.closest&&e.target.closest('input,textarea,select,[contenteditable="true"]')) return;
   const mod=(e.metaKey||e.ctrlKey)&&!e.altKey, k=e.key.toLowerCase();
   if(e.key===' '&&!mod){ e.preventDefault(); if(!space){ space=true; vp.classList.add('pan'); } return; }
-  if(mod&&(k==='z'||k==='y')){ e.preventDefault(); if(!LOCK){ if(k==='y'||e.shiftKey) mmRedo(); else mmUndo(); } return; }
+  if(mod&&(k==='z'||k==='y')){ e.preventDefault(); if(!mmRO()){ if(k==='y'||e.shiftKey) mmRedo(); else mmUndo(); } return; }
   if(mod&&k==='a'){ e.preventDefault(); sel=new Set(M.nodes.map(n=>n.id)); selE=null; updateSel(); return; }
   if(mod&&k==='d'){ e.preventDefault(); duplicate(); return; }
   if(mod&&(k==='='||k==='+'||k==='-'||k==='0')){ e.preventDefault(); const r=vpSize(); zoomAt(r.w/2,r.h/2,k==='0'?1/V.z:k==='-'?1/1.2:1.2); return; }
@@ -754,7 +756,7 @@ function mmKey(e){
   if(e.key==='Delete'||e.key==='Backspace'){ if(sel.size||selE){ e.preventDefault(); removeSel(); } return; }
   if(e.key==='Escape'){ if(tool) cancelTool(); else if(sel.size||selE){ sel.clear(); selE=null; updateSel(); } return; }
   if(e.key==='Enter'&&sel.size===1){ e.preventDefault(); const n=node([...sel][0]); if(n){ if(n.k==='group') editGroupLabel(n.id); else startEdit(n.id); } return; }
-  if(e.key.startsWith('Arrow')&&sel.size&&!LOCK){
+  if(e.key.startsWith('Arrow')&&sel.size&&!mmRO()){
     e.preventDefault(); const d=e.shiftKey?GRID*5:GRID;
     const dx=e.key==='ArrowLeft'?-d:e.key==='ArrowRight'?d:0, dy=e.key==='ArrowUp'?-d:e.key==='ArrowDown'?d:0;
     if(!e.repeat) mmSnap();
@@ -770,7 +772,7 @@ function onClip(e,cut){
   if(cut) removeSel();
 }
 function onPaste(e){
-  if(!mmActive()||LOCK) return;
+  if(!mmActive()||mmRO()) return;
   const txt=(e.clipboardData&&e.clipboardData.getData('text/plain'))||'';
   if(clip&&txt===clip.sig){ e.preventDefault(); clip.n++; mmSnap(); cloneInto(clip.nodes,clip.edges,30*clip.n,30*clip.n); touch(); mmDraw(); return; }
   if(!txt.trim()) return;

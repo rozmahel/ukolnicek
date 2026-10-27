@@ -1,5 +1,5 @@
 /* Úkolníček – Menu bloku, tabulky, ikony stránky a stránky v levém panelu */
-import { $, $$, CALLOUT_IC, clamp, clone, COLOR_CZ, COLORS, EMOJI, esc, plain, rid, TEXT_TYPES, TYPE_ICON, TYPE_LABEL } from '../core.js';
+import { $, $$, CALLOUT_IC, clamp, clone, COLOR_CZ, COLORS, EMOJI, esc, plain, rid, simpleUi, TEXT_TYPES, TYPE_ICON, TYPE_LABEL } from '../core.js';
 import { S } from '../state.js';
 import { LOCK } from '../lock.js';
 import { savePage } from '../store.js';
@@ -42,7 +42,7 @@ function openBlockMenu(anchor,pg,b,at){
     return;
   }
   /* nahoře řada čtverečků (posun, kopírovat, duplikovat, smazat); s výběrem víc bloků platí menu pro všechny */
-  const multi=bselCount(b.id), noLvl=b.type==='image'&&!multi;
+  const multi=bselCount(b.id), SIMPLE=simpleUi(), noLvl=b.type==='image'&&!multi||SIMPLE;   /* jednoduchý režim: jen nahoru/dolů, převést, smazat (+ kopírovat) */
   const ib=(v,ic,t,dis)=>`<button class="bm-ic${v==='del'?' danger':''}" data-v="${v}" title="${t}" aria-label="${t}"${dis?' disabled':''}>${ic}</button>`;
   h+=`<div class="bm-row">${ib('up','↑','Posunout nahoru (⌥⇧↑)')}${ib('down','↓','Posunout dolů (⌥⇧↓)')}`
     +(noLvl?'':ib('left','←','Posunout doleva (⌘ú)',!multi&&!((b.level||0)>0))+ib('right','→','Posunout doprava (⌘))',!multi&&(b.level||0)>=4))
@@ -69,11 +69,11 @@ function openBlockMenu(anchor,pg,b,at){
     h+=`<div class="pop-h">Barva</div><div class="swatches">${COLORS.map(c=>`<button class="sw hl-${c} ${b.color===c?'on':''}" data-v="color:${c}" aria-label="${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}</div>`;
   }
   if(b.type==='eq') h+=`<div class="pop-sep"></div><button class="pop-item" data-v="eq-edit"><span class="pi-ic">${TYPE_ICON.eq}</span>Upravit rovnici</button><button class="pop-item" data-v="eq-txt"><span class="pi-ic">T</span><span>Převést na text<small>Zdroj LaTeX jako obyčejný odstavec</small></span></button>`;
-  if(b.type==='image'&&b.draw) h+=`<div class="pop-sep"></div><button class="pop-item" data-v="draw-edit"><span class="pi-ic">✎</span>Upravit kresbu</button><button class="pop-item" data-v="draw-size"><span class="pi-ic">⤢</span>Velikost a zarovnání</button>`;
-  { const xi=pg.blocks.indexOf(b); if(b.type!=='image'&&(b.clr||pg.blocks.slice(0,xi).some(q=>q.type==='image'&&(q.align==='left'||q.align==='right')&&!q.nw)))
+  if(b.type==='image'&&b.draw) h+=`<div class="pop-sep"></div><button class="pop-item" data-v="draw-edit"><span class="pi-ic">✎</span>Upravit kresbu</button>${SIMPLE?'':'<button class="pop-item" data-v="draw-size"><span class="pi-ic">⤢</span>Velikost a zarovnání</button>'}`;
+  if(!SIMPLE){ const xi=pg.blocks.indexOf(b); if(b.type!=='image'&&(b.clr||pg.blocks.slice(0,xi).some(q=>q.type==='image'&&(q.align==='left'||q.align==='right')&&!q.nw)))
       h+=`<div class="pop-sep"></div><button class="pop-item ${b.clr?'act':''}" data-v="clr"><span class="pi-ic">${b.clr?'✓':'⤓'}</span><span>Začít pod obrázkem<small>${b.clr?'Klikni pro zrušení':'Ukončí obtékání, blok začne až pod obrázkem'}</small></span></button>`; }
-  if(b.type==='table') h+=`<div class="pop-sep"></div><div class="pop-h">Tabulka</div><button class="pop-item" data-v="hrow"><span class="pi-ic">${b.hrow?'✓':''}</span>První řádek jako záhlaví</button><button class="pop-item" data-v="hcol"><span class="pi-ic">${b.hcol?'✓':''}</span>První sloupec jako záhlaví</button>`;
-  {
+  if(b.type==='table'&&!SIMPLE) h+=`<div class="pop-sep"></div><div class="pop-h">Tabulka</div><button class="pop-item" data-v="hrow"><span class="pi-ic">${b.hrow?'✓':''}</span>První řádek jako záhlaví</button><button class="pop-item" data-v="hcol"><span class="pi-ic">${b.hcol?'✓':''}</span>První sloupec jako záhlaví</button>`;
+  if(!SIMPLE){
     const bl=pg.blocks, xi=bl.indexOf(b); let sec='';
     for(let i=xi-1;i>=0;i--){
       const hb=bl[i]; if(!hLevel(hb.type)) continue;

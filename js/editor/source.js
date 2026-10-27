@@ -5,7 +5,7 @@
      jako řádek <!-- uk:ID popis -->: jde přesunout nebo smazat, obsah se upravuje v běžném zobrazení
    - prázdný řádek stránky je v textu jako <br>
    - zapíná se tlačítkem </> u zámku, jen pro otevřenou stránku a jen v tomhle okně (nic se neukládá) */
-import { $, esc } from '../core.js';
+import { $, esc, simpleUi } from '../core.js';
 import { S } from '../state.js';
 import { LOCK } from '../lock.js';
 import { savePage } from '../store.js';
@@ -91,11 +91,12 @@ function apply(fromRender){
 function flushSource(fromRender){ if(!timer) return; clearTimeout(timer); timer=0; apply(fromRender); }
 /* výška pole podle obsahu; posunutí stránky se při tom nesmí změnit (pole se na okamžik zmenší a stránka by uskočila nahoru) */
 const fit=ta=>{ const m=$('#main'), st=m?m.scrollTop:0; ta.style.height='auto'; ta.style.height=(ta.scrollHeight+2)+'px'; if(m&&m.scrollTop!==st) m.scrollTop=st; };
-const srcOn=pg=>!!pg&&srcPage===pg.id;
+const srcOn=pg=>!!pg&&srcPage===pg.id&&!simpleUi();   /* v úzkém okně se zdroj neukazuje (po rozšíření se vrátí) */
 let keepSel=null;   /* kurzor v poli přes překreslení stránky (⌘Z, data z jiného okna) */
 /* HTML pole pro renderPage, nebo null (běžné zobrazení) */
 function sourceHtml(pg){
   if(srcPage!==pg.id){ srcPage=null; return null; }
+  if(simpleUi()) return null;
   const old=$('#src-ed'); keepSel=old&&old.dataset.page===pg.id?{s:old.selectionStart,e:old.selectionEnd,f:document.activeElement===old}:null;
   srcBase=sourceText(pg);
   return `<textarea class="src-ed" id="src-ed" data-page="${pg.id}" spellcheck="false" autocapitalize="off" autocomplete="off"${LOCK?' readonly':''} aria-label="Zdroj stránky v Markdownu">${esc(srcBase)}</textarea>`;
@@ -144,6 +145,11 @@ function initSource(){
   $('#view').addEventListener('focusout',e=>{ if(e.target.id==='src-ed') flushSource(); });
   $('#view').addEventListener('keydown',srcKeys);
   addEventListener('resize',()=>{ const ta=$('#src-ed'); if(ta) fit(ta); });
+  /* přechod mezi úzkým a širokým oknem: zdroj se schová / vrátí */
+  matchMedia('(max-width:860px)').addEventListener('change',()=>{
+    flushSource(); const pg=srcPage&&S.pages[srcPage];
+    if(pg&&S.view.kind==='page'&&S.view.pageId===pg.id){ const st=$('#main').scrollTop; renderPage(pg); $('#main').scrollTop=st; }
+  });
 }
 
 export { fitSource, flushSource, initSource, sourceHtml, srcOn, toggleSource };

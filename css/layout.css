@@ -153,9 +153,13 @@ body.locked .tr-del,body.locked .tr-empty{display:none}
 @media (min-width:861px){
   #panes.split #doc,.split-ghost .doc{padding-top:18px}
   /* v polovině o 60 % menší okraje (76 → 30 px); úchyt ⋮⋮ se vejde do levého okraje jako na telefonu, + je schované (stačí Enter nebo ⋮⋮) */
-  #panes.split .doc{padding-left:34px;padding-right:30px}
+  #panes.split .doc{padding-left:40px;padding-right:30px}
   #panes.split .blk:not(.bfl,.b-image)>.gut{left:calc(var(--lv,0)*26px - 30px)}
   #panes.split .blk.bfl>.gut{left:calc(var(--gx) + var(--lv,0)*26px - 30px)}
+  /* nadpis a předmět mají šipku sbalení: ⋮⋮ vždy vlevo vedle ní (užší úchyt i šipka, aby se oba vešly do okraje) */
+  #panes.split .gut .g-drag{width:18px}
+  #panes.split .caret{left:-20px;width:18px}
+  #panes.split .blk:not(.bfl):has(>.row>.caret)>.gut{left:calc(var(--lv,0)*26px - 40px)}
   #panes.split .gut .g-add{display:none}
 }
 .split-ghost{overflow:auto;position:relative;cursor:default}

@@ -2,7 +2,7 @@
    Každý blok je samostatné editovatelné pole a prohlížeč by výběr nepustil ven z bloku.
    Když myš při tažení přejede do jiného bloku, bloky se na chvíli přepnou na needitovatelné,
    výběr pak jde přes celou stránku. Při dalším kliknutí nebo psaní se vše vrátí. */
-import { $, $$, clamp, clone, esc, plain, rid, TEXT_TYPES, TYPE_ICON, TYPE_LABEL } from '../core.js';
+import { $, $$, clamp, clone, esc, plain, rid, simpleUi, TEXT_TYPES, TYPE_ICON, TYPE_LABEL } from '../core.js';
 import { S } from '../state.js';
 import { LOCK } from '../lock.js';
 import { savePage } from '../store.js';
@@ -26,6 +26,7 @@ const topBlk=el=>{ const b=el&&el.closest&&el.closest('#blocks > .blk'); return 
 const mainTxt=blk=>blk&&$(':scope > .row > .txt',blk);
 
 function startCross(){
+  if(simpleUi()) return;   /* jednoduchý režim: výběr jen v jednom bloku */
   active=true; document.body.classList.add('xsel');
   $$('#blocks .txt[contenteditable="true"]').forEach(t=>t.setAttribute('contenteditable','false'));
 }
@@ -216,6 +217,7 @@ function markSel(){
   drawBar(r); document.dispatchEvent(new Event('uk-bsel'));
 }
 function selectBlocks(a,f){
+  if(simpleUi()) return;   /* jednoduchý režim: výběr celých bloků vypnutý */
   endCross(); const ae=document.activeElement; if(ae&&ae!==document.body&&ae.closest&&ae.closest('#view')) ae.blur();
   getSelection().removeAllRanges(); bs={a,f:f||a}; document.body.classList.add('bmode'); markSel();
 }
@@ -318,7 +320,7 @@ export function initMultiSel(){
   /* po kliknutí za tažením rámečku se nic neotevře ani nepřidá */
   view.addEventListener('click',e=>{ if(Date.now()-bandJust<250){ e.stopPropagation(); e.preventDefault(); } },true);
   view.addEventListener('mousedown',e=>{
-    if(e.button!==0) return;
+    if(e.button!==0||simpleUi()) return;
     /* Shift+klik: výběr bloků od aktuálního (nebo vybraného) bloku po kliknutý */
     if(e.shiftKey){
       const blk=topBlk(e.target), ae=document.activeElement, from=bs?bs.a:(ae&&ae.closest&&topBlk(ae)?topBlk(ae).dataset.id:null);
@@ -341,7 +343,7 @@ export function initMultiSel(){
   document.addEventListener('mouseup',()=>{ if(band) endBand(); });
   view.addEventListener('mousedown',e=>{
     endCross(); xs=null;
-    if(e.button!==0||e.shiftKey||e.detail>1) return;
+    if(e.button!==0||e.shiftKey||e.detail>1||simpleUi()) return;
     const t=e.target.closest&&e.target.closest('#blocks > .blk > .row > .txt'); if(!t) return;
     const p=pointAt(e.clientX,e.clientY); if(!p) return;
     xs={host:t,node:p[0],off:p[1]};

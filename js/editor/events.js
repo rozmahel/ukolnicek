@@ -1,11 +1,11 @@
 /* Úkolníček – Události editoru: psaní, vkládání, přetahování bloků a obrázků */
-import { $, $$, clamp, clone, esc, plain, rid, TEXT_TYPES } from '../core.js';
+import { $, $$, clamp, clone, esc, plain, rid, simpleUi, TEXT_TYPES } from '../core.js';
 import { LOCK } from '../lock.js';
 import { savePage } from '../store.js';
 import { setTypingNow } from './history.js';
 import { curPage, newBlock, pTitle } from '../pages.js';
 import { sanitize } from '../sanitize.js';
-import { caretOffset, focusBlock, focusEl, focusLine, onLastLine, splitAtCaret } from './caret.js';
+import { caretAtStart, caretOffset, focusBlock, focusEl, focusLine, onLastLine, splitAtCaret } from './caret.js';
 import { ctxOf, rerenderBlocks } from './render.js';
 import { clearShortcut, setType } from './blocks.js';
 import { mdBlock, mdLine, openSlash, slash, slashKey, updateSlash } from './slash.js';
@@ -30,6 +30,13 @@ let dragImg=false;   /* táhne se blokový obrázek: vpravo vedle textu ho jde n
 const FLOAT_NO=['h1','subj','image','table'];   /* H1 a předmět ruší obtékání (clear), tam obrázek vedle nejde */
 function endDrag(){ dragId=null; dragImg=false; $$('.drop-before,.drop-after,.drop-float,.dragging').forEach(x=>x.classList.remove('drop-before','drop-after','drop-float','dragging')); }
 
+let lastKd=null;   /* poslední keydown v editoru (pro beforeinput v jednoduchém režimu) */
+/* text bloku nebo řádku buňky z DOM do dat (bez úprav textu) */
+function syncModel(x,t){
+  if(x.line) x.line.html=t.innerHTML;
+  else x.b.html=x.b.type==='code'?codeHtml(domText(t)):t.innerHTML;
+}
+
 /* posluchače a nastavení při startu (volá main.js ve stejném pořadí jako dřív) */
 export function initEvents(){
   initMultiSel();
@@ -51,6 +58,9 @@ export function initEvents(){
     if(!t.classList.contains('txt')) return;
     if(t.innerHTML==='<br>') t.innerHTML='';
     const x=ctxOf(t); if(!x) return;
+    /* jednoduchý režim: během rozepsaného slova (klávesnice telefonu) jen zapsat do dat, nic v textu neměnit ani neukládat;
+       uloží se po potvrzení slova (compositionend) */
+    if(e.isComposing&&simpleUi()){ syncModel(x,t); return; }
     const typed=e.inputType==='insertText';
     if(!x.line&&x.b.type==='code'){ x.b.html=codeHtml(domText(t)); savePage(pg); return; }   /* v kódu se nic nezkracuje: žádné /, @, $ ani zkratky */
     if(typed&&e.data==='$') dollarInput(t);
@@ -61,6 +71,29 @@ export function initEvents(){
     if(slash.open) updateSlash();
     else if(typed&&e.data==='/'){ const off=caretOffset(t); const before=t.textContent.slice(0,off-1); if(!before||/\s$/.test(before)) openSlash(t,x.b.id,off-1,'slash'); }
     savePage(pg);
+  });
+  viewEl.addEventListener('compositionend',e=>{
+    if(!simpleUi()) return;
+    const t=e.target; if(!t.classList||!t.classList.contains('txt')) return;
+    const x=ctxOf(t); if(!x) return; syncModel(x,t); savePage(x.pg);
+  });
+  /* jednoduchý režim: klávesnice telefonu často neposílá Enter/Backspace jako klávesu (Unidentified, nebo Enter během
+     rozepsaného slova). Pak se zachytí až beforeinput a použije se stejná obsluha jako u klávesy. Jinak se nic nezachytává. */
+  viewEl.addEventListener('keydown',e=>{ lastKd=e; },true);
+  viewEl.addEventListener('beforeinput',e=>{
+    const kd=lastKd; lastKd=null;
+    if(!simpleUi()) return;
+    const it=e.inputType, enter=it==='insertParagraph', back=it==='deleteContentBackward';
+    if(!enter&&!back) return;
+    if(kd&&(enter?kd.key==='Enter'&&!kd.isComposing:kd.key==='Backspace')) return;   /* už obsloužil keydown */
+    const t=e.target; if(!t.classList||!t.classList.contains('txt')) return;
+    if(back&&!caretAtStart(t)) return;
+    const x=ctxOf(t); if(!x) return;
+    syncModel(x,t);
+    let stop=false;
+    const fake={key:enter?'Enter':'Backspace',code:'',shiftKey:false,isComposing:false,metaKey:false,ctrlKey:false,altKey:false,target:t,preventDefault(){ stop=true; },stopPropagation(){}};
+    if(!(enter&&(slashKey(fake)||mentionKey(fake)))){ if(x.line) lineKeys(fake,x,t); else blockKeys(fake,x,t); }   /* Enter v otevřeném menu / nebo @ vybere položku */
+    if(stop) e.preventDefault();
   });
   viewEl.addEventListener('mousedown',()=>clearShortcut(),true);
   viewEl.addEventListener('keydown',e=>{
@@ -160,7 +193,7 @@ export function initEvents(){
   });
   viewEl.addEventListener('dragstart',e=>{
     const h=e.target.closest&&e.target.closest('.g-drag'); if(!h){ return; }
-    if(LOCK){ e.preventDefault(); return; }
+    if(LOCK||simpleUi()){ e.preventDefault(); return; }
     const blk=h.closest('.blk'); dragId=blk.dataset.id; dragImg=blk.classList.contains('b-image');
     e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain','');
     /* náhled táhne se přesně z místa, kde je kurzor (u obrázku jen samotný obrázek, ne celá šířka bloku) */

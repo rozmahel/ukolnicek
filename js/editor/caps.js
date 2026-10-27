@@ -4,7 +4,7 @@
    Podtržení přes CSS Custom Highlight API (do HTML bloku se nic nevkládá, data se nemění).
    Kurzor v podtrženém úseku ukáže bublinu: prohodit velikost písmen / nechat.
    Volba `uk-caps` a seznam „nechat“ `uk-caps-ok` jsou jen v zařízení. */
-import { clamp, lsGet, lsSet } from '../core.js';
+import { clamp, lsGet, lsSet, simpleUi } from '../core.js';
 import { caretOffset, focusEl } from './caret.js';
 
 const HL='uk-caps', OK_KEY='uk-caps-ok', OK_MAX=200;
@@ -12,7 +12,7 @@ const SKIP='a, .eq, code, .mention, [contenteditable="false"]';   /* odkazy, rov
 const EXC=new Set(['mRNA','tRNA','rRNA','kVAR','mAh']);
 const isLo=c=>c!==c.toUpperCase(), isUp=c=>c!==c.toLowerCase();
 const allUp=w=>w===w.toUpperCase()&&w!==w.toLowerCase();
-const capsOn=()=>lsGet('uk-caps',true)!==false;
+const capsOn=()=>lsGet('uk-caps',true)!==false&&!simpleUi();   /* v jednoduchém režimu (úzké okno) vypnuté */
 const ok=()=>{ const v=lsGet(OK_KEY,[]); return Array.isArray(v)?v:[]; };
 
 let entries=[];        /* {el, bid, range, text} */
@@ -154,7 +154,7 @@ function initCaps(){
     const t=e.target; if(!capsOn()||!t.classList||!t.classList.contains('txt')||!e.inputType) return;
     clearTimeout(scanT); scanT=setTimeout(()=>scan(t),300);
   });
-  let raf=0; const upd=()=>{ cancelAnimationFrame(raf); raf=requestAnimationFrame(()=>{ if(entries.length) capsPlace(); else if(popFor) capsHide(); }); };
+  let raf=0; const upd=()=>{ cancelAnimationFrame(raf); raf=requestAnimationFrame(()=>{ if(simpleUi()){ if(entries.length||popFor) capsOff(); return; } if(entries.length) capsPlace(); else if(popFor) capsHide(); }); };
   document.addEventListener('selectionchange',upd);
   document.addEventListener('scroll',upd,true);
   addEventListener('resize',upd);

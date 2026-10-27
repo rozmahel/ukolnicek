@@ -39,17 +39,17 @@ const SLASH=[
   {k:'todo',hint:'Zaškrtávací políčko',kw:'ukol todo checkbox zaskrtavaci'},
   {k:'bullet',hint:'Seznam s odrážkami',kw:'odrazky seznam bullet list'},
   {k:'num',hint:'Seznam 1, 2, 3',kw:'cislovany seznam number list'},
-  {k:'table',hint:'Řádky a sloupce, v buňkách odrážky i úkoly',kw:'tabulka table mrizka'},
+  {k:'table',adv:true,hint:'Řádky a sloupce, v buňkách odrážky i úkoly',kw:'tabulka table mrizka'},
   {k:'callout',hint:'Barevný rámeček s ikonou',kw:'zvyrazneny callout upozorneni info poznamka'},
   {k:'quote',hint:'Odsazený citát',kw:'citace quote'},
-  {k:'code',hint:'Neformátovaný text na víc řádků, třeba struktura složek',kw:'kod code blok slozky struktura strom prikaz terminal monospace'},
+  {k:'code',adv:true,hint:'Neformátovaný text na víc řádků, třeba struktura složek',kw:'kod code blok slozky struktura strom prikaz terminal monospace'},
   {k:'divider',hint:'Vodorovná čára',kw:'oddelovac cara divider'},
   {k:'image',hint:'Ze souboru; v úkolu či odrážce se vloží do textu',kw:'obrazek image foto fotka picture screenshot'},
   {k:'draw',hint:'Rychlá skica perem, fixem nebo zvýrazňovačem',kw:'kreslit kresba nakreslit malovat skica nacrt tuzka pero fix draw sketch'},
   {k:'eq',hint:'LaTeX; v prázdném řádku na samostatný řádek, jinak do textu',kw:'rovnice vzorec latex tex math matematika equation jednotka velicina symbol zlomek'},
   {k:'link',hint:'Webová adresa s vlastním názvem',kw:'odkaz link url web adresa hypertext'},
   {k:'page',hint:'Odkaz na stránku nebo nová podstránka',kw:'podstranka stranka page odkaz'},
-  {k:'mdimport',hint:'Vloží obsah souboru .md (nadpisy, seznamy, úkoly, tabulky)',kw:'markdown md import soubor nahrat obsidian'},
+  {k:'mdimport',adv:true,hint:'Vloží obsah souboru .md (nadpisy, seznamy, úkoly, tabulky)',kw:'markdown md import soubor nahrat obsidian'},
   {k:'ai',hint:'Napíše text podle zadání',kw:'ai umela inteligence napsat napis generovat vytvor gemini claude',ai:true},
   {k:'aisum',hint:'Shrne celou stránku do pár bodů',kw:'shrnuti shrnout souhrn ai summary',ai:true}
 ];
@@ -72,6 +72,10 @@ function downloadFile(name,text){
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'application/json'})); a.download=name;
   document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1500);
 }
+/* jednoduchý režim (od 4.18.0): úzké okno (≤ 860 px, telefon, tablet na výšku) = jen základní úpravy; nové funkce se sem
+   dostanou jen výslovně. Rozhoduje šířka, ne zařízení. Data se nemění: co se tu neukazuje nebo neupravuje, zůstane jak je. */
+const NARROW=matchMedia('(max-width:860px)');
+const simpleUi=()=>NARROW.matches;
 const plural=(n,one,few,many)=>n===1?one:n>1&&n<5?few:many;
 
-export { $, $$, CALLOUT_IC, clamp, clone, COLOR_CZ, COLORS, DAYS, DAYS_FULL, downloadFile, EMOJI, esc, ICONS, LIST_TYPES, lsGet, lsSet, MONTHS, norm, pad, PH, plain, plural, rid, SLASH, spellOn, TEXT_TYPES, TYPE_ICON, TYPE_LABEL, TYPE_SHORT, TYPES };
+export { $, $$, CALLOUT_IC, clamp, clone, COLOR_CZ, COLORS, DAYS, DAYS_FULL, downloadFile, EMOJI, esc, ICONS, LIST_TYPES, lsGet, lsSet, MONTHS, norm, pad, PH, plain, plural, rid, simpleUi, SLASH, spellOn, TEXT_TYPES, TYPE_ICON, TYPE_LABEL, TYPE_SHORT, TYPES };

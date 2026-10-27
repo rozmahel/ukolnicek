@@ -25,3 +25,25 @@
   .agenda{display:block}
   .grid2{grid-template-columns:1fr}
 }
+
+/* jednoduchý režim (od 4.18.0): v úzkém okně jen základní úpravy, data se nemění (po rozšíření okna je vše jako dřív).
+   Logika je v js/core.js (simpleUi) a u jednotlivých funkcí. */
+@media (max-width:860px){
+  /* zdroj, export do .md a AI jen v plném editoru */
+  #md-btn,#src-btn,.ai-ctx-btn,.fmt-ai{display:none!important}
+  /* bloky se nepřetahují (⋮⋮ je jen menu) */
+  .gut .g-drag{cursor:pointer}
+  /* tabulky: jen psaní do buněk */
+  .rh,.ch,.tbl-tools{display:none!important}
+  /* obrázky a kresby pod sebou přes celou šířku, bez obtékání; uložené zarovnání a velikost zůstávají */
+  .blocks>.b-image,.blocks>.b-image.al-left,.blocks>.b-image.al-right,.blocks>.b-image.al-center{float:none!important;clear:both;width:100%!important;margin-inline:0!important}
+  .b-image>.gut,.b-image.al-center>.gut{left:6px}
+  .txt img.im.al-left,.txt img.im.al-right{float:none;display:block;margin:6px 0}
+  .blk.bfl>.gut{left:calc(var(--lv,0)*26px - 30px)}
+  #imgframe .rz{display:none}
+  /* Index: body a zápočet ano, nastavení předmětu a semestru ne */
+  .ix-more{display:none}
+  .ixc-nm{cursor:default}
+  /* myšlenková mapa jen k prohlížení a posunu */
+  .mm-add,.mm-hint,.mm-empty,.mm-hd,.mm-rz{display:none!important}
+}

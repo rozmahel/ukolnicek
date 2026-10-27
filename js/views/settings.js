@@ -20,7 +20,7 @@ import { checkUpdate } from '../update.js';
 import { aiPaneBind } from './aiset.js';
 
 /* ================= settings ================= */
-const APP_VERSION='4.17.0';
+const APP_VERSION='4.18.0';
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
 const FS_STEPS=[1,1.15,1.3,1.45,1.6];
 function applyTheme(){

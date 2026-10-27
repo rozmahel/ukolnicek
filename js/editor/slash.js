@@ -1,5 +1,5 @@
 /* Úkolníček – Nabídka „/“ a markdownové zkratky (# , - , [] …) */
-import { $, clamp, norm, SLASH, TEXT_TYPES, TYPE_ICON, TYPE_LABEL } from '../core.js';
+import { $, clamp, norm, simpleUi, SLASH, TEXT_TYPES, TYPE_ICON, TYPE_LABEL } from '../core.js';
 import { savePage } from '../store.js';
 import { curPage, newBlock } from '../pages.js';
 import { isIndex, openSubjPicker } from '../school.js';
@@ -19,7 +19,7 @@ import { insertEq, openEqEditor, toEqBlock } from './math.js';
 /* ---- slash menu ---- */
 let slash={open:false};
 /* položky nabídky; „Předmět“ jen ve školním režimu se zapnutým Indexem */
-const slashItems=()=>SLASH.filter(it=>(!it.school||isIndex())&&(!it.ai||aiUsable()));   /* AI jen s nastaveným poskytovatelem, odemčeno a online */
+const slashItems=()=>SLASH.filter(it=>(!it.school||isIndex())&&(!it.ai||aiUsable())&&!((it.adv||it.ai)&&simpleUi()));   /* AI jen s nastaveným poskytovatelem, odemčeno a online; v jednoduchém režimu jen základní bloky */   /* AI jen s nastaveným poskytovatelem, odemčeno a online */
 function openSlash(el,bid,start,mode){ slash={open:true,el,bid,start,mode,idx:0,items:slashItems()}; drawSlash(); }
 function closeSlash(){ if(slash.open){ slash.open=false; const p=$('#slash'); if(p) p.remove(); } }
 function slashQuery(){
@@ -102,7 +102,8 @@ function mdBlock(x,t){
   if(x.b.type!=='p') return false;
   for(const [re,k] of MD){
     const m=txt.match(re); if(!m||caretOffset(t)!==m[0].length) continue;
-    if(k==='num'&&numShortcutOff(x.b.id)) continue;   /* „1. “ už jednou vrácené na text: v tomhle bloku zůstane obyčejný text */
+    if(k==='num'&&numShortcutOff(x.b.id)) continue;
+    if(k==='code'&&simpleUi()) continue;   /* blok kódu jen v plném editoru */   /* „1. “ už jednou vrácené na text: v tomhle bloku zůstane obyčejný text */
     deleteOffsets(t,0,m[0].length); x.b.html=sanitize(t.innerHTML); setType(x.pg,x.b,k);
     if(k==='num') rememberTypedNum(x.b.id,m[0]);
     savePage(x.pg); rerenderBlocks(); focusBlock(x.b.id,0); noteShortcut(x.b.id,m[0],k); return true;

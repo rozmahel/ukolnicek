@@ -1,5 +1,5 @@
 /* Úkolníček – Obrázky: vložení, zmenšení, zarovnání, velikost */
-import { $, $$, clamp, esc, lsGet, lsSet, TEXT_TYPES } from '../core.js';
+import { $, $$, clamp, esc, lsGet, lsSet, simpleUi, TEXT_TYPES } from '../core.js';
 import { S } from '../state.js';
 import { LOCK } from '../lock.js';
 import { IMGURL, savePage } from '../store.js';
@@ -228,9 +228,11 @@ function openImgTools(){
   const kind=imgSel.kind, inCell=kind==='inline'&&!!imgSel.img.closest('td'), isDraw=imgSel.img.classList.contains('bdraw');
   const keys=inCell?['in','wl','c','wr']:['wl','l','c','r','wr'].concat(kind==='inline'?['in']:[]);
   const sizes=[['25','Malý',.25],['50','Střední',.5],['75','Velký',.75],['100','Celá šířka',1]];
-  const h=`<div class="it-row lay-row">${keys.map(k=>`<button class="lay-b" data-v="lay:${k}" title="${LAY[k][2]}" aria-label="${LAY[k][2]}"><svg viewBox="0 0 28 20" aria-hidden="true">${LAY_IC[k]}</svg></button>`).join('')}</div>
+  /* jednoduchý režim: obrázky jsou pod sebou přes celou šířku, rozvržení a velikost jen v plném editoru */
+  const lay=simpleUi()?'':`<div class="it-row lay-row">${keys.map(k=>`<button class="lay-b" data-v="lay:${k}" title="${LAY[k][2]}" aria-label="${LAY[k][2]}"><svg viewBox="0 0 28 20" aria-hidden="true">${LAY_IC[k]}</svg></button>`).join('')}</div>
     <div class="pop-h">Velikost</div><div class="it-row">${sizes.map(([k,l,f])=>`<button data-v="sz:${f}">${l}</button>`).join('')}</div>
-    <div class="pop-sep"></div><div class="it-row">${isDraw?'<button data-v="draw">Upravit kresbu</button>':''}${kind==='block'?`<button data-v="cap">${imgSel.x.b.caption||imgSel.x.b.capOn?'Upravit popisek':'Přidat popisek'}</button>`:''}<button data-v="open">Zvětšit</button><button data-v="dl">Stáhnout</button>${LOCK?'':'<button class="danger" data-v="del">Smazat</button>'}</div>`;
+    <div class="pop-sep"></div>`;
+  const h=`${lay}<div class="it-row">${isDraw?'<button data-v="draw">Upravit kresbu</button>':''}${kind==='block'?`<button data-v="cap">${imgSel.x.b.caption||imgSel.x.b.capOn?'Upravit popisek':'Přidat popisek'}</button>`:''}<button data-v="open">Zvětšit</button><button data-v="dl">Stáhnout</button>${LOCK?'':'<button class="danger" data-v="del">Smazat</button>'}</div>`;
   const pop=openPop(imgSel.img,h,(v,btn,p)=>{
     if(!imgSel) return;
     if(v==='draw'){ const im=imgSel.img; hideImgSel(); editDrawing(im); return; }
