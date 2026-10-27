@@ -110,12 +110,18 @@ body.locked .tr-del,body.locked .tr-empty{display:none}
 .side-tip{position:fixed;z-index:90;pointer-events:none;background:var(--fg);color:var(--bg);font-size:calc(12.5px*var(--fs));font-weight:500;padding:4px 8px;border-radius:6px;white-space:nowrap;box-shadow:var(--shadow-sm)}
 .side-pop{min-width:200px}
 .side-pop .sp-it{padding-left:calc(8px + (var(--d) - 1)*14px)}
+.side-pop .sp-row{display:flex;align-items:center;gap:2px}
+.side-pop .sp-row>.pop-item{flex:1;min-width:0}
+.side-pop .sp-more{flex:none;opacity:0}
+.side-pop .sp-row:hover .sp-more,.side-pop .sp-more:focus-visible{opacity:1}
+@media (hover:none){ .side-pop .sp-more{opacity:1} }
 .side-pop .sp-h{font-weight:650}
 .side-pop .sp-t{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .side-pop .ti-ic{width:18px}
 @media (max-width:860px){ .side-tog{display:none} .side-tip{display:none} }
 @media (min-width:861px){
-  #app.side-mini{--side-w:66px}
+  #app.side-mini{--side-w:54px}   /* střed ikonek 26,5 px od levého i pravého okraje */
+  #app.side-mini .syncbar,#app.side-mini .side-foot{padding-left:0;padding-right:0}
   #app.side-mini .ws-name,#app.side-mini .nv>span,#app.side-mini .sec-h>*,#app.side-mini .ti-t{opacity:0;pointer-events:none}
   /* bez mini kalendáře zůstane místo po čísle týdne, aby ikonky neposkočily; s kalendářem se řádek schová */
   #app.side-mini .ws-week,#app.side-mini .ws>.linkbtn{visibility:hidden}
@@ -159,6 +165,7 @@ body.split-drag,body.split-drag *{cursor:col-resize!important;user-select:none!i
 /* náhled jen ke čtení: ovládací prvky schované, ale drží místo (po kliknutí je živá stránka na stejném místě) */
 .split-ghost :is(.gut,.tbl-tools,.tpl,.add-prop,.prop .icon-btn,.ta,.rh,.ch,.head-acts){visibility:hidden!important}
 .split-ghost [contenteditable]{cursor:default}
+.split-ghost [contenteditable]:empty::after{content:"\200b"}   /* prázdný blok bez úprav by měl výšku 0 a text by po kliknutí poskočil */
 .split-x{font-size:calc(19px*var(--fs))}
 @media (max-width:860px){
   #panes.split{display:flex}
