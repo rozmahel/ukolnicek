@@ -43,10 +43,13 @@ var f=+JSON.parse(localStorage.getItem('uk-fs')||'1');if(f>1&&f<=1.6)document.do
 <div id="app">
   <aside class="side" id="side" aria-label="Navigace"></aside>
   <div class="scrim" id="scrim" data-act="menu"></div>
+  <!-- #panes: #main = aktivní polovina; při rozdělené obrazovce (js/split.js) přibude táhlo a náhled druhé stránky -->
+  <div id="panes">
   <main id="main">
     <div class="topbar"><button class="icon-btn" data-act="menu" aria-label="Menu">☰</button><span class="tb-t" id="tb-t">Úkolníček</span><span class="tb-sync" id="tb-sync"></span></div>
     <div id="view"><div class="loading">Načítám tvoje stránky…</div></div>
   </main>
+  </div>
 </div>
 <div class="fmt" id="fmt" hidden></div>
 <div class="cellbar" id="cellbar" hidden>

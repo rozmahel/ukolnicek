@@ -1,6 +1,6 @@
 /* Úkolníček – Nastavení, motiv a velikost písma, návod a novinky */
-import { $, $$, downloadFile, esc, ICONS, lsGet, lsSet, plural } from '../core.js';
-import { defaultSettings, S } from '../state.js';
+import { $, $$, CALLOUT_IC, COLOR_CZ, COLORS, downloadFile, esc, ICONS, lsGet, lsSet, plural, spellOn } from '../core.js';
+import { calloutDef, defaultSettings, S, setCalloutDef } from '../state.js';
 import { applySkin, fontOf, FONTS, setFont, setSkin, skinOf, SKINS, syncModeBtns, syncThemeColor } from '../theme.js';
 import { LOCK } from '../lock.js';
 import { applyData, dataForSave, META, normalizeImport, saveSettings, stateForStorage, Store } from '../store.js';
@@ -10,6 +10,7 @@ import { clearSchoolData, hodin, isSchool, schoolCounts } from '../school.js';
 import { renderSidebar } from '../sidebar.js';
 import { renderMain } from '../router.js';
 import { closeModal, openModal, toast } from '../ui.js';
+import { CALLOUT_KINDS } from '../editor/menus.js';
 import { HOUR_SCALES } from './schedule.js';
 import { autoPull, autoPush, cloudSvg, IDLE_MAX, IDLE_MIN, idleSec, Sync, updateSyncUI } from '../sync/sync.js';
 import { ImgSync, withImgs } from '../sync/images.js';
@@ -19,7 +20,7 @@ import { checkUpdate } from '../update.js';
 import { aiPaneBind } from './aiset.js';
 
 /* ================= settings ================= */
-const APP_VERSION='4.15.0';
+const APP_VERSION='4.17.0';
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
 const FS_STEPS=[1,1.15,1.3,1.45,1.6];
 function applyTheme(){
@@ -36,7 +37,8 @@ function applyFontScale(){
 /* ---- nastavení po kategoriích ---- */
 /* ikony kategorií: stejné čárové jako v levém panelu (ne emoji) */
 const SET_IC={general:'<svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg>',look:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17z" fill="currentColor" stroke="none"/></svg>',sync:'<svg viewBox="0 0 24 24"><path d="M7 18.5h10a4 4 0 0 0 .6-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 18.5z"/></svg>',backup:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4.5" rx="1.2"/><path d="M4.8 8.5v9.5a2 2 0 0 0 2 2h10.4a2 2 0 0 0 2-2V8.5"/><path d="M10 12.5h4"/></svg>',ai:'<svg viewBox="0 0 24 24"><path d="M12 3.5c.6 4.2 2.3 5.9 6.5 6.5-4.2.6-5.9 2.3-6.5 6.5-.6-4.2-2.3-5.9-6.5-6.5 4.2-.6 5.9-2.3 6.5-6.5z"/><path d="M18.5 15.5c.2 1.6.9 2.3 2.5 2.5-1.6.2-2.3.9-2.5 2.5-.2-1.6-.9-2.3-2.5-2.5 1.6-.2 2.3-.9 2.5-2.5z"/></svg>',help:'<svg viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H14a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z"/></svg>'};
-const SET_TABS=[['general','Obecné',SET_IC.general],['look','Vzhled',SET_IC.look],['school','Škola',ICONS.index],['sync','Google Disk',SET_IC.sync],['backup','Zálohy',SET_IC.backup],['ai','AI',SET_IC.ai],['help','Návod a novinky',SET_IC.help]];
+SET_IC.format='<svg viewBox="0 0 24 24"><path d="M4 6h11M9.5 6v13M14.5 12.5h5.5M14.5 16h5.5M14.5 19.5h5.5"/></svg>';
+const SET_TABS=[['general','Obecné',SET_IC.general],['look','Vzhled',SET_IC.look],['format','Formát',SET_IC.format],['school','Škola',ICONS.index],['sync','Google Disk',SET_IC.sync],['backup','Zálohy',SET_IC.backup],['ai','AI',SET_IC.ai],['help','Návod a novinky',SET_IC.help]];
 /* stav obrázků podle dat a poslední kontroly Disku */
 function imgState(){
   ImgSync.refresh(); const n=ImgSync.refs.size, s=ImgSync.summary();
@@ -75,6 +77,18 @@ async function openSettings(focus){
       <div class="fld"><span class="lbl">Světlý nebo tmavý režim</span>${seg('st-theme',[['auto','Podle zařízení'],['light','☀︎ Světlý'],['dark','☾ Tmavý']],theme)}</div>
       <div class="fld"><span class="lbl">Velikost textu</span>${seg('st-fs',FS_STEPS.map(v=>[v,Math.round(v*100)+' %']),FS_STEPS.includes(fs)?fs:1)}
         <p class="note">Režim a velikost textu platí jen pro toto zařízení.</p></div>
+    </section>
+
+    <section class="set-pane" data-pane="format">
+      <div class="fld co-set" id="st-co"><span class="lbl">Výchozí zvýrazněný blok</span>
+        <div class="co-prev" id="st-co-prev"><span class="co-pic"></span><span>Nový zvýrazněný blok</span></div>
+        <div class="swatches co-kinds">${CALLOUT_KINDS.map(([ic,c,t])=>`<button type="button" class="pop-item co-kind hl-${c}" data-c="${c}" data-ic="${ic}"><span>${ic}</span>${t}</button>`).join('')}</div>
+        <span class="lbl co-sub">Barva</span><div class="swatches" id="st-co-col">${COLORS.map(c=>`<button type="button" class="sw hl-${c}" data-c="${c}" aria-label="${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}</div>
+        <span class="lbl co-sub">Ikona</span><div class="swatches" id="st-co-ic"><button type="button" class="pop-item co-ib" data-ic="" title="Bez ikony" aria-label="Bez ikony">∅</button>${CALLOUT_IC.map(ic=>`<button type="button" class="pop-item co-ib" data-ic="${ic}">${ic}</button>`).join('')}</div>
+        <p class="note">Platí pro nově vložené bloky, stávající se nemění. <a href="#" class="set-news" id="st-co-def" data-co-def>Vrátit výchozí</a></p></div>
+      <h3 class="set-h">Psaní</h3>
+      <label class="chk"><input type="checkbox" id="st-spell" ${spellOn()?'checked':''}> Kontrola pravopisu</label>
+      <p class="note" style="margin-top:-8px;padding-left:26px">Podtržení překlepů a návrhy oprav při psaní. Jen pro toto zařízení.</p>
     </section>
 
     <section class="set-pane" data-pane="school">
@@ -195,6 +209,23 @@ async function openSettings(focus){
   const idn=$('#st-img-down',m); if(idn) idn.addEventListener('click',()=>{ closeModal(); Sync.downloadImgs(); });
   $('#st-autoup',m).addEventListener('change',e=>lsSet('uk-auto-push',e.target.checked));
   $('#st-mm',m).addEventListener('change',e=>{ if(e.target.checked) S.settings.mindmap=true; else delete S.settings.mindmap; saveSettings(); renderSidebar(); renderMain(); });
+  /* Formát: výchozí zvýrazněný blok (v datech jen odlišné hodnoty) a kontrola pravopisu (jen v zařízení) */
+  const coPaint=()=>{
+    const d=calloutDef(), pv=$('#st-co-prev',m), pic=$('.co-pic',pv);
+    pv.className='co-prev hl-'+d.color; pic.textContent=d.icon; pic.hidden=!d.icon;
+    $$('#st-co .co-kind',m).forEach(x=>x.classList.toggle('on',x.dataset.ic===d.icon&&x.dataset.c===d.color));
+    $$('#st-co-col .sw',m).forEach(x=>x.classList.toggle('on',x.dataset.c===d.color));
+    $$('#st-co-ic .co-ib',m).forEach(x=>x.classList.toggle('act',x.dataset.ic===d.icon));
+    $('#st-co-def',m).hidden=!S.settings.callout;
+  };
+  coPaint();
+  $('#st-co',m).addEventListener('click',e=>{
+    const b=e.target.closest('[data-c],[data-ic],[data-co-def]'); if(!b) return; e.preventDefault();
+    if(b.hasAttribute('data-co-def')) delete S.settings.callout;
+    else { if(b.dataset.c!=null) setCalloutDef('color',b.dataset.c); if(b.dataset.ic!=null) setCalloutDef('icon',b.dataset.ic); }
+    saveSettings(); coPaint();
+  });
+  $('#st-spell',m).addEventListener('change',e=>{ if(e.target.checked){ try{ localStorage.removeItem('uk-spell'); }catch(_){} } else lsSet('uk-spell',false); applySpell(); });
   $('#st-caps',m).addEventListener('change',e=>{ lsSet('uk-caps',e.target.checked); if(!e.target.checked) capsOff(); });
   /* doba nečinnosti: uloží se v sekundách, mimo rozsah se srovná na 5 s / 2 h a políčko ukáže skutečnou hodnotu */
   const auSave=()=>{ const n=$('#st-au-n',m), u=+$('#st-au-u',m).value||60; const v=+n.value; if(!Number.isFinite(v)||v<=0){ n.value=idleSec()/u; return; }
@@ -280,8 +311,15 @@ async function openGuide(tab){
 }
 
 /* posluchače a nastavení při startu (volá main.js ve stejném pořadí jako dřív) */
+/* kontrola pravopisu: spellcheck se dědí z <html> (editor má vlastní atribut v render.js); autocorrect="off" dostane i pole při zaměření */
+function applySpell(){
+  const on=spellOn();
+  [document.documentElement,$('#doc')].forEach(el=>{ if(!el) return; el.spellcheck=on; if(on) el.removeAttribute('autocorrect'); else el.setAttribute('autocorrect','off'); });
+}
 export function initSettings(){
   try{ matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme); }catch(_){}
+  applySpell();
+  document.addEventListener('focusin',e=>{ const t=e.target; if(spellOn()||!t||!(t.isContentEditable||/^(INPUT|TEXTAREA)$/.test(t.tagName))||t.hasAttribute('autocorrect')) return; t.setAttribute('autocorrect','off'); });
 }
 
 export { APP_VERSION, applyFontScale, applyTheme, exportData, FS_STEPS, importFile, openSettings };

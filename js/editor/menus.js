@@ -15,6 +15,7 @@ import { selectImage } from './images.js';
 import { editDrawing } from './draw.js';
 import { blockToEq, openEqEditor } from './math.js';
 import { bselCount, bulk, copyOne } from './multisel.js';
+import { spOpen } from '../split.js';
 
 /* ================= menus ================= */
 /* typy zvýrazněného bloku (jako rámečky na GitHubu: > [!NOTE] …) = předvolba ikony a barvy, v datech nic navíc */
@@ -22,12 +23,20 @@ const CALLOUT_KINDS=[['💡','blue','Poznámka'],['✅','green','Tip'],['❗','p
 const kindsHtml=b=>`<div class="pop-h">Typ</div><div class="swatches co-kinds">${CALLOUT_KINDS.map(([ic,c,t],i)=>`<button class="pop-item co-kind hl-${c} ${b.icon===ic&&b.color===c?'on':''}" data-v="kind:${i}"><span>${ic}</span>${t}</button>`).join('')}</div>`;
 const EQ_ITEM=`<button class="pop-item" data-v="type:eq"><span class="pi-ic">${TYPE_ICON.eq}</span><span>${TYPE_LABEL.eq}<small>Text bloku jako LaTeX</small></span></button>`;
 const applyKind=(b,v)=>{ const k=CALLOUT_KINDS[+v.slice(5)]; if(k){ b.icon=k[0]; b.color=k[1]; } };
-function openBlockMenu(anchor,pg,b){
+/* at = {rect, follow}: menu u kurzoru (pravé tlačítko na obrázku nebo kresbě, od 4.16.0) */
+function openBlockMenu(anchor,pg,b,at){
   let h='';
+  const pr=()=>at&&at.rect||anchor.getBoundingClientRect(), fol=at&&at.follow;
+  if(LOCK&&b.type==='image'){
+    /* zamčeno: u obrázku jen kopírovat, u kresby i upravit (kreslení jde i se zámkem) */
+    h=`<div class="bm-row"><button class="bm-ic" data-v="copy" title="Kopírovat" aria-label="Kopírovat">${BM_SVG.copy}</button></div>`+(b.draw?`<div class="pop-sep"></div><button class="pop-item" data-v="draw-edit"><span class="pi-ic">✎</span>Upravit kresbu</button>`:'');
+    const p=openPop(anchor,h,v=>{ if(v==='copy') copyOne(b); else if(v==='draw-edit'){ const im=$(`#blocks .blk[data-id="${b.id}"] .bimg`); if(im) setTimeout(()=>editDrawing(im),0); } },at);
+    p.classList.add('bm-pop'); placePop(p,pr(),fol); return;
+  }
   if(LOCK){
     /* zamčeno: u zvýrazněného bloku jde jen změnit ikonu a barvu, nic se nepřesouvá ani nemaže */
     if(b.type!=='callout') return;
-    h=kindsHtml(b)+`<div class="pop-h">Ikona</div><div class="swatches">${CALLOUT_IC.map(ic=>`<button class="pop-item" style="width:auto;padding:4px 6px;font-size:17px" data-v="icon:${ic}">${ic}</button>`).join('')}</div>
+    h=kindsHtml(b)+`<div class="pop-h">Ikona</div><div class="swatches"><button class="pop-item co-noic" style="width:auto;padding:4px 6px;font-size:15px" data-v="icon:" title="Bez ikony" aria-label="Bez ikony">∅</button>${CALLOUT_IC.map(ic=>`<button class="pop-item" style="width:auto;padding:4px 6px;font-size:17px" data-v="icon:${ic}">${ic}</button>`).join('')}</div>
       <div class="pop-h">Barva</div><div class="swatches">${COLORS.map(c=>`<button class="sw hl-${c} ${b.color===c?'on':''}" data-v="color:${c}" aria-label="${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}</div>`;
     openPop(anchor,h,v=>{ if(v.startsWith('kind:')) applyKind(b,v); else if(v.startsWith('color:')) b.color=v.slice(6); else if(v.startsWith('icon:')) b.icon=v.slice(5); savePage(pg); rerenderBlocks(); });
     return;
@@ -45,8 +54,8 @@ function openBlockMenu(anchor,pg,b){
       else if(v==='up'||v==='down') bulk.move(v==='up'?-1:1);
       else if(v==='left'||v==='right') bulk.indent(v==='left'?-1:1);
       else if(v==='copy'||v==='dup'||v==='del') bulk[v]();
-    });
-    p.classList.add('bm-pop'); placePop(p,anchor.getBoundingClientRect());
+    },at);
+    p.classList.add('bm-pop'); placePop(p,pr(),fol);
     return;
   }
   if(TEXT_TYPES.includes(b.type)) h+=`<div class="pop-sep"></div><div class="pop-h">Převést na</div>`+TEXT_TYPES.map(k=>`<button class="pop-item ${b.type===k?'act':''}" data-v="type:${k}"><span class="pi-ic">${TYPE_ICON[k]}</span>${TYPE_LABEL[k]}</button>`).join('')+EQ_ITEM
@@ -56,7 +65,7 @@ function openBlockMenu(anchor,pg,b){
     h+=`<div class="pop-sep"></div><div class="pop-h">Předmět</div>${isIndex()?`${su?'<button class="pop-item" data-v="subj-ix"><span class="pi-ic">🎓</span>Otevřít v Indexu</button>':''}<button class="pop-item" data-v="subj-pick"><span class="pi-ic">⇄</span>${su?'Změnit předmět…':'Vybrat předmět…'}</button>`:''}<button class="pop-item" data-v="subj-h1"><span class="pi-ic">H1</span><span>Převést na nadpis H1<small>S názvem předmětu, bez vazby na Index</small></span></button>`;
   }
   if(b.type==='callout'){
-    h+=`<div class="pop-sep"></div>`+kindsHtml(b)+`<div class="pop-h">Ikona</div><div class="swatches">${CALLOUT_IC.map(ic=>`<button class="pop-item" style="width:auto;padding:4px 6px;font-size:17px" data-v="icon:${ic}">${ic}</button>`).join('')}</div>`;
+    h+=`<div class="pop-sep"></div>`+kindsHtml(b)+`<div class="pop-h">Ikona</div><div class="swatches"><button class="pop-item co-noic" style="width:auto;padding:4px 6px;font-size:15px" data-v="icon:" title="Bez ikony" aria-label="Bez ikony">∅</button>${CALLOUT_IC.map(ic=>`<button class="pop-item" style="width:auto;padding:4px 6px;font-size:17px" data-v="icon:${ic}">${ic}</button>`).join('')}</div>`;
     h+=`<div class="pop-h">Barva</div><div class="swatches">${COLORS.map(c=>`<button class="sw hl-${c} ${b.color===c?'on':''}" data-v="color:${c}" aria-label="${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}</div>`;
   }
   if(b.type==='eq') h+=`<div class="pop-sep"></div><button class="pop-item" data-v="eq-edit"><span class="pi-ic">${TYPE_ICON.eq}</span>Upravit rovnici</button><button class="pop-item" data-v="eq-txt"><span class="pi-ic">T</span><span>Převést na text<small>Zdroj LaTeX jako obyčejný odstavec</small></span></button>`;
@@ -116,8 +125,8 @@ function openBlockMenu(anchor,pg,b){
     }
     savePage(pg); rerenderBlocks();
     if(TEXT_TYPES.includes(b.type)) focusBlock(b.id,'end');
-  });
-  pop.classList.add('bm-pop'); placePop(pop,anchor.getBoundingClientRect());
+  },at);
+  pop.classList.add('bm-pop'); placePop(pop,pr(),fol);
 }
 const BM_SVG={
   copy:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4.5H7.5a2 2 0 0 0-2 2v12.5a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V6.5a2 2 0 0 0-2-2H15"/><rect x="9" y="3" width="6" height="3.5" rx="1"/></svg>',
@@ -185,8 +194,11 @@ function openPageMenu(anchor,pg){
     openPop(anchor,h,v=>{ if(v==='unarch') unarchivePage(pg.id); if(v==='del') deletePage(pg.id); });
     return;
   }
-  const h=`<button class="pop-item" data-v="sub"><span class="pi-ic">+</span>Přidat podstránku</button><button class="pop-item" data-v="up"><span class="pi-ic">↑</span>Posunout nahoru</button><button class="pop-item" data-v="down"><span class="pi-ic">↓</span>Posunout dolů</button>${pg.parent?'<button class="pop-item" data-v="top"><span class="pi-ic">⇤</span>Přesunout na nejvyšší úroveň</button>':''}<button class="pop-item" data-v="dup"><span class="pi-ic">⧉</span>Duplikovat</button><button class="pop-item" data-v="arch"><span class="pi-ic">▤</span>Archivovat</button><div class="pop-sep"></div><button class="pop-item danger" data-v="del"><span class="pi-ic">×</span>Smazat</button>`;
+  /* rozdělená obrazovka (js/split.js): jen na širokém okně */
+  const sp=matchMedia('(min-width:861px)').matches?`<button class="pop-item" data-v="spR"><span class="pi-ic">◨</span>Otevřít vpravo</button><button class="pop-item" data-v="spL"><span class="pi-ic">◧</span>Otevřít vlevo</button><div class="pop-sep"></div>`:'';
+  const h=sp+`<button class="pop-item" data-v="sub"><span class="pi-ic">+</span>Přidat podstránku</button><button class="pop-item" data-v="up"><span class="pi-ic">↑</span>Posunout nahoru</button><button class="pop-item" data-v="down"><span class="pi-ic">↓</span>Posunout dolů</button>${pg.parent?'<button class="pop-item" data-v="top"><span class="pi-ic">⇤</span>Přesunout na nejvyšší úroveň</button>':''}<button class="pop-item" data-v="dup"><span class="pi-ic">⧉</span>Duplikovat</button><button class="pop-item" data-v="arch"><span class="pi-ic">▤</span>Archivovat</button><div class="pop-sep"></div><button class="pop-item danger" data-v="del"><span class="pi-ic">×</span>Smazat</button>`;
   openPop(anchor,h,v=>{
+    if(v==='spR'||v==='spL'){ spOpen(v==='spR'?'R':'L',pg); return; }
     if(v==='sub'){ const c=createPage(pg.id); renderSidebar(); go({kind:'page',pageId:c.id}); setTimeout(()=>$('#page-title')&&$('#page-title').focus(),30); return; }
     if(v==='up'||v==='down'){
       const sib=kids(pg.parent||null); sib.forEach((s,i)=>{ if(s.order!==i+1){ s.order=i+1; savePage(s,0);} });
@@ -203,4 +215,4 @@ function openPageMenu(anchor,pg){
   });
 }
 
-export { openBlockMenu, openIconPop, openPageMenu, openSubjBlockMenu, openTableMenu };
+export { CALLOUT_KINDS, openBlockMenu, openIconPop, openPageMenu, openSubjBlockMenu, openTableMenu };

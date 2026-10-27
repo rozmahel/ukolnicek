@@ -1,22 +1,38 @@
 /* Úkolníček – Levý panel: menu, strom projektů, mini kalendář */
-import { $, DAYS, DAYS_FULL, esc, ICONS } from './core.js';
-import { MONTHS_NOM, S, SEARCH_KEY } from './state.js';
+import { $, DAYS, DAYS_FULL, esc, ICONS, lsGet, lsSet } from './core.js';
+import { IS_MAC, MONTHS_NOM, S, SEARCH_KEY } from './state.js';
 import { LOCK } from './lock.js';
 import { savePage, updateSaving } from './store.js';
 import { isoWeek, mondayOf, parseD, weekInfo, weekNo, weeksBetween, ymd } from './dates.js';
-import { archRoots, curPage, kids, kidsAll, pIcon, pTitle } from './pages.js';
+import { archRoots, createPage, curPage, kids, kidsAll, pIcon, pTitle } from './pages.js';
 import { isIndex, isSchool } from './school.js';
+import { go } from './router.js';
 import { renderPage } from './editor/render.js';
+import { closePop, openPop } from './ui.js';
 import { shownTasks } from './views/tasks.js';
 import { updateSyncUI } from './sync/sync.js';
 import { TRASH_IC, trashSidebar } from './trash.js';
 
 /* ================= sidebar ================= */
+/* schovaný panel (od 4.16.0): úzký pruh s ikonkami, jen na širokém okně; stav jen v zařízení (uk-side-mini).
+   V archivu a koši je panel vždy rozbalený (schování z nich vrátí hlavní menu). */
+const WIDE=matchMedia('(min-width:861px)');
+const sideMini=()=>WIDE.matches&&lsGet('uk-side-mini',false)===true&&!S.archMode&&!S.trashMode;
+const togKey=IS_MAC?'⌘\\':'Ctrl+\\';
+function toggleSideMini(){
+  if(!WIDE.matches) return;
+  const on=!sideMini();
+  if(on){ lsSet('uk-side-mini',true); S.archMode=false; S.trashMode=false; } else { try{ localStorage.removeItem('uk-side-mini'); }catch(_){} }
+  if(S.pop&&S.pop.classList.contains('side-pop')) closePop();
+  renderSidebar();
+}
+const wsTop=mini=>`<div class="ws-top"><button class="icon-btn side-tog" data-act="side-mini" ${mini?`data-tip="Rozbalit panel (${togKey})"`:`title="Schovat panel (${togKey})"`} aria-label="${mini?'Rozbalit':'Schovat'} panel">☰</button><div class="ws-name">${esc(S.settings.name||'Úkolníček')}</div></div>`;
 function renderSidebar(){
   const side=$('#side'); const wk=weekInfo(new Date());
+  const mini=sideMini(); $('#app').classList.toggle('side-mini',mini);
   const open=shownTasks().filter(t=>!t.done).length;
   const v=S.view;
-  const nav=(k,label,extra='')=>`<button class="nv ${v.kind===k?'on':''}" data-act="nav" data-v="${k}">${ICONS[k]}<span>${label}</span>${extra}</button>`;
+  const nav=(k,label,extra='')=>`<button class="nv ${v.kind===k?'on':''}" data-act="nav" data-v="${k}" data-tip="${label}">${ICONS[k]}<span>${label}</span>${extra}</button>`;
   const arch=S.archMode;
   /* v archivu: kořeny = archivované stránky, pod nimi všechny jejich podstránky */
   const tree=(pid,d,list)=>(list||(arch?kidsAll:kids)(pid)).map(p=>{
@@ -30,7 +46,7 @@ function renderSidebar(){
   const school=isSchool();
   if(S.trashMode){
     side.innerHTML=`
-    <div class="ws"><div class="ws-name">${esc(S.settings.name||'Úkolníček')}</div></div>
+    <div class="ws">${wsTop(false)}</div>
     <nav class="nav"><button class="nv arch-back" data-act="trash-back">${ICONS.back}<span>Zpět</span></button></nav>
     ${trashSidebar()}
     <div class="syncbar" id="sync-box"></div>
@@ -40,7 +56,7 @@ function renderSidebar(){
   if(arch){
     const roots=archRoots();
     side.innerHTML=`
-    <div class="ws"><div class="ws-name">${esc(S.settings.name||'Úkolníček')}</div></div>
+    <div class="ws">${wsTop(false)}</div>
     <nav class="nav"><button class="nv arch-back" data-act="arch-back">${ICONS.back}<span>Zpět</span></button></nav>
     <div class="sec-h"><span>${ICONS.archive}Archiv</span><span class="sec-n">${roots.length||''}</span></div>
     <div class="tree arch-tree">${roots.length?tree(null,0,roots):`<div class="tree-empty">Archiv je prázdný.<br>Stránku sem přesuneš v jejím menu ⋯ → Archivovat.</div>`}</div>
@@ -50,7 +66,7 @@ function renderSidebar(){
   }
   const archN=archRoots().length;
   side.innerHTML=`
-    <div class="ws"><div class="ws-name">${esc(S.settings.name||'Úkolníček')}</div>
+    <div class="ws">${wsTop(mini)}
       ${!S.ready||!school?'':wk?`<div class="ws-week"><b>${wk.n}.</b> týden výuky · ${wk.parity}</div>`:`<button class="linkbtn" data-act="settings">Nastav začátek semestru</button>`}
       ${S.ready&&S.settings.miniCal?renderMiniCal():''}</div>
     <nav class="nav">
@@ -58,15 +74,55 @@ function renderSidebar(){
       ${school?(isIndex()?nav('index','Index'):'')+nav('schedule','Rozvrh'):''}
       ${nav('tasks','Úkoly',open?`<span class="badge">${open}</span>`:'')}
       ${S.settings.mindmap?nav('mindmap','Myšlenková mapa'):''}
-      <button class="nv" data-act="search">${ICONS.search}<span>Hledat</span><kbd>${SEARCH_KEY}</kbd></button>
-      <button class="nv" data-act="arch">${ICONS.archive}<span>Archiv</span>${archN?`<span class="badge">${archN}</span>`:''}</button>
-      <button class="nv" data-act="trash">${TRASH_IC}<span>Koš</span></button>
+      <button class="nv" data-act="search" data-tip="Hledat">${ICONS.search}<span>Hledat</span><kbd>${SEARCH_KEY}</kbd></button>
+      <button class="nv" data-act="arch" data-tip="Archiv">${ICONS.archive}<span>Archiv</span>${archN?`<span class="badge">${archN}</span>`:''}</button>
+      <button class="nv" data-act="trash" data-tip="Koš">${TRASH_IC}<span>Koš</span></button>
     </nav>
     <div class="sec-h"><span>Projekty</span><button class="icon-btn" data-act="new-page" aria-label="Nový projekt">+</button></div>
-    <div class="tree">${kids(null).length?tree(null,0):`<div class="tree-empty">Zatím žádné projekty.<br><button class="linkbtn" data-act="new-page">Vytvořit první projekt</button></div>`}</div>
+    <div class="tree">${mini?miniTree():kids(null).length?tree(null,0):`<div class="tree-empty">Zatím žádné projekty.<br><button class="linkbtn" data-act="new-page">Vytvořit první projekt</button></div>`}</div>
     <div class="syncbar" id="sync-box"></div>
-    <div class="side-foot"><button class="nv" data-act="settings">${ICONS.settings}<span>Nastavení</span></button><span id="save-state"></span></div>`;
+    <div class="side-foot"><button class="nv" data-act="settings" data-tip="Nastavení">${ICONS.settings}<span>Nastavení</span></button><span id="save-state"></span></div>`;
   updateSaving(); updateSyncUI();
+}
+/* projekty ve schovaném panelu: jen kořeny jako ikonka (emoji nebo barevná tečka), klik = bublina se stránkami */
+function miniTree(){
+  const v=S.view, cur=v.kind==='page'?v.pageId:null;
+  return kids(null).map(p=>`<div class="ti ${cur&&isInside(cur,p.id)?'on':''}" style="--d:0"><button class="ti-tog none" tabindex="-1" aria-hidden="true"></button><button class="ti-main" data-act="side-proj" data-id="${p.id}" data-tip="${esc(pTitle(p))}" aria-label="${esc(pTitle(p))}">${pIcon(p)}<span class="ti-t">${esc(pTitle(p))}</span></button></div>`).join('');
+}
+/* bublina vpravo vedle ikonky projektu: název, stromeček stránek (odsazený), dole ＋ Stránka */
+function openProjPop(a){
+  const id=a.dataset.id, root=S.pages[id]; if(!root) return;
+  if(S.pop&&S.popAnchor===a){ closePop(); return; }
+  hideTip();
+  const v=S.view, on=pid=>v.kind==='page'&&v.pageId===pid?'act':'';
+  const rows=(pid,d)=>kids(pid).map(p=>`<button class="pop-item sp-it ${on(p.id)}" data-v="p:${p.id}" style="--d:${d}">${pIcon(p)}<span class="sp-t">${esc(pTitle(p))}</span></button>`+rows(p.id,d+1)).join('');
+  const h=`<button class="pop-item sp-h ${on(id)}" data-v="p:${id}">${pIcon(root)}<span class="sp-t">${esc(pTitle(root))}</span></button>${rows(id,1)}`
+    +(LOCK?'':`<div class="pop-sep"></div><button class="pop-item sp-new" data-v="new"><span class="pi-ic">＋</span>Stránka</button>`);
+  const p=openPop(a,h,val=>{
+    if(val==='new'){ const np=createPage(id); renderSidebar(); go({kind:'page',pageId:np.id}); setTimeout(()=>$('#page-title')&&$('#page-title').focus(),30); return; }
+    go({kind:'page',pageId:val.slice(2)});
+  });
+  p.classList.add('side-pop'); p._fol=null;
+  const rc=a.getBoundingClientRect();
+  p.style.left=($('#side').getBoundingClientRect().right+8)+'px'; p.style.top=Math.max(8,Math.min(rc.top-6,innerHeight-p.offsetHeight-8))+'px';
+}
+/* bublina s názvem u ikonek schovaného panelu */
+const tip=document.createElement('div'); tip.className='side-tip'; tip.hidden=true;
+function hideTip(){ tip.hidden=true; }
+function initSideMini(){
+  const side=$('#side'); document.body.appendChild(tip);
+  side.addEventListener('mouseover',e=>{
+    const el=e.target.closest&&e.target.closest('[data-tip]');
+    if(!el||!$('#app').classList.contains('side-mini')){ hideTip(); return; }
+    /* otevřená bublina projektu: najetí na jiný projekt ji přepne */
+    if(S.pop&&S.pop.classList.contains('side-pop')){ hideTip(); if(el.dataset.act==='side-proj'&&S.popAnchor!==el) openProjPop(el); return; }
+    tip.textContent=el.dataset.tip; tip.hidden=false;
+    const rc=el.getBoundingClientRect(); tip.style.left=(rc.right+8)+'px'; tip.style.top=(rc.top+rc.height/2-tip.offsetHeight/2)+'px';
+  });
+  side.addEventListener('mouseleave',hideTip);
+  side.addEventListener('click',hideTip);
+  side.addEventListener('scroll',hideTip,{passive:true});
+  WIDE.addEventListener('change',()=>renderSidebar());
 }
 
 /* mini kalendář v bočním panelu: měsíc, dny v týdnu a (volitelně) číslo týdne v roce;
@@ -114,7 +170,7 @@ function initTreeDrag(){
   const side=$('#side');
   side.addEventListener('pointerdown',e=>{
     if(td&&td.tm) clearTimeout(td.tm);
-    td=null; if(LOCK||S.archMode||e.button!==0) return;
+    td=null; if(LOCK||S.archMode||sideMini()||e.button!==0) return;
     const it=e.target.closest('.ti'); if(!it||e.target.closest('.ti-acts,.ti-tog')) return;
     const d=td={id:$('.ti-main',it).dataset.id,it,x:e.clientX,y:e.clientY,on:false,touch:e.pointerType!=='mouse'};
     if(d.touch) d.tm=setTimeout(()=>{ if(td!==d) return; d.on=true; d.it.classList.add('ti-dragging'); document.body.classList.add('tree-drag');
@@ -151,4 +207,4 @@ function initTreeDrag(){
 function openSide(){ $('#side').classList.add('open'); $('#scrim').classList.add('open'); }
 function closeSide(){ $('#side').classList.remove('open'); $('#scrim').classList.remove('open'); }
 
-export { closeSide, initTreeDrag, openSide, renderSidebar };
+export { closeSide, initSideMini, initTreeDrag, openProjPop, openSide, renderSidebar, toggleSideMini };

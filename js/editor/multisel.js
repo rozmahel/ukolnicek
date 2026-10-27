@@ -155,6 +155,45 @@ function deleteSel(items){
   if(keep){ const t=$(`#blocks .blk[data-id="${keep.id}"] .txt`); if(t) focusEl(t,pos); }
 }
 
+/* ⌘B / ⌘I / ⌘U přes víc bloků (od 4.16.0): formát dostane vybraná část každého textového bloku (výběr textem)
+   nebo celé bloky (výběr bloků). Když už ho má všechno, zruší se, jako opakovaný stisk v jednom bloku.
+   Kód, obrázky, tabulky a ostatní netextové bloky se přeskočí. Jde i se zámkem (formátování je psaní). */
+const FMT_CMD={b:'bold',i:'italic',u:'underline'};
+const fmtKey=e=>(e.metaKey||e.ctrlKey)&&!e.altKey&&!e.shiftKey&&FMT_CMD[(e.key||'').toLowerCase()];
+const fmtOk=b=>TEXT_TYPES.includes(b.type)&&b.type!=='code';
+/* items: {range, prep(), post()}; prep připraví editovatelné pole a range, post ho vrátí. done(item, výběr po změně, změněno) */
+function fmtEach(items,cmd,done){
+  const s=getSelection(), pick=it=>{ it.prep(); s.removeAllRanges(); s.addRange(it.range); };
+  const st=items.map(it=>{ pick(it); const v=document.queryCommandState(cmd); it.post(); return v; });
+  const want=!st.every(Boolean);
+  items.forEach((it,i)=>{
+    pick(it); const ch=st[i]!==want; if(ch) document.execCommand(cmd);
+    const r=s.rangeCount?s.getRangeAt(0).cloneRange():null; done(it,r,ch); it.post();
+  });
+}
+/* výběr textem přes víc bloků: formátuje se přímo ve stránce (událost input uloží každý blok), výběr zůstane */
+function fmtCross(range,cmd){
+  const its=picked(range).filter(i=>i.part&&fmtOk(i.b)&&i.part.toString().trim()); if(!its.length) return;
+  let a=null,z=null;
+  fmtEach(its.map(i=>({range:i.part,prep(){ i.t.setAttribute('contenteditable','true'); i.t.focus({preventScroll:true}); },post(){ i.t.setAttribute('contenteditable','false'); }})),cmd,(it,r)=>{
+    if(r){ if(!a) a=[r.startContainer,r.startOffset]; z=[r.endContainer,r.endOffset]; }
+  });
+  if(a&&z) try{ getSelection().setBaseAndExtent(a[0],a[1],z[0],z[1]); }catch(_){}
+}
+/* výběr celých bloků (i obsah sbalené sekce): formátuje se v pomocném poli mimo obrazovku, jedno uložení = jeden krok ⌘Z */
+function fmtBlocks(r,cmd){
+  const bl=r.pg.blocks.slice(r.i0,r.i1+1).filter(b=>fmtOk(b)&&plain(b.html||'').trim()); if(!bl.length) return;
+  const sc=document.createElement('div'); sc.contentEditable='true'; sc.className='fmt-scratch';
+  sc.style.cssText='position:fixed;left:-10000px;top:0;width:600px;white-space:pre-wrap;font-weight:400;font-style:normal';
+  document.body.appendChild(sc);
+  let any=false;
+  fmtEach(bl.map(b=>({b,range:null,prep(){ sc.innerHTML=sanitize(b.html||''); sc.focus({preventScroll:true}); this.range=document.createRange(); this.range.selectNodeContents(sc); },post(){}})),cmd,(it,_r,ch)=>{
+    if(ch){ it.b.html=sanitize(sc.innerHTML); any=true; }
+  });
+  sc.remove(); getSelection().removeAllRanges();
+  if(any){ savePage(r.pg); rerenderBlocks(); markSel(); }
+}
+
 /* ================= výběr celých bloků ================= */
 let bs=null;          /* {a: kotva, f: konec} – ID viditelných bloků */
 let band=null, bandJust=0;
@@ -352,11 +391,13 @@ export function initMultiSel(){
     if(mod&&k.toLowerCase()==='d'){ stop(); dupBlocks(); return; }
     if(mod&&!e.altKey&&(e.code==='BracketLeft'||e.code==='BracketRight')){ stop(); indentBlocks(e.code==='BracketLeft'?-1:1); return; }
     if(mod&&k.toLowerCase()==='a'){ stop(); bs={a:r.vis[0],f:r.vis[r.vis.length-1]}; markSel(); return; }
+    if(fmtKey(e)){ stop(); fmtBlocks(r,fmtKey(e)); return; }
     clearBsel();   /* cokoli jiného (⌘Z, psaní) výběr zruší */
   },true);
   /* klávesy ve výběru přes víc bloků: mazání smaže výběr, Esc ho zruší, psaní nejdřív vrátí editaci */
   document.addEventListener('keydown',e=>{
     if(!active) return;
+    if(fmtKey(e)){ e.preventDefault(); e.stopPropagation(); const r=curRange(); if(r) fmtCross(r,fmtKey(e)); return; }
     if(e.metaKey||e.ctrlKey||['Shift','Alt','Meta','Control'].includes(e.key)) return;
     if(e.key==='Backspace'||e.key==='Delete'){ const r=curRange(); e.preventDefault(); if(r) deleteSel(picked(r)); else endCross(); return; }
     if(e.key==='Escape'){ e.preventDefault(); getSelection().removeAllRanges(); endCross(); return; }

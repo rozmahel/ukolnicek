@@ -162,7 +162,7 @@ function dwPreview(pg,max){
     else if(b.type==='todo') r=`<div class="pv-todo ${b.done?'done':''}"${st}><button class="mk check ${b.done?'on':''}" data-act="task-check" data-k="${esc(pg.id+'|'+b.id)}" role="checkbox" aria-checked="${!!b.done}" aria-label="Hotovo"></button><span>${h||'&nbsp;'}</span></div>`;
     else if(b.type==='bullet') r=`<div class="pv-li"${st}><span class="pv-mk">•</span><span>${h}</span></div>`;
     else if(b.type==='num') r=`<div class="pv-li"${st}><span class="pv-mk">${++num}.</span><span>${h}</span></div>`;
-    else if(b.type==='callout') r=`<div class="pv-callout hl-${esc(b.color||'purple')}"><span>${esc(b.icon||'💡')}</span><span>${h}</span></div>`;
+    else if(b.type==='callout') r=`<div class="pv-callout hl-${esc(b.color||'purple')}">${b.icon===''?'':`<span>${esc(b.icon==null?'💡':b.icon)}</span>`}<span>${h}</span></div>`;
     else if(b.type==='quote') r=`<div class="pv-quote">${h}</div>`;
     else if(b.type==='code') r=`<pre class="pv-code">${h}</pre>`;
     else if(b.type==='divider') r='<hr class="pv-hr">';

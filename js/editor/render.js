@@ -1,5 +1,5 @@
 /* Úkolníček – Vykreslení stránky a bloků (včetně tabulek a sbalování nadpisů) */
-import { $, esc, PH, plain, TEXT_TYPES } from '../core.js';
+import { $, esc, PH, plain, spellOn, TEXT_TYPES } from '../core.js';
 import { S } from '../state.js';
 import { modeBtn } from '../theme.js';
 import { applyLock } from '../lock.js';
@@ -30,11 +30,18 @@ function onBlocksRendered(fn){ RENDERED.push(fn); }
 function renderPage(pg){
   flushSource(true);
   const src=sourceHtml(pg), items=src!=null?[]:blockList(pg);
+  $('#view').innerHTML=pageHtml(pg,src,items);
+  if(src==null) tagBlocks($('#blocks'),items);
+  hist(pg); updateUndoBtns(); applyLock(); if(src!=null) fitSource();
+  RENDERED.forEach(f=>f());
+}
+/* HTML celé stránky (používá i druhá polovina rozdělené obrazovky v js/split.js, tam bez id a bez úprav) */
+function pageHtml(pg,src,items){
   const crumbs=[]; let p=S.pages[pg.parent];
   while(p){ crumbs.unshift(p); p=S.pages[p.parent]; }
   const isEmpty=(pg.blocks||[]).length<=1&&isBlank((pg.blocks[0]||{}).html)&&!(pg.props||[]).length&&(!pg.blocks[0]||TEXT_TYPES.includes(pg.blocks[0].type));
-  $('#view').innerHTML=`
-  <article class="doc ${pg.wide?'wide':''}" id="doc" data-page="${pg.id}" spellcheck="true">
+  return `
+  <article class="doc ${pg.wide?'wide':''}" id="doc" data-page="${pg.id}" spellcheck="${spellOn()}"${spellOn()?'':' autocorrect="off"'}>
     <div class="pagebar">
       <div class="crumbs ${crumbs.length?'':'solo'}">${crumbs.map(c=>`<button data-act="open" data-id="${c.id}">${esc(c.icon||'')} ${esc(pTitle(c))}</button><span>/</span>`).join('')}<span>${esc(pg.icon||'')} ${esc(pTitle(pg))}</span></div>
       <div class="pb-acts">${pg.icon?'':`<button class="ghost-btn" data-act="icon" data-popanchor>☺ Ikona</button>`}<button class="ghost-btn" data-act="wide">${pg.wide?'↤ Užší':'↔ Celá šířka'}</button>
@@ -56,9 +63,6 @@ function renderPage(pg){
     ${backlinksHtml(pg)}
     <div class="doc-tail" data-act="tail"></div>
   </article>`;
-  if(src==null) tagBlocks($('#blocks'),items);
-  hist(pg); updateUndoBtns(); applyLock(); if(src!=null) fitSource();
-  RENDERED.forEach(f=>f());
 }
 function renderProps(pg){
   const props=pg.props||[];
@@ -142,7 +146,7 @@ function renderBlock(b,i,bl){
     else if(b.type==='num') mk=`<span class="mk num">${numLabel(bl,i)}</span>`;
     else if(b.type==='todo') mk=`<button class="mk check ${b.done?'on':''}" data-act="check" role="checkbox" aria-checked="${!!b.done}" aria-label="Hotovo"></button>`;
     else if(isHeading(b.type)) mk=`<button class="mk caret ${b.collapsed?'closed':''}" data-act="collapse" aria-label="${b.collapsed?'Rozbalit sekci':'Sbalit sekci'}"></button>`;
-    else if(b.type==='callout') mk=`<button class="mk callout-ic" data-act="blk-menu" data-popanchor aria-label="Změnit ikonu a barvu">${esc(b.icon||'💡')}</button>`;
+    else if(b.type==='callout') mk=`<button class="mk callout-ic${b.icon===''?' none':''}" data-act="blk-menu" data-popanchor aria-label="Změnit ikonu a barvu">${esc(b.icon==null?'💡':b.icon)}</button>`;
     inner=`<div class="row">${mk}<div class="txt t-${b.type} ${b.type==='todo'&&b.done?'done':''}" contenteditable="true" data-ph="${PH[b.type]||''}">${b.type==='code'?codeNorm(b.html):sanitize(b.html)}</div></div>`;
   }
   const extra=b.type==='image'?` al-${b.align||'center'}${b.nw?' nw':''}${b.draw?' is-draw':''}`:b.type==='subj'?` hl-${esc((S.subjects[b.subj]||{}).color||'gray')}`:'';
@@ -194,4 +198,4 @@ function ctxOf(el){
   return {pg,b,bi,blkEl};
 }
 
-export { COL_DEF, COL_MIN, colW, ctxOf, defaultEnd, hiddenMask, hLevel, isHeading, keepVisible, onBlocksRendered, renderBlock, renderBlocks, renderPage, rerenderBlocks, rerenderProps, sectionEnd };
+export { blockList, COL_DEF, COL_MIN, colW, ctxOf, defaultEnd, hiddenMask, hLevel, isHeading, keepVisible, onBlocksRendered, pageHtml, renderBlock, renderBlocks, renderPage, rerenderBlocks, rerenderProps, sectionEnd };

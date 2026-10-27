@@ -1,6 +1,6 @@
 /* Úkolníček – Šablony stránek a převody typů bloků */
 import { $, esc, norm, TEXT_TYPES } from '../core.js';
-import { S } from '../state.js';
+import { calloutDef, S } from '../state.js';
 import { savePage } from '../store.js';
 import { createPage, flatPages, newBlock, newTable, pIcon, pTitle } from '../pages.js';
 import { subjAsH1, subjLabel } from '../school.js';
@@ -58,7 +58,7 @@ function setType(pg,b,k,backToText){
     if(pre){ b.html=esc(pre)+(b.html||''); kept=pre.length; }
   }
   b.type=k; if(k!=='todo') delete b.done; if(!isHeading(k)) delete b.collapsed;
-  if(k==='callout'){ b.color=b.color||'purple'; b.icon=b.icon||'💡'; }
+  if(k==='callout'){ const d=calloutDef(); if(!b.color) b.color=d.color; if(b.icon==null) b.icon=d.icon; }   /* výchozí z Nastavení → Formát */
   if(k==='code') b.html=codeNorm(b.html);   /* v kódu není žádné formátování, odkazy ani rovnice */
   return kept;
 }

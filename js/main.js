@@ -10,7 +10,7 @@ import { createPage, curPage, emptyCell, newBlock, pTitle, revealBlock, unarchiv
 import { gotoSubject, isSchool } from './school.js';
 import { isBlank } from './sanitize.js';
 import { focusBlock, focusEl, focusLine } from './editor/caret.js';
-import { closeSide, initTreeDrag, openSide, renderSidebar } from './sidebar.js';
+import { closeSide, initSideMini, initTreeDrag, openProjPop, openSide, renderSidebar, toggleSideMini } from './sidebar.js';
 import { go, renderMain } from './router.js';
 import { ctxOf, hiddenMask, isHeading, keepVisible, renderPage, rerenderBlocks, rerenderProps, sectionEnd } from './editor/render.js';
 import { applyTemplate } from './editor/blocks.js';
@@ -27,24 +27,40 @@ import { openSearch } from './views/search.js';
 import { applyFontScale, applyTheme, initSettings, openSettings } from './views/settings.js';
 import { openSyncMenu, Sync } from './sync/sync.js';
 import { openHiddenLink, openLinkPop } from './editor/links.js';
-import { initImages, lineAround, selectImage } from './editor/images.js';
+import { hideImgSel, initImages, lineAround, selectImage } from './editor/images.js';
 import { exportMd } from './editor/markdown.js';
 import { initAi } from './editor/aiedit.js';
 import { aipOpen, initAiPanel } from './editor/aipanel.js';
 import { initCaps } from './editor/caps.js';
+import { editDrawing } from './editor/draw.js';
 import { initMath, openEqEditor } from './editor/math.js';
 import { initSource, srcOn, toggleSource } from './editor/source.js';
 import { initTableSize } from './editor/tblsize.js';
+import { initSplit } from './split.js';
 import { trashAct } from './trash.js';
 import { initUpdates, workerOk } from './update.js';
 import { quickAdd, wgDo, wgUi } from './views/dashWidgets.js';
 import { initMindmap } from './views/mindmap.js';
 
 /* posluchače ostatních modulů; pořadí je stejné jako dřív v jednom souboru app.js (na pořadí registrace záleží) */
-initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings(); initImages(); initIndex(); initTreeDrag(); initMath(); initSource(); initTableSize(); initCaps(); initMindmap(); initAi(); initAiPanel();
+initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings(); initImages(); initIndex(); initTreeDrag(); initSideMini(); initMath(); initSource(); initTableSize(); initSplit(); initCaps(); initMindmap(); initAi(); initAiPanel();
 
 /* ================= global actions ================= */
+/* pravé tlačítko (i Ctrl+klik) na obrázku nebo kresbě: menu ⋮⋮ u kurzoru; na textu zůstává menu prohlížeče.
+   Dotyk a pero (dlouhé podržení) se nemění, aby se to nepletlo s tažením obrázku. */
+let lastPt='mouse';
+document.addEventListener('pointerdown',e=>{ lastPt=e.pointerType||'mouse'; },true);
+document.addEventListener('contextmenu',e=>{
+  const im=e.target.closest&&e.target.closest('#blocks > .blk .bimg'); if(!im) return;
+  if((e.pointerType||lastPt)!=='mouse') return;
+  const x=ctxOf(im); if(!x||x.b.type!=='image') return;
+  e.preventDefault(); hideImgSel();
+  openBlockMenu(im,x.pg,x.b,{rect:{left:e.clientX,right:e.clientX,top:e.clientY,bottom:e.clientY},follow:im.closest('#blocks > .blk')});
+});
 document.addEventListener('dblclick',e=>{
+  /* dvojklik na kresbu otevře editor kreslení (i se zámkem) */
+  const dr=e.target.closest&&e.target.closest('#doc .bimg.bdraw');
+  if(dr&&!S.modal){ e.preventDefault(); hideImgSel(); editDrawing(dr); return; }
   const hl=e.target.closest&&e.target.closest('a.hlnk'); if(!hl) return;
   e.preventDefault(); try{ getSelection().removeAllRanges(); }catch(_){}
   openHiddenLink(hl);
@@ -101,6 +117,8 @@ document.addEventListener('click',e=>{
     case 'unarchive': unarchivePage(a.dataset.id); break;
     case 'settings': closeSide(); openSettings(); break;
     case 'open': go({kind:'page',pageId:a.dataset.id}); break;
+    case 'side-mini': toggleSideMini(); break;
+    case 'side-proj': openProjPop(a); break;
     case 'tog': S.expanded[a.dataset.id]=S.expanded[a.dataset.id]===false; lsSet('uk-exp',S.expanded); renderSidebar(); break;
     case 'new-page': { const p=createPage(null); renderSidebar(); go({kind:'page',pageId:p.id}); setTimeout(()=>$('#page-title')&&$('#page-title').focus(),30); break; }
     case 'new-sub': { const p=createPage(a.dataset.id); renderSidebar(); go({kind:'page',pageId:p.id}); setTimeout(()=>$('#page-title')&&$('#page-title').focus(),30); break; }
@@ -169,6 +187,8 @@ document.addEventListener('keydown',e=>{
 },true);
 document.addEventListener('keydown',e=>{
   if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); openSearch(); return; }
+  /* ⌘\ / Ctrl+\: schovat a rozbalit levý panel */
+  if((e.metaKey||e.ctrlKey)&&!e.altKey&&(e.code==='Backslash'||e.key==='\\')){ e.preventDefault(); if(!S.modal) toggleSideMini(); return; }
   /* ⌘S / Ctrl+S: nahrát na Disk (v zařízení se ukládá samo), místo ukládacího dialogu prohlížeče */
   if((e.metaKey||e.ctrlKey)&&!e.altKey&&!e.shiftKey&&e.key.toLowerCase()==='s'){ e.preventDefault(); if(e.repeat) return;
     if(!DriveSync.clientId()){ toast('V zařízení se ukládá samo. Google Disk nastavíš v Nastavení.'); return; }

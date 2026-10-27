@@ -24,6 +24,8 @@ const TYPES=['Přednáška','Cvičení','Laboratoř','Zkouška','Jiné'];
 const TYPE_SHORT={'Přednáška':'Přednáška','Cvičení':'Cvičení','Laboratoř':'Lab','Zkouška':'Zkouška','Jiné':''};
 const EMOJI=['📘','📗','📙','📕','📓','📒','🎓','⚛️','⚙️','☢️','🔬','🧪','🧮','📐','⚡','🔋','🧲','🌡️','💧','🏭','💡','📡','🖥️','🗓️','📅','📌','📝','🗂️','📊','🧠','🎯','✅','🔥','⭐','🧭','🏃','☕','🎒'];
 const CALLOUT_IC=['💡','📌','⚠️','🗓️','✅','❗','📎','🔴'];
+/* kontrola pravopisu (od 4.16.0): jen v zařízení, výchozí zapnuto */
+const spellOn=()=>lsGet('uk-spell',true)!==false;
 const TEXT_TYPES=['p','h1','h2','h3','bullet','num','todo','quote','callout','code'];
 const LIST_TYPES=['bullet','num','todo'];
 const TYPE_ICON={link:'🔗',p:'T',h1:'H1',h2:'H2',h3:'H3',bullet:'•',num:'1.',todo:'☐',quote:'❝',callout:'!',code:'&lt;/&gt;',table:'▦',divider:'—',page:'↗',image:'▣',subj:'🎓',mdimport:'M↓',eq:'∑',draw:'✎',ai:'✦',aisum:'✦'};
@@ -72,4 +74,4 @@ function downloadFile(name,text){
 }
 const plural=(n,one,few,many)=>n===1?one:n>1&&n<5?few:many;
 
-export { $, $$, CALLOUT_IC, clamp, clone, COLOR_CZ, COLORS, DAYS, DAYS_FULL, downloadFile, EMOJI, esc, ICONS, LIST_TYPES, lsGet, lsSet, MONTHS, norm, pad, PH, plain, plural, rid, SLASH, TEXT_TYPES, TYPE_ICON, TYPE_LABEL, TYPE_SHORT, TYPES };
+export { $, $$, CALLOUT_IC, clamp, clone, COLOR_CZ, COLORS, DAYS, DAYS_FULL, downloadFile, EMOJI, esc, ICONS, LIST_TYPES, lsGet, lsSet, MONTHS, norm, pad, PH, plain, plural, rid, SLASH, spellOn, TEXT_TYPES, TYPE_ICON, TYPE_LABEL, TYPE_SHORT, TYPES };

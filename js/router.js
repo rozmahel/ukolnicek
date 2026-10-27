@@ -13,6 +13,7 @@ import { renderIndex } from './views/subjects.js';
 import { renderTasks } from './views/tasks.js';
 import { renderToday } from './views/today.js';
 import { hideImgSel } from './editor/images.js';
+import { spSync } from './split.js';
 import { renderTrashView } from './trash.js';
 import { renderMindmap } from './views/mindmap.js';
 
@@ -26,6 +27,9 @@ function rememberScroll(now){
   const v=Math.round(m.scrollTop); if(v>0) scr[k]=v; else delete scr[k];
   clearTimeout(scrT); if(now) lsSet(SCR_KEY,scr); else scrT=setTimeout(()=>lsSet(SCR_KEY,scr),400);
 }
+/* místo na stránce pro druhou polovinu rozdělené obrazovky (js/split.js) */
+function scrollOf(id){ return scr[id]||0; }
+function noteScroll(id,v,now){ if(!id) return; v=Math.round(v||0); if(v>0) scr[id]=v; else delete scr[id]; clearTimeout(scrT); if(now) lsSet(SCR_KEY,scr); else scrT=setTimeout(()=>lsSet(SCR_KEY,scr),400); }
 /* vrátí stránku tam, kde jsem z ní odešel; dokud se dočítají obrázky, chvíli to drží (pokud sám nescrolluju) */
 function restoreScroll(){
   const m=$('#main'); if(!m) return;
@@ -67,7 +71,8 @@ function renderMain(){
   else if(v.kind==='index'){ renderIndex(); title='Index'; }
   else { renderToday(); title='Dnes'; }
   $('#tb-t').textContent=title;
+  spSync();   /* rozdělená obrazovka: druhá polovina, nebo zavřít (jen stránky) */
   document.dispatchEvent(new Event('uk-view'));   /* panel AI se schová mimo stránky a na jiné stránce začne znovu */
 }
 
-export { go, renderMain, restoreScroll };
+export { go, noteScroll, renderMain, restoreScroll, scrollOf };

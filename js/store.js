@@ -99,7 +99,7 @@ const Store={
     }catch(e){ console.error(e); this.broken=true; setTimeout(()=>toast('Místní úložiště není dostupné (soukromé okno?). Změny se neuloží.'),300); }
     onDataReady(); Sync.init();
   },
-  queue(){ bumpRev(); META.changedAt=Date.now(); clearTimeout(this.t); this.t=setTimeout(()=>this.flush(),350); updateSyncUI(); },
+  queue(){ bumpRev(); META.changedAt=Date.now(); clearTimeout(this.t); this.t=setTimeout(()=>this.flush(),350); updateSyncUI(); document.dispatchEvent(new Event('uk-change')); },
   async flush(){
     clearTimeout(this.t); this.t=null;
     if(this.broken){ const d=dataForSave(); META.curHash=hashData(d); ImgSync.refresh(d); updateSaving(); updateSyncUI(); return; }

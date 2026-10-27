@@ -229,4 +229,4 @@ function blockToEq(pg,b){
   savePage(pg); rerenderBlocks();
 }
 
-export { blockToEq, dollarInput, eqFromSelection, insertEq, openEqEditor, textToEq, toEqBlock };
+export { blockToEq, dollarInput, eqFromSelection, insertEq, mathPass, openEqEditor, textToEq, toEqBlock };

@@ -94,11 +94,11 @@ function scan(el,quiet){
 
 /* ---- bublina ---- */
 const IC_SWAP='<svg viewBox="0 0 44 24" aria-hidden="true"><text x="3" y="18" class="cp-lo">a</text><text x="30" y="18" class="cp-up">A</text><path d="M14 9.5q8-6 16 0"/><path d="M27.5 6.2l2.6 3.4-4.2.6"/><path d="M30 14.5q-8 6-16 0"/><path d="M16.5 17.8l-2.6-3.4 4.2-.6"/></svg>';
-const IC_KEEP='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const IC_KEEP='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M6.4 6.4l11.2 11.2"/></svg>';   /* zákaz = nechat beze změny */
 function ensurePop(){
   if(pop) return pop;
   pop=document.createElement('div'); pop.className='pop caps-pop'; pop.id='caps-pop'; pop.hidden=true;
-  pop.innerHTML=`<button type="button" class="cp-b cp-swap" data-cv="swap" title="Prohodit velká a malá písmena" aria-label="Prohodit velká a malá písmena">${IC_SWAP}</button><button type="button" class="cp-b" data-cv="keep" title="Nechat beze změny" aria-label="Nechat beze změny">${IC_KEEP}</button>`;
+  pop.innerHTML=`<button type="button" class="cp-b cp-swap" data-cv="swap" title="Opravit" aria-label="Opravit (prohodit velká a malá písmena)">${IC_SWAP}</button><button type="button" class="cp-b" data-cv="keep" title="Nechat" aria-label="Nechat beze změny">${IC_KEEP}</button>`;
   /* kurzor ani klávesnice na telefonu nesmí z textu odejít */
   const hold=e=>{ if(e.target.closest('.cp-b')) e.preventDefault(); };
   pop.addEventListener('pointerdown',hold); pop.addEventListener('mousedown',hold);
