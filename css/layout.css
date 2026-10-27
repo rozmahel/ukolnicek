@@ -144,7 +144,14 @@ body.locked .tr-del,body.locked .tr-empty{display:none}
 #panes.split>.sp-r{grid-column:3;grid-row:2}
 #panes.split>#main,.split-ghost{min-width:0;min-height:0;border-top:2px solid transparent}
 #panes.split>#main{border-top-color:color-mix(in srgb,var(--accent) 75%,transparent)}
-@media (min-width:861px){ #panes.split #doc,.split-ghost .doc{padding-top:18px} }
+@media (min-width:861px){
+  #panes.split #doc,.split-ghost .doc{padding-top:18px}
+  /* v polovině o 60 % menší okraje (76 → 30 px); úchyt ⋮⋮ se vejde do levého okraje jako na telefonu, + je schované (stačí Enter nebo ⋮⋮) */
+  #panes.split .doc{padding-left:34px;padding-right:30px}
+  #panes.split .blk:not(.bfl,.b-image)>.gut{left:calc(var(--lv,0)*26px - 30px)}
+  #panes.split .blk.bfl>.gut{left:calc(var(--gx) + var(--lv,0)*26px - 30px)}
+  #panes.split .gut .g-add{display:none}
+}
 .split-ghost{overflow:auto;position:relative;cursor:default}
 .split-h{cursor:col-resize;background:linear-gradient(90deg,transparent 3px,var(--line) 3px,var(--line) 4px,transparent 4px);touch-action:none}
 .split-h:hover,body.split-drag .split-h{background:linear-gradient(90deg,transparent 2px,var(--accent) 2px,var(--accent) 5px,transparent 5px)}
