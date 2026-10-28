@@ -36,7 +36,7 @@
 try{var t=JSON.parse(localStorage.getItem('uk-theme')||'"auto"');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);
 var k=JSON.parse(localStorage.getItem('uk-skin')||'""');if(['paper','forest','mist','rose','lavender'].indexOf(k)>=0)document.documentElement.setAttribute('data-skin',k);
 var n=JSON.parse(localStorage.getItem('uk-font')||'""');if(['onest','plex','system','newsreader','literata','sserif'].indexOf(n)>=0)document.documentElement.setAttribute('data-font',n);
-var f=+JSON.parse(localStorage.getItem('uk-fs')||'1');if(f>1&&f<=1.6)document.documentElement.style.setProperty('--fs',f);}catch(e){}
+var f=+JSON.parse(localStorage.getItem('uk-fs')||'1');f=Math.min(1.4,Math.round(f*10)/10);if(f>1)document.documentElement.style.setProperty('--fs',f);}catch(e){}
 </script>
 </head>
 <body>
@@ -47,15 +47,14 @@ var f=+JSON.parse(localStorage.getItem('uk-fs')||'1');if(f>1&&f<=1.6)document.do
   <div id="panes">
   <main id="main">
     <div class="topbar"><button class="icon-btn" data-act="menu" aria-label="Menu">☰</button><span class="tb-t" id="tb-t">Úkolníček</span><span class="tb-sync" id="tb-sync"></span></div>
-    <div id="view"><div class="loading">Načítám tvoje stránky…</div></div>
+    <div id="view"><div class="loading">Načítání stránek…</div></div>
   </main>
   </div>
 </div>
 <div class="fmt" id="fmt" hidden></div>
 <div class="cellbar" id="cellbar" hidden>
-  <button data-lt="p">Text</button><button data-lt="bullet">• Odrážka</button><button data-lt="todo">☐ Úkol</button><button data-lt="img">▣ Obrázek</button><button data-lt="link">🔗 Odkaz</button>
 </div>
-<div class="upd" id="upd" hidden role="status"><span>Je dostupná nová verze Úkolníčku.</span><button id="upd-btn">Obnovit</button><button id="upd-x" class="x" aria-label="Skrýt" title="Skrýt (nová verze se nasadí sama po zavření appky)">×</button></div>
+<div class="upd" id="upd" hidden role="status"><span>Je dostupná nová verze Úkolníčku.</span><button id="upd-btn">Obnovit</button><button id="upd-x" class="x" aria-label="Skrýt" title="Skrýt (nová verze se nasadí sama po zavření appky)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button></div>
 <noscript><p style="padding:24px">Úkolníček potřebuje zapnutý JavaScript.</p></noscript>
 <script src="js/storage.js"></script>
 <script src="js/driveSync.js"></script>
