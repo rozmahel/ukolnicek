@@ -6,12 +6,13 @@ import { caretOffset, focusLine } from './caret.js';
 import { ctxOf, rerenderBlocks } from './render.js';
 import { drawSlash, slash } from './slash.js';
 import { hasFiles, viewEl } from './events.js';
+import { toast } from '../ui.js';
 import { openLinkDialog } from './links.js';
 import { hideImgSel, imgSel, pickImageInline, placeFrame } from './images.js';
 import { aiUsable } from '../ai.js';
 import { aiCapture, aiMenu } from './aiedit.js';
 import { eqFromSelection } from './math.js';
-import { fmtCrossBar } from './multisel.js';
+import { crossDelete, fmtCrossBar } from './multisel.js';
 
 /* ---- format toolbar ---- */
 const fmt=$('#fmt');
@@ -28,6 +29,53 @@ function applyMark(cls){
     else r.insertNode(frag);
   }
   host.dispatchEvent(new Event('input',{bubbles:true}));
+}
+/* Zrušit formátování (4.21.0): vlastní úprava DOM místo execCommand('removeFormat'), které se v prohlížečích chová různě
+   a zvýraznění (mark) ani kód neruší. Výběr se vyjme, uvnitř se rozbalí formát, formátovací předci kolem výběru
+   se v místě výběru rozdělí a výběr se vloží mezi ně. Odkazy, zmínky a rovnice zůstanou. */
+const FMT_TAGS=new Set(['B','STRONG','I','EM','U','S','STRIKE','DEL','MARK','CODE','FONT','SUB','SUP']);
+const isFmt=n=>n&&n.nodeType===1&&(FMT_TAGS.has(n.tagName)||n.tagName==='SPAN'&&!n.classList.contains('eq'));
+function unwrapEl(el){ const p=el.parentNode; while(el.firstChild) p.insertBefore(el.firstChild,el); el.remove(); }
+function clearRange(r,host){
+  if(!r||r.collapsed||!host||!host.contains(r.commonAncestorContainer)) return false;
+  const frag=r.extractContents();
+  [...frag.querySelectorAll('*')].reverse().forEach(el=>{ if(isFmt(el)) unwrapEl(el); });
+  let node=r.startContainer, off=r.startOffset;
+  if(node.nodeType===3){ const tail=node.splitText(off); node=tail.parentNode; off=[...node.childNodes].indexOf(tail); }
+  while(node!==host&&isFmt(node)&&host.contains(node)){
+    const tail=node.cloneNode(false); while(node.childNodes[off]) tail.appendChild(node.childNodes[off]);
+    const par=node.parentNode, idx=[...par.childNodes].indexOf(node);
+    par.insertBefore(tail,node.nextSibling); off=idx+1; node=par;
+  }
+  const first=frag.firstChild, last=frag.lastChild;
+  node.insertBefore(frag,node.childNodes[off]||null);
+  [...host.querySelectorAll('*')].reverse().forEach(el=>{ if(isFmt(el)&&!el.textContent&&!el.querySelector('img,br')) el.remove(); });
+  if(first&&last&&first.isConnected&&last.isConnected){ const s=getSelection(), nr=document.createRange(); nr.setStartBefore(first); nr.setEndAfter(last); s.removeAllRanges(); s.addRange(nr); }
+  return true;
+}
+function clearSel(){
+  const s=getSelection(); if(!s.rangeCount) return;
+  const r=s.getRangeAt(0), n=r.commonAncestorContainer, host=(n.nodeType===1?n:n.parentElement).closest('.txt');
+  if(clearRange(r,host)) host.dispatchEvent(new Event('input',{bubbles:true}));
+}
+/* Vložit z lišty: obsah schránky se pošle jako běžné vložení (stejná obsluha jako ⌘V: řádky na bloky, obrázky, bloky z Úkolníčku) */
+async function pasteFromBar(){
+  const dt=new DataTransfer();
+  try{
+    if(navigator.clipboard.read){
+      for(const it of await navigator.clipboard.read()) for(const ty of it.types){
+        const bl=await it.getType(ty);
+        if(ty.startsWith('image/')) dt.items.add(new File([bl],'obrázek.'+(ty.split('/')[1]||'png'),{type:ty}));
+        else if(ty==='text/plain'||ty==='text/html') dt.setData(ty,await bl.text());
+      }
+    } else dt.setData('text/plain',await navigator.clipboard.readText());
+  }catch(_){ toast('Prohlížeč nedovolil číst schránku. Vložit jde pomocí ⌘V.'); return; }
+  crossDelete();
+  const s=getSelection(), n=s.rangeCount&&s.focusNode, t=n&&(n.nodeType===1?n:n.parentElement).closest('.txt, #page-title, .pk, .pv, .cap');
+  if(!t) return;
+  hideFmt();
+  const ev=new ClipboardEvent('paste',{clipboardData:dt,bubbles:true,cancelable:true});
+  if(ev.clipboardData) t.dispatchEvent(ev); else document.execCommand('insertText',false,dt.getData('text/plain'));
 }
 let fmtT=null;
 const TOUCH=matchMedia('(pointer:coarse)');
@@ -98,7 +146,7 @@ function hideCellbar(){ cellbar.hidden=true; cellTarget=null; }
 export function initToolbar(){
   /* lišta buňky (od 4.20.0): jen ikony, název v bublině */
   cellbar.innerHTML=[['p',IC.textT,'Text'],['bullet',IC.bullets,'Odrážka'],['todo',IC.todo,'Úkol'],['img',IC.image,'Obrázek'],['link',IC.link,'Odkaz']].map(([k,ic,t])=>`<button data-lt="${k}" title="${t}" aria-label="${t}">${ic}</button>`).join('');
-  fmt.innerHTML=`<button data-f="ai" class="fmt-ai" aria-label="AI" title="AI: opravit, přeformulovat, shrnout…">${IC.spark}</button><span class="sep fmt-ai"></span><button data-f="bold" aria-label="Tučně"><b>B</b></button><button data-f="italic" aria-label="Kurzíva"><i>I</i></button><button data-f="underline" aria-label="Podtržení"><u>U</u></button><button data-f="strikeThrough" aria-label="Přeškrtnutí"><s>S</s></button><button data-f="link" aria-label="Odkaz" title="Udělat z textu odkaz">${IC.link}</button><button data-f="eq" aria-label="Rovnice" title="Udělat z textu rovnici (LaTeX, ⌘⇧E)">∑</button><span class="sep"></span>${COLORS.map(c=>`<button class="sw hl-${c}" data-f="hl-${c}" aria-label="Zvýraznit: ${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}<span class="sep"></span><button data-f="clear" aria-label="Zrušit formátování" title="Zrušit formátování">⌫</button>`;
+  fmt.innerHTML=`<button data-f="ai" class="fmt-ai" aria-label="AI" title="AI: opravit, přeformulovat, shrnout…">${IC.spark}</button><span class="sep fmt-ai"></span><button data-f="bold" aria-label="Tučně"><b>B</b></button><button data-f="italic" aria-label="Kurzíva"><i>I</i></button><button data-f="underline" aria-label="Podtržení"><u>U</u></button><button data-f="strikeThrough" aria-label="Přeškrtnutí"><s>S</s></button><button data-f="link" aria-label="Odkaz" title="Udělat z textu odkaz">${IC.link}</button><button data-f="eq" aria-label="Rovnice" title="Udělat z textu rovnici (LaTeX, ⌘⇧E)">∑</button><span class="sep"></span>${COLORS.map(c=>`<button class="sw hl-${c}" data-f="hl-${c}" aria-label="Zvýraznit: ${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}<span class="sep"></span><button data-f="clear" aria-label="Zrušit formátování" title="Zrušit formátování (tučné, kurzíva, zvýraznění…)">${IC.clearFmt}</button><button data-f="copy" class="fmt-clip" aria-label="Kopírovat" title="Kopírovat (⌘C)">${IC.clip}</button><button data-f="paste" class="fmt-clip" aria-label="Vložit" title="Vložit (⌘V)">${IC.paste}</button><button data-f="del" class="fmt-clip danger" aria-label="Odstranit" title="Odstranit (⌫)">${IC.trash}</button>`;
   fmt.addEventListener('mousedown',e=>e.preventDefault());
   fmt.addEventListener('click',e=>{
     const b=e.target.closest('[data-f]'); if(!b) return; const f=b.dataset.f;
@@ -109,17 +157,23 @@ export function initToolbar(){
     }
     if(f==='link'){ const s=getSelection(); if(!s.rangeCount) return; const r=s.getRangeAt(0); const n=r.commonAncestorContainer; const host=(n.nodeType===1?n:n.parentElement).closest('.txt'); if(host){ hideFmt(); openLinkDialog(host,r.cloneRange(),true); } return; }
     if(f==='eq'){ hideFmt(); eqFromSelection(); return; }
+    if(f==='copy'){ document.execCommand('copy'); toast('Zkopírováno'); return; }
+    if(f==='del'){ if(!crossDelete()) document.execCommand('delete'); hideFmt(); return; }
+    if(f==='paste'){ pasteFromBar(); return; }
     if(fmt.classList.contains('multi')){
       if(f.startsWith('hl-')) fmtCrossBar(null,()=>applyMark(f));
-      else if(f==='clear') fmtCrossBar(null,()=>{ document.execCommand('removeFormat'); applyMark(null); });
+      else if(f==='clear') fmtCrossBar(null,clearSel);
       else fmtCrossBar(f);
       updateFmt(); return;
     }
     if(f.startsWith('hl-')) applyMark(f);
-    else if(f==='clear'){ document.execCommand('removeFormat'); applyMark(null); }
+    else if(f==='clear') clearSel();
     else document.execCommand(f);
     updateFmt();
   });
+  /* tažení výběru v textu: lišta formátu pustí myš skrz (body.mdrag v controls.css) */
+  $('#view').addEventListener('mousedown',e=>{ if(e.button===0) document.body.classList.add('mdrag'); });
+  document.addEventListener('mouseup',()=>document.body.classList.remove('mdrag'));
   document.addEventListener('selectionchange',()=>{ clearTimeout(fmtT); fmtT=setTimeout(updateFmt,80); });
   cellbar.addEventListener('mousedown',e=>e.preventDefault());
   cellbar.addEventListener('click',e=>{

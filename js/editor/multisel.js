@@ -182,6 +182,8 @@ function fmtCross(range,cmd){
   if(a&&z) try{ getSelection().setBaseAndExtent(a[0],a[1],z[0],z[1]); }catch(_){}
 }
 /* lišta formátu nad výběrem přes víc bloků: cmd = příkaz prohlížeče (přepíná jako ⌘B), jinak fn() nad každou vybranou částí */
+/* lišta formátu (4.21.2): Odstranit výběr přes víc bloků; false = výběr není přes víc bloků */
+export function crossDelete(){ const r=active&&curRange(); if(!r) return false; deleteSel(picked(r)); return true; }
 export function fmtCrossBar(cmd,fn){
   const r=active&&curRange(); if(!r) return;
   if(cmd){ fmtCross(r,cmd); return; }

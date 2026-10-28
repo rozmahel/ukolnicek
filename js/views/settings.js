@@ -20,7 +20,7 @@ import { checkUpdate } from '../update.js';
 import { aiPaneBind } from './aiset.js';
 
 /* ================= settings ================= */
-const APP_VERSION='4.20.0';
+const APP_VERSION='4.21.4';
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
 const FS_STEPS=[1,1.1,1.2,1.3,1.4];
 /* uložená velikost textu přichycená na nejbližší krok (starší kroky 1,15 … 1,6 se převedou) */

@@ -85,7 +85,7 @@ input[type=checkbox],input[type=radio],input[type=range]{accent-color:var(--acce
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 [contenteditable]:focus-visible,input:not([type=checkbox]):not([type=radio]):not([type=range]):focus-visible,textarea:focus-visible,select:focus-visible{outline:none}
 /* tlačítka, která se ukazují až po najetí myší, se ukážou i při fokusu z klávesnice */
-:is(.caret,.imgfig .ta,.rh,.ch,.prop .icon-btn,.ixc-set,.aip-x,.sp-more,.ev-add,.wg-grip):focus-visible,.gut:focus-within,.ti-acts:focus-within,.tbl-tools:focus-within{opacity:1}
+:is(.caret,.rh,.ch,.prop .icon-btn,.ixc-set,.aip-x,.sp-more,.ev-add,.wg-grip):focus-visible,.gut:focus-within,.ti-acts:focus-within,.tbl-tools:focus-within{opacity:1}
 /* čísla a časy (dřív neproporcionální písmo): stejné písmo jako text, jen číslice stejně široké, kde to písmo umí */
 .mono{font-variant-numeric:tabular-nums}
 .muted{color:var(--muted)}

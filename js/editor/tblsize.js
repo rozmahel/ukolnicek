@@ -1,5 +1,6 @@
 /* Úkolníček – Tabulky: šířka sloupce a výška řádku tažením okraje buňky (myš/pero, ne prst; se zámkem ne).
    Tažením mění jen ten jeden sloupec, ostatní si nechají šířku a posunou se – celá tabulka se zúží nebo rozšíří.
+   S ⌘ (Ctrl) se všechny sloupce nastaví na šířku taženého (stejně velké sloupce).
    Data: b.cw = šířky všech sloupců v px (nastaví se při prvním tažení podle toho, jak tabulka zrovna vypadá),
    b.rh = výšky řádků v px (null = podle obsahu). Tabulka bez tažení data nemění. Dvojklik na okraji vrátí výchozí. */
 import { clamp, clone, simpleUi } from '../core.js';
@@ -45,7 +46,7 @@ function down(e){
   e.preventDefault(); e.stopPropagation();
   const tbl=h.td.closest('table'), tr=h.td.parentElement;
   rsz={k:h.k,x0:e.clientX,y0:e.clientY,tbl,tr,c:h.td.cellIndex,r:tr.rowIndex,pg:x.pg,b:x.b};
-  if(h.k==='c'){ const f=fixCols(tbl); rsz.ws=f.ws; rsz.cg=f.cg; rsz.w0=f.ws[rsz.c]; }
+  if(h.k==='c'){ const f=fixCols(tbl); rsz.ws=f.ws; rsz.base=f.ws.slice(); rsz.cg=f.cg; rsz.w0=f.ws[rsz.c]; }
   else { rsz.h0=tr.getBoundingClientRect().height; rsz.h=rsz.h0; }
   document.body.classList.add(h.k==='c'?'tbl-rsz-c':'tbl-rsz-r');
   try{ e.target.setPointerCapture(e.pointerId); }catch(_){}
@@ -54,8 +55,10 @@ function move(e){
   if(!rsz){ mark(hit(e)); return; }
   e.preventDefault();
   if(rsz.k==='c'){
-    const w=Math.round(Math.max(COL_MIN,rsz.w0+e.clientX-rsz.x0)); rsz.ws[rsz.c]=w;
-    rsz.cg.children[rsz.c].style.width=w+'px'; rsz.tbl.style.width=rsz.ws.reduce((a,v)=>a+v,0)+'px';
+    /* s ⌘ (Ctrl) dostanou všechny sloupce stejnou šířku jako ten tažený; puštěním ⌘ se ostatní vrátí */
+    const w=Math.round(Math.max(COL_MIN,rsz.w0+e.clientX-rsz.x0)), all=e.metaKey||e.ctrlKey;
+    rsz.ws=all?rsz.base.map(()=>w):rsz.base.map((v,i)=>i===rsz.c?w:v);
+    rsz.ws.forEach((v,i)=>{ rsz.cg.children[i].style.width=v+'px'; }); rsz.tbl.style.width=rsz.ws.reduce((a,v)=>a+v,0)+'px';
   } else {
     rsz.h=Math.round(Math.max(ROW_MIN,rsz.h0+e.clientY-rsz.y0)); rsz.tr.style.height=rsz.h+'px';
   }

@@ -22,8 +22,11 @@
 .fmt{position:fixed;z-index:65;display:flex;align-items:center;gap:var(--sp1);background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:var(--sp2)}
 .fmt button{min-width:28px;height:28px;border-radius:var(--r);display:grid;place-items:center;font-size:calc(14px*var(--fs));color:var(--fg2)}
 .fmt button:hover{background:var(--hover);color:var(--fg)}
+.fmt button .ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:var(--ic-w);stroke-linecap:round;stroke-linejoin:round}
 .fmt .sw{width:18px;height:18px;min-width:18px;border-radius:var(--r-sm);margin:0 var(--sp1)}
 .fmt .sep{width:1px;height:20px;background:var(--line);margin:0 var(--sp2)}
+.fmt button.danger{color:var(--danger)}
+@media (pointer:coarse){ .fmt .fmt-clip{display:none} }   /* na dotyku má kopírování a vložení vlastní nabídka systému */
 .cellbar{position:fixed;z-index:64;display:flex;gap:var(--sp1);background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--shadow);padding:var(--sp2)}
 .cellbar button{width:30px;height:30px;display:grid;place-items:center;border-radius:var(--r);color:var(--fg2)}
 .cellbar button .ic{width:17px;height:17px}
@@ -95,7 +98,7 @@
 .btn:disabled{opacity:.5;cursor:default}
 /* ⋮⋮ menu bloku: řada čtverečků nahoře */
 .pop.bm-pop{min-width:212px}
-.bm-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(26px,1fr));gap:var(--sp1);padding:0 var(--sp1) var(--sp1)}
+.bm-row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(26px,1fr);gap:var(--sp1);padding:0 var(--sp1) var(--sp1)}
 /* řada ikon bez rámečku (od 4.20.0) */
 .bm-ic{height:28px;display:grid;place-items:center;border-radius:var(--r);color:var(--fg2);font:600 calc(13px*var(--fs)) var(--f-body)}
 .bm-ic.on{background:var(--accent-soft);color:var(--accent)}
@@ -118,3 +121,8 @@
 .emoji-one:focus{border-color:var(--accent)}
 .pop-hr .pop-hl{font-weight:600;color:var(--accent);padding:0 var(--sp2);border-radius:var(--r-sm)}
 .pop-hr .pop-hl:hover{background:var(--hover)}
+
+/* lišty a nabídky se nikdy neoznačí tažením výběru textu (4.21.4); během tažení myší je lišta formátu průhledná pro myš,
+   takže výběr pod ní pokračuje v textu */
+.fmt,#cellbar,.pop,#bselbar,.toast,#caps-pop{-webkit-user-select:none;user-select:none}
+body.mdrag .fmt,body.mdrag #cellbar{pointer-events:none}

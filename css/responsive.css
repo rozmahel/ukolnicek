@@ -10,6 +10,7 @@
   .page-icon{font-size:1.8rem}
   .topbar .tb-t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .doc{padding:var(--sp2) var(--sp8) 30vh 34px}
+  .doc>:not(.pagebar){max-width:none}
   .gut{left:calc(var(--lv,0)*26px - 30px)}
   .gut .g-add{display:none}
   .b-h1>.gut,.b-h2>.gut,.b-h3>.gut{left:calc(var(--lv,0)*26px - 30px)}
@@ -34,8 +35,9 @@
   /* bloky se nepřetahují (⋮⋮ je jen menu) */
   .gut .g-drag{cursor:pointer}
   /* tabulky: jen psaní do buněk */
-  .rh,.ch,.tbl-tools{display:none!important}
+  .rh,.ch,.tbl-tools,.b-table>.ta{display:none!important}
   /* obrázky a kresby pod sebou přes celou šířku, bez obtékání; uložené zarovnání a velikost zůstávají */
+  .blocks>.b-table.tw{float:none!important;width:auto!important;max-width:none!important;margin-inline:0!important}
   .blocks>.b-image,.blocks>.b-image.al-left,.blocks>.b-image.al-right,.blocks>.b-image.al-center{float:none!important;clear:both;width:100%!important;margin-inline:0!important}
   .b-image>.gut,.b-image.al-center>.gut{left:6px}
   .txt img.im.al-left,.txt img.im.al-right{float:none;display:block;margin:var(--sp3) 0}

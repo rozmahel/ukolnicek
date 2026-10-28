@@ -104,7 +104,7 @@ export function initEvents(){
       if(e.key==='Enter'||(e.key==='ArrowDown'&&onLastLine(t))){ e.preventDefault(); const pg=curPage(); if(!pg.blocks.length){ pg.blocks.push(newBlock('p')); rerenderBlocks(); } const first=$('#blocks .txt'); if(first) focusEl(first,'start'); else { pg.blocks.unshift(newBlock('p')); rerenderBlocks(); focusEl($('#blocks .txt'),0);} }
       return;
     }
-    if(t.classList.contains('cap')){ if(e.key==='Enter'){ e.preventDefault(); const x=ctxOf(t); if(!x) return; let nx=x.pg.blocks[x.bi+1]; if(!nx||!TEXT_TYPES.includes(nx.type)){ nx=newBlock('p'); x.pg.blocks.splice(x.bi+1,0,nx); savePage(x.pg); rerenderBlocks(); } focusBlock(nx.id,0); } return; }
+    if(t.classList.contains('cap')){ if(e.key==='Enter'){ e.preventDefault(); const x=ctxOf(t); if(!x) return; if(x.b.type==='table'){ focusLine(x.b.id,0,0,0,0); return; } let nx=x.pg.blocks[x.bi+1]; if(!nx||!TEXT_TYPES.includes(nx.type)){ nx=newBlock('p'); x.pg.blocks.splice(x.bi+1,0,nx); savePage(x.pg); rerenderBlocks(); } focusBlock(nx.id,0); } return; }
     if(t.classList.contains('pk')||t.classList.contains('pv')){ if(e.key==='Enter'){ e.preventDefault(); if(t.classList.contains('pk')) focusEl(t.nextElementSibling,'end'); else t.blur(); } return; }
     if(!t.classList.contains('txt')) return;
     if(blockEsc(e,t)) return;

@@ -73,6 +73,8 @@ const IC={
   trash:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7h15M10 11v6M14 11v6M6.5 7l.9 12.1a2 2 0 0 0 2 1.9h5.2a2 2 0 0 0 2-1.9L17.5 7M9.5 7V4.5h5V7"/></svg>',
   dup:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2M14 11.5v5M11.5 14h5"/></svg>',
   clip:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4.5H7.5a2 2 0 0 0-2 2v12.5a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V6.5a2 2 0 0 0-2-2H15"/><rect x="9" y="3" width="6" height="3.5" rx="1"/></svg>',
+  paste:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4.5H7.5a2 2 0 0 0-2 2v12.5a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V6.5a2 2 0 0 0-2-2H15"/><rect x="9" y="3" width="6" height="3.5" rx="1"/><path d="M12 10v6.5M9.5 14l2.5 2.5 2.5-2.5"/></svg>',
+  clearFmt:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h12M11 5 8 19M14 14l6 6M20 14l-6 6"/></svg>',
   caption:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 9.5h16M4 14h10M4 18.5h7"/></svg>',
   download:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
   filter:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>',

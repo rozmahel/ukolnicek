@@ -134,7 +134,7 @@ function renderBlock(b,i,bl){
   const lv=b.level||0; let inner;
   if(b.type==='divider') inner='<div class="divider"><hr></div>';
   else if(b.type==='table') inner=renderTable(b);
-  else if(b.type==='image') inner=`<figure class="imgfig"><img class="bimg${b.draw?' bdraw':''} ${IMGURL.has(b.img)?'':'missing'}" data-bimg="${esc(b.img||'')}" src="${esc(imgSrc(b.img,b.name))}" alt="${esc(b.caption||'')}" draggable="false"><button class="ta ta-up" data-act="img-line" data-dir="up" title="Nový řádek nad" aria-label="Nový řádek nad obrázkem">${IC.newline}</button><button class="ta ta-dn" data-act="img-line" title="Nový řádek pod" aria-label="Nový řádek pod obrázkem">${IC.newline}</button>${(b.caption||b.capOn)?`<figcaption class="cap" contenteditable="true" data-ph="Popisek obrázku">${esc(b.caption||'')}</figcaption>`:''}</figure>`;
+  else if(b.type==='image') inner=`<figure class="imgfig"><img class="bimg${b.draw?' bdraw':''} ${IMGURL.has(b.img)?'':'missing'}" data-bimg="${esc(b.img||'')}" src="${esc(imgSrc(b.img,b.name))}" alt="${esc(b.caption||'')}" draggable="false">${(b.caption||b.capOn)?`<figcaption class="cap" contenteditable="true" data-ph="Popisek obrázku">${esc(b.caption||'')}</figcaption>`:''}</figure>`;
   else if(b.type==='subj') inner=renderSubjHead(b);
   else if(b.type==='eq'){ const tex=plain(b.html); inner=`<div class="eqb" data-tex="${esc(tex)}" role="button" tabindex="0" aria-label="Rovnice, úprava kliknutím">${esc(tex)}</div>`; }
   else if(b.type==='page'){ const p=S.pages[b.pageId]; inner=`<button class="pagelink" data-act="open" data-id="${esc(b.pageId)}">${p?pIcon(p):`<span class="pl-ic">${IC.pageLink}</span>`}<span class="pl-t">${esc(pTitle(p))}</span></button>`; }
@@ -147,7 +147,7 @@ function renderBlock(b,i,bl){
     else if(b.type==='callout') mk=`<button class="mk callout-ic${b.icon===''?' none':''}" data-act="blk-menu" data-popanchor aria-label="Změnit ikonu a barvu">${esc(b.icon==null?'💡':b.icon)}</button>`;
     inner=`<div class="row">${mk}<div class="txt t-${b.type} ${b.type==='todo'&&b.done?'done':''}" contenteditable="true" data-ph="${PH[b.type]||''}">${b.type==='code'?codeNorm(b.html):sanitize(b.html)}</div></div>`;
   }
-  const extra=b.type==='image'?` al-${b.align||'center'}${b.nw?' nw':''}${b.draw?' is-draw':''}`:b.type==='subj'?` hl-${esc((S.subjects[b.subj]||{}).color||'gray')}`:'';
+  const extra=b.type==='image'?` al-${b.align||'center'}${b.nw?' nw':''}${b.draw?' is-draw':''}`:b.type==='table'?tblCls(b):b.type==='subj'?` hl-${esc((S.subjects[b.subj]||{}).color||'gray')}`:'';
   return `<div class="blk b-${b.type} ${b.type==='callout'?'hl-'+(b.color||'purple'):''}${extra}${b.clr?' clr':''}" data-id="${b.id}" style="--lv:${b.type==='image'?0:lv}${b.type==='image'?`;--w:${+b.w||480}px`:''}">
     <div class="gut"><button class="g-add" data-act="add-after" aria-label="Přidat blok pod">${IC.plus}</button><button class="g-drag" data-act="blk-menu" data-popanchor draggable="true" aria-label="Přesunout tažením, menu kliknutím">${IC.grip}</button></div>${inner}</div>`;
 }
@@ -161,12 +161,15 @@ function renderSubjHead(b){
   if(b.it) t=`<i>${t}</i>`; if(b.un) t=`<u>${t}</u>`; if(b.st) t=`<s>${t}</s>`; if(b.hl) t=`<mark class="hl-${esc(b.hl)}">${t}</mark>`;
   return `<div class="row">${caret}<button class="sj-h" data-act="subj-blk" data-popanchor title="${esc(subjLabel(su))} · předmět z Indexu">${b.icon?`<span class="sj-ic" aria-hidden="true">${esc(b.icon)}</span>`:''}<span class="sj-t">${t}</span></button></div>`;
 }
+/* rozvržení tabulky jako u obrázku (od 4.21.0): b.align 'center'|'right' (bez = vlevo), b.wrap = text obtéká (jen vlevo/vpravo) */
+function tblCls(b){ return (b.align==='center'?' tal-c':b.align==='right'?' tal-r':'')+(b.wrap&&b.align!=='center'?' tw':''); }
 /* šířky sloupců (b.cw, px) a výšky řádků (b.rh, px, null = podle obsahu) nastavené tažením okraje; bez nich se tabulka roztáhne sama */
 const COL_DEF=150, COL_MIN=40;
 const colW=v=>{ v=Math.round(+v); return Number.isFinite(v)&&v>0?Math.min(2000,Math.max(COL_MIN,v)):COL_DEF; };
 function renderTable(b){
   const cols=(b.rows[0]&&b.rows[0].cells.length)||0, cw=Array.isArray(b.cw)?Array.from({length:cols},(_,c)=>colW(b.cw[c])):null, rh=Array.isArray(b.rh)?b.rh:[];
-  let h=`<div class="tbl-wrap"><table class="tbl ${b.hrow?'hrow':''} ${b.hcol?'hcol':''}${cw?' fixw':''}"${cw?` style="width:${cw.reduce((a,v)=>a+v,0)}px"`:''}>${cw?`<colgroup>${cw.map(w=>`<col style="width:${w}px">`).join('')}</colgroup>`:''}<tbody>`;
+  const cap=(b.caption||b.capOn)?`<div class="cap tcap" contenteditable="true" data-ph="Popisek tabulky">${esc(b.caption||'')}</div>`:'';
+  let h=`${cap}<div class="tbl-wrap"><table class="tbl ${b.hrow?'hrow':''} ${b.hcol?'hcol':''}${cw?' fixw':''}"${cw?` style="width:${cw.reduce((a,v)=>a+v,0)}px"`:''}>${cw?`<colgroup>${cw.map(w=>`<col style="width:${w}px">`).join('')}</colgroup>`:''}<tbody>`;
   b.rows.forEach((row,r)=>{
     const rhv=Math.round(+rh[r]);
     h+=rhv>0?`<tr style="height:${Math.min(2000,rhv)}px">`:'<tr>';
@@ -178,7 +181,7 @@ function renderTable(b){
     });
     h+='</tr>';
   });
-  return h+`</tbody></table></div><div class="tbl-tools"><button data-act="add-row">＋ Řádek</button><button data-act="add-col">＋ Sloupec</button></div>`;
+  return h+`</tbody></table></div><div class="tbl-tools"><button data-act="add-row">${IC.plus}Řádek</button><button data-act="add-col">${IC.plus}Sloupec</button></div>`;
 }
 function rerenderBlocks(){ const pg=curPage(); if(!pg) return; if(imgSel) hideImgSel(); const el=$('#blocks'); if(el) patchBlocks(el,blockList(pg)); const tpl=$('.tpl'); if(tpl&&!((pg.blocks||[]).length<=1&&isBlank((pg.blocks[0]||{}).html))) tpl.remove(); RENDERED.forEach(f=>f()); }
 function rerenderProps(){ const pg=curPage(); if(pg) $('#props').innerHTML=renderProps(pg); }

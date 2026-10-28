@@ -211,7 +211,7 @@ function blockMd(b){
       const rows=(b.rows||[]).map(r=>r.cells.map(c=>c.lines.map(l=>(l.t==='bullet'?'- ':l.t==='todo'?(l.done?'- [x] ':'- [ ] '):'')+htmlToMd(l.html,'<br>')).filter((x,k,a)=>x||a.length===1).join('<br>').replace(/\n/g,' ')));
       if(!rows.length) return null;
       const nc=Math.max(...rows.map(r=>r.length)), line=r=>'| '+Array.from({length:nc},(_,c)=>r[c]||'').join(' | ')+' |';
-      s=[line(rows[0]),'|'+Array.from({length:nc},()=>' --- ').join('|')+'|',...rows.slice(1).map(line)].join('\n');
+      s=(b.caption&&b.caption.trim()?`*${escMd(b.caption.trim())}*\n\n`:'')+[line(rows[0]),'|'+Array.from({length:nc},()=>' --- ').join('|')+'|',...rows.slice(1).map(line)].join('\n');
       break;
     }
     default: s=htmlToMd(b.html||'','  \n');

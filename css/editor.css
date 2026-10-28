@@ -1,9 +1,11 @@
 /* Úkolníček – Editor stránek: nadpisy, bloky, úkoly, obrázky, tabulky, odkazy */
 
 /* ---------- stránka: hlavička, vlastnosti, bloky ---------- */
-.doc{max-width:calc(820px*var(--fs));margin:0 auto;padding:var(--sp3) 76px 30vh}
-.doc.wide{max-width:calc(1320px*var(--fs))}
-.pagebar{position:sticky;top:0;z-index:15;background:var(--bg);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--sp3) var(--sp6);padding:var(--sp5) var(--sp9);margin:0 -20px var(--sp8);border-bottom:1px solid transparent}
+/* horní lišta je vždy přes celou šířku, Celá šířka / Užší mění jen šířku textu stránky (od 4.21.0) */
+.doc{--doc-in:calc(820px*var(--fs) - 152px);margin:0 auto;padding:var(--sp3) 76px 30vh}
+.doc.wide{--doc-in:calc(1320px*var(--fs) - 152px)}
+.doc>:not(.pagebar){max-width:var(--doc-in);margin-inline:auto}
+.pagebar{position:sticky;top:0;z-index:15;background:var(--bg);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--sp3) var(--sp6);padding:var(--sp5) var(--sp9);margin:0 -76px var(--sp8);border-bottom:1px solid transparent}
 #main.scrolled .pagebar{border-bottom-color:var(--line)}
 .crumbs{display:flex;flex-wrap:wrap;gap:var(--sp2);align-items:center;font-size:calc(13px*var(--fs));color:var(--muted);min-height:20px;min-width:0}
 .pb-acts{display:flex;align-items:center;gap:var(--sp1);flex-wrap:wrap;margin-left:auto}
@@ -13,7 +15,8 @@
 .icon-btn:disabled{opacity:.3;cursor:default;background:none}
 .title-row{display:flex;align-items:flex-start;gap:var(--sp5)}
 .title-row .page-title{flex:1;min-width:0}
-.crumbs button{padding:1px 5px;border-radius:var(--r-sm)}
+.crumbs button,.crumbs>span:last-child{padding:1px 5px;border-radius:var(--r-sm)}   /* stejný okraj u tlačítek i u aktuální stránky: první položka je vždy na stejném místě */
+.crumbs{margin-left:-5px}
 @media (max-width:860px){ .crumbs.solo,.pb-acts [data-act="wide"],.pb-acts [data-act="wide"]+.pb-sep{display:none} }
 .crumbs button:hover{background:var(--hover);color:var(--fg)}
 .doc-head{position:relative}
@@ -34,8 +37,14 @@
 .add-prop{font-size:calc(13.5px*var(--fs));color:var(--muted);padding:var(--sp2) var(--sp3);border-radius:var(--r);margin-left:-6px}
 .add-prop:hover{background:var(--hover);color:var(--fg)}
 .blk{position:relative;padding-left:calc(var(--lv,0)*26px)}
-.gut{position:absolute;top:4px;left:calc(var(--lv,0)*26px - 54px);display:flex;gap:1px;opacity:0;transition:opacity .12s}
+.gut{position:absolute;top:calc(var(--sp2) + .8em - 12px);left:calc(var(--lv,0)*26px - 54px);display:flex;gap:1px;opacity:0;transition:opacity .12s}
 .b-h1>.gut,.b-h2>.gut,.b-h3>.gut{left:calc(var(--lv,0)*26px - 78px)}
+/* ⋮⋮ a + svisle uprostřed prvního řádku textu i při větším písmu (Vzhled → Text): .txt má nahoře 4 px, řádek = výška písma × řádkování */
+.b-h1>.gut{top:calc(var(--sp2) + 1.075rem - 12px)}
+.b-h2>.gut{top:calc(var(--sp2) + .871rem - 12px)}
+.b-h3>.gut{top:calc(var(--sp2) + .7425rem - 12px)}
+.b-quote>.gut{top:calc(var(--sp4) + .8em - 12px)}
+.b-code>.gut{top:calc(var(--sp2) + var(--sp5) + .6665em - 12px)}
 .blk:hover>.gut,.blk:focus-within>.gut{opacity:1}
 .gut button{width:24px;height:24px;border-radius:var(--r-sm);display:grid;place-items:center;color:var(--faint);font-size:calc(17px*var(--fs));line-height:1}
 .gut .g-drag{font-size:calc(13px*var(--fs));letter-spacing:-2px;cursor:grab}
@@ -138,16 +147,7 @@
 .blk.clr{clear:both}
 /* úchyty u textu vedle obrázku vlevo (placeGut v images.js) */
 .blk.bfl>.gut{left:calc(var(--gx) + var(--lv,0)*26px - 54px);z-index:2;background:var(--panel);border-radius:var(--r);box-shadow:var(--shadow)}
-/* nový řádek nad / pod obrázkem */
-.imgfig .ta{position:absolute;right:10px;width:24px;height:24px;border-radius:var(--r);display:grid;place-items:center;background:var(--panel);color:var(--fg2);box-shadow:var(--shadow);font-size:calc(14px*var(--fs));line-height:1;opacity:0;transition:opacity .12s;z-index:2}
-.imgfig .ta-up{top:-12px}
-.imgfig .ta-up{transform:scaleY(-1)}
-.imgfig .ta-dn{bottom:-12px}
-.b-image:hover .ta,.b-image.isel .ta{opacity:1}
-.imgfig .ta:hover{color:var(--accent)}
-body.locked .imgfig .ta{display:none}
 .b-image .imgfig{container-type:inline-size}
-@container (max-width:110px){ .imgfig .ta{display:none} }
 /* v úzkém sloupci se neobtéká (jen zobrazení, data se nemění) */
 @container blk (max-width:520px){
   .blocks>.b-image.al-left,.blocks>.b-image.al-right{float:none;width:min(var(--w),100%);margin-inline:0}
@@ -208,7 +208,8 @@ body.tbl-rsz-r,body.tbl-rsz-r *{cursor:row-resize!important;user-select:none!imp
 .rh:hover,.ch:hover{background:var(--hover);color:var(--fg)}
 .tbl-tools{display:flex;gap:var(--sp3);margin:var(--sp3) 0 var(--sp2);opacity:0;transition:opacity .12s}
 .blk:hover .tbl-tools,.blk:focus-within .tbl-tools{opacity:1}
-.tbl-tools button{font-size:calc(12.5px*var(--fs));color:var(--muted);padding:var(--sp1) var(--sp4);border-radius:var(--r);border:1px dashed var(--line)}
+.tbl-tools button{display:flex;align-items:center;gap:var(--sp2);font-size:calc(12.5px*var(--fs));color:var(--muted);padding:var(--sp1) var(--sp4) var(--sp1) var(--sp3);border-radius:var(--r);border:1px dashed var(--line)}
+.tbl-tools .ic{width:13px;height:13px}
 .tbl-tools button:hover{color:var(--accent);border-color:var(--accent)}
 body.locked .gut,
 body.locked .rh,
@@ -217,6 +218,32 @@ body.locked .tbl-tools,
 body.locked .add-prop,
 body.locked .prop .icon-btn{display:none!important}
 body.locked .g-drag{pointer-events:none}
+
+/* ---------- rozvržení a popisek tabulky (4.21.0, jako u obrázku) ----------
+   Blok tabulky je jen tak široký jako tabulka (nejvýš šířka textu), takže úchyty ⋮⋮ a +, tlačítka Řádek/Sloupec
+   a ↵ jsou vždy u tabulky. */
+.b-table{width:fit-content;max-width:100%}
+.b-table .tbl{min-width:0}
+/* s popiskem jsou + a ⋮⋮ v řádku s popiskem */
+.b-table:has(>.tcap)>.gut{top:calc(var(--sp6) + 10.4px*var(--fs) - 12px)}
+.b-table>.tcap{line-height:1.6}
+.b-table.tal-c{margin-inline:auto}
+.b-table.tal-r{margin-left:auto}
+.b-table.tw{max-width:60%;z-index:1;margin-top:calc(var(--sp4) - var(--sp10))}   /* horní okraj tabulky v úrovni prvního řádku obtékajícího textu (místo nad ní je pro ⋯ sloupců) */
+.b-table.tw:has(.tcap){margin-top:0}
+.b-table.tw .tbl:not(.fixw) td{min-width:90px}
+.b-table.tw:not(.tal-r){float:left;margin-right:22px}
+.b-table.tw.tal-r{float:right;margin-left:22px}
+.b-table .tcap{text-align:left;padding:var(--sp6) 0 0;font-weight:550;color:var(--fg2)}
+.b-table.tal-c .tcap{text-align:center}
+.b-table .tcap+.tbl-wrap{padding-top:var(--sp9)}
+@container blk (max-width:520px){ .blocks>.b-table.tw{float:none;width:fit-content;max-width:100%;margin-inline:0} .blocks>.b-table.tw.tal-r{margin-left:auto} }
+@media (max-width:560px){ .b-table.tw{float:none;max-width:100%;margin-inline:0} }
+
+/* ---------- obtékání (4.21.0) ----------
+   Obtékat jde jen textem. Obtékaný obrázek nebo tabulka začne vždy pod předchozím obtékaným prvkem (nestaví se vedle sebe)
+   a obrázek na střed / bez obtékání a tabulka bez obtékání začnou až pod ním, jinak by uskočily nahoru do volného místa. */
+.blocks>.b-image,.blocks>.b-table{clear:both}
 
 /* ---------- tlačítka tabulky jako vrstva (mezera pod tabulkou je vždy stejná) ---------- */
 .b-table{margin-bottom:var(--sp3)}
@@ -317,7 +344,7 @@ a.mention.gone{color:var(--muted);background:var(--hover);text-decoration:line-t
 .src-ed{display:block;width:100%;min-height:40vh;margin:var(--sp3) 0 0;padding:var(--sp5) 0;border:0;outline:0;resize:none;background:transparent;color:var(--fg);font:calc(13.5px*var(--fs))/1.65 var(--f-mono);white-space:pre-wrap;overflow-wrap:anywhere;tab-size:2;overflow:hidden;font-variant-ligatures:none;font-feature-settings:"calt" 0,"liga" 0}   /* bez ligatur JetBrains Mono: „###“, „->“ se při psaní nepřeskupují */
 .src-ed:read-only{color:var(--fg2)}
 /* náhled stránky v koši (jen ke čtení) */
-.ro-blocks .gut,.ro-blocks .hidden-count,.ro-blocks .ta{display:none}
+.ro-blocks .gut,.ro-blocks .hidden-count{display:none}
 .ro-blocks .txt:empty{display:none}
 .ro-doc .page-icon{cursor:default}
 
@@ -331,3 +358,6 @@ a.mention.gone{color:var(--muted);background:var(--hover);text-decoration:line-t
 .lk-one .lk-b{flex:none;width:28px;height:28px;display:grid;place-items:center;border-radius:var(--r);color:var(--muted)}
 .lk-one .lk-b:hover{background:var(--hover);color:var(--fg)}
 .lk-one .lk-b.danger:hover{color:var(--danger)}
+
+/* položka „Nový řádek nad“ v ⋮⋮: stejná ikona ↵ obrácená */
+.pi-ic.flip svg{transform:scaleY(-1)}

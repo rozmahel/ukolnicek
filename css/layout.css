@@ -172,7 +172,7 @@ body.locked .tr-del,body.locked .tr-empty{display:none}
 .split-h:hover,body.split-drag .split-h{background:linear-gradient(90deg,transparent 2px,var(--accent) 2px,var(--accent) 5px,transparent 5px)}
 body.split-drag,body.split-drag *{cursor:col-resize!important;user-select:none!important}
 /* náhled jen ke čtení: ovládací prvky schované, ale drží místo (po kliknutí je živá stránka na stejném místě) */
-.split-ghost :is(.gut,.tbl-tools,.add-prop,.prop .icon-btn,.ta,.rh,.ch){visibility:hidden!important}
+.split-ghost :is(.gut,.tbl-tools,.add-prop,.prop .icon-btn,.rh,.ch){visibility:hidden!important}
 .split-ghost [contenteditable]{cursor:default}
 .split-ghost [contenteditable]:empty::after{content:"\200b"}   /* prázdný blok bez úprav by měl výšku 0 a text by po kliknutí poskočil */
 .split-x{font-size:calc(19px*var(--fs))}

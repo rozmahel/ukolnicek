@@ -5,13 +5,13 @@ import { LOCK } from '../lock.js';
 import { savePage } from '../store.js';
 import { archivePage, createPage, curPage, deletePage, emptyCell, isArchived, kids, unarchivePage } from '../pages.js';
 import { gotoSubject, isIndex, openSubjPicker, subjBlockText, subjLabel } from '../school.js';
-import { focusBlock } from './caret.js';
+import { focusBlock, focusEl } from './caret.js';
 import { renderSidebar } from '../sidebar.js';
 import { go } from '../router.js';
 import { COL_DEF, defaultEnd, hLevel, isHeading, renderPage, rerenderBlocks } from './render.js';
 import { setType, subjToH1, toSubject } from './blocks.js';
 import { closePop, openPop, placePop, toast } from '../ui.js';
-import { imgMenuAct, imgMenuHtml, markImgMenu } from './images.js';
+import { imgMenuAct, imgMenuHtml, LAY, LAY_IC, lineAround, markImgMenu } from './images.js';
 import { editDrawing } from './draw.js';
 import { blockToEq, openEqEditor } from './math.js';
 import { bselCount, bulk, copyOne } from './multisel.js';
@@ -24,6 +24,7 @@ const kindsHtml=b=>`<div class="pop-h">Typ</div><div class="swatches co-kinds">$
 const EQ_ITEM=`<button class="pop-item" data-v="type:eq"><span class="pi-ic">${TYPE_ICON.eq}</span><span>${TYPE_LABEL.eq}<small>Text bloku jako LaTeX</small></span></button>`;
 const applyKind=(b,v)=>{ const k=CALLOUT_KINDS[+v.slice(5)]; if(k){ b.icon=k[0]; b.color=k[1]; } };
 /* at = {rect, follow}: menu u kurzoru (pravé tlačítko na obrázku nebo kresbě, od 4.16.0) */
+const tblLay=b=>b.align==='center'?'c':b.align==='right'?(b.wrap?'wr':'r'):(b.wrap?'wl':'l');
 function openBlockMenu(anchor,pg,b,at){
   let h='';
   const pr=()=>at&&at.rect||anchor.getBoundingClientRect(), fol=at&&at.follow;
@@ -48,9 +49,17 @@ function openBlockMenu(anchor,pg,b,at){
   h+=`<div class="bm-row">${ib('up',IC.up,'Posunout nahoru (⌥⇧↑)')}${ib('down',IC.down,'Posunout dolů (⌥⇧↓)')}`
     +(noLvl?'':ib('left',IC.left,'Posunout doleva (⌘ú)',!multi&&!((b.level||0)>0))+ib('right',IC.right,'Posunout doprava (⌘))',!multi&&(b.level||0)>=4))
     +`${ib('copy',IC.clip,'Kopírovat')}${ib('dup',IC.dup,'Duplikovat')}${ib('del',IC.trash,'Odstranit')}</div>`;
+  /* netextové bloky (obrázek, kresba, tabulka, rovnice…): nový prázdný řádek nad / pod (od 4.21.1 místo tlačítek ↵ u bloku) */
+  if(!multi&&!TEXT_TYPES.includes(b.type)) h+=`<div class="pop-sep"></div><button class="pop-item" data-v="line-up"><span class="pi-ic flip">${IC.newline}</span>Nový řádek nad</button><button class="pop-item" data-v="line-dn"><span class="pi-ic">${IC.newline}</span>Nový řádek pod</button>`;
   /* obrázek a kresba (od 4.20.0): pod řadou ikon rozvržení a položky z bývalé nabídky po kliknutí na obrázek */
   const im=b.type==='image'&&!multi?$(`#blocks .blk[data-id="${b.id}"] .bimg`):null;
   if(im) h+=`<div class="pop-sep"></div>`+imgMenuHtml(im);
+  /* tabulka (od 4.21.0): rozvržení jako u obrázku (bez „v řádku s textem“) a popisek nad tabulkou */
+  if(b.type==='table'&&!multi&&!SIMPLE){
+    const cur=tblLay(b);
+    h+=`<div class="pop-sep"></div><div class="bm-row lay-row">${['wl','l','c','r','wr'].map(k=>`<button class="bm-ic lay-b${k===cur?' on':''}" data-v="tlay:${k}" title="${LAY[k][2]}" aria-label="${LAY[k][2]}"><svg viewBox="0 0 28 20" aria-hidden="true">${LAY_IC[k]}</svg></button>`).join('')}</div>`
+      +`<div class="pop-sep"></div><button class="pop-item" data-v="tcap"><span class="pi-ic">${IC.caption}</span>${b.caption||b.capOn?'Odebrat popisek':'Přidat popisek'}</button>`;
+  }
   if(multi){
     h+=`<div class="pop-h">Vybrané bloky: ${multi}</div><div class="pop-h">Převést na</div>`+TEXT_TYPES.map(k=>`<button class="pop-item" data-v="type:${k}"><span class="pi-ic">${TYPE_ICON[k]}</span>${TYPE_LABEL[k]}</button>`).join('')+EQ_ITEM;
     const p=openPop(anchor,h,v=>{
@@ -73,8 +82,9 @@ function openBlockMenu(anchor,pg,b,at){
     h+=`<div class="pop-h">Barva</div><div class="swatches">${COLORS.map(c=>`<button class="sw hl-${c} ${b.color===c?'on':''}" data-v="color:${c}" aria-label="${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}</div>`;
   }
   if(b.type==='eq') h+=`<div class="pop-sep"></div><button class="pop-item" data-v="eq-edit"><span class="pi-ic">${TYPE_ICON.eq}</span>Upravit rovnici</button><button class="pop-item" data-v="eq-txt"><span class="pi-ic">T</span><span>Převést na text<small>Zdroj LaTeX jako obyčejný odstavec</small></span></button>`;
-  if(!SIMPLE){ const xi=pg.blocks.indexOf(b); if(b.type!=='image'&&(b.clr||pg.blocks.slice(0,xi).some(q=>q.type==='image'&&(q.align==='left'||q.align==='right')&&!q.nw)))
-      h+=`<div class="pop-sep"></div><button class="pop-item ${b.clr?'act':''}" data-v="clr"><span class="pi-ic">${b.clr?'✓':'⤓'}</span><span>Začít pod obrázkem<small>${b.clr?'Zrušit kliknutím':'Ukončí obtékání, blok začne až pod obrázkem'}</small></span></button>`; }
+  if(!SIMPLE){ const xi=pg.blocks.indexOf(b), fl=pg.blocks.slice(0,xi).filter(q=>q.type==='image'&&(q.align==='left'||q.align==='right')&&!q.nw||q.type==='table'&&q.wrap&&q.align!=='center').pop();
+    if(b.type!=='image'&&!(b.type==='table'&&b.wrap)&&(b.clr||fl)){ const w=fl&&fl.type==='table'?'tabulkou':'obrázkem';
+      h+=`<div class="pop-sep"></div><button class="pop-item ${b.clr?'act':''}" data-v="clr"><span class="pi-ic">${b.clr?'✓':'⤓'}</span><span>Začít pod ${w}<small>${b.clr?'Zrušit kliknutím':'Ukončí obtékání, blok začne až pod '+w}</small></span></button>`; } }
   if(b.type==='table'&&!SIMPLE) h+=`<div class="pop-sep"></div><div class="pop-h">Tabulka</div><button class="pop-item" data-v="hrow"><span class="pi-ic">${b.hrow?'✓':''}</span>První řádek jako záhlaví</button><button class="pop-item" data-v="hcol"><span class="pi-ic">${b.hcol?'✓':''}</span>První sloupec jako záhlaví</button>`;
   if(!SIMPLE&&b.type!=='image'){
     const bl=pg.blocks, xi=bl.indexOf(b); let sec='';
@@ -100,11 +110,27 @@ function openBlockMenu(anchor,pg,b,at){
   const pop=openPop(anchor,h,v=>{
     const bi=pg.blocks.indexOf(b); if(bi<0) return;
     if(v==='copy'){ copyOne(b); return; }
+    if(v==='line-up'||v==='line-dn'){ lineAround(b.id,v==='line-up'); return; }
     if(v==='tosubj'||v==='subj-pick'){ openSubjPicker(anchor,su=>toSubject(pg,b,su),b.subj); return true; }
     if(v==='subj-ix'){ gotoSubject(b.subj); return; }
     if(v==='subj-h1'){ subjToH1(pg,b); return; }
     if(v==='eq-edit'){ const el=$(`#blocks .blk[data-id="${b.id}"] .eqb`); if(el) setTimeout(()=>openEqEditor(el),0); return; }
     if(im&&/^(lay:|sz:|draw$|cap$|open$|dl$)/.test(v)) return imgMenuAct(im,v,pop);
+    if(v.startsWith('tlay:')){
+      const k=v.slice(5), al=LAY[k][0];
+      if(al==='left') delete b.align; else b.align=al;
+      if(k==='wl'||k==='wr') b.wrap=1; else delete b.wrap;
+      savePage(pg); rerenderBlocks(); pop.querySelectorAll('[data-v^="tlay:"]').forEach(x=>x.classList.toggle('on',x.dataset.v===v));
+      /* blok se překreslil: nabídka se přesune k novému úchytu ⋮⋮ (u starého, odpojeného by uskočila) */
+      const ng=$(`#blocks > .blk[data-id="${b.id}"] > .gut .g-drag`);
+      if(ng&&!at){ S.popAnchor=ng; placePop(pop,ng.getBoundingClientRect(),fol); }
+      else placePop(pop,pr(),fol);
+      return true;
+    }
+    if(v==='tcap'){
+      if(b.caption||b.capOn){ delete b.caption; delete b.capOn; savePage(pg); rerenderBlocks(); return; }
+      b.capOn=true; savePage(pg); rerenderBlocks(); const c=$(`#blocks .blk[data-id="${b.id}"] .tcap`); if(c) focusEl(c,'end'); return;
+    }
     if(v==='eq-txt'){ b.type='p'; savePage(pg); rerenderBlocks(); focusBlock(b.id,'end'); return; }
     if(v==='type:eq'){ blockToEq(pg,b); return; }
     if(v.startsWith('type:')){ setType(pg,b,v.slice(5),true); }

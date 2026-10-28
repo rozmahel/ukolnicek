@@ -7,7 +7,7 @@ import { isBlank, isBlankEl, sanitize } from '../sanitize.js';
 import { caretAtEnd, caretAtStart, caretOffset, focusBlock, focusEl, focusLine, onFirstLine, onLastLine, splitAtCaret } from './caret.js';
 import { isHeading, keepVisible, rerenderBlocks, sectionEnd } from './render.js';
 import { setType, takeShortcut } from './blocks.js';
-import { navFrom, selectImage } from './images.js';
+import { lineAround, navFrom, selectImage } from './images.js';
 import { caretPos, codeHtml, dedent, domText, insertCode, newLine } from './code.js';
 
 /* ---- key handling ---- */
@@ -106,6 +106,17 @@ function lineKeys(e,x,t){
     if(sc){ e.preventDefault(); line.t='p'; delete line.done; line.html=esc(sc.pre)+(isBlankEl(t)?'':(line.html||'')); savePage(pg); rerenderBlocks(); focusLine(b.id,r,c,l,sc.pre.length); return; }
     if(line.t!=='p'){ e.preventDefault(); line.t='p'; delete line.done; savePage(pg); rerenderBlocks(); focusLine(b.id,r,c,l,0); return; }
     if(l>0){ e.preventDefault(); const prev=cell.lines[l-1]; const len=plain(prev.html).length; prev.html=(prev.html||'')+(line.html||''); cell.lines.splice(l,1); savePage(pg); rerenderBlocks(); focusLine(b.id,r,c,l-1,len); }
+    return;
+  }
+  /* šipky nahoru/dolů: do buňky nad/pod (stejný sloupec), z prvního/posledního řádku ven z tabulky;
+     když nad/pod tabulkou nic není, vznikne nový prázdný řádek */
+  if((e.key==='ArrowUp'&&l===0&&onFirstLine(t))||(e.key==='ArrowDown'&&l===cell.lines.length-1&&onLastLine(t))){
+    if(e.shiftKey||hasMod(e)) return;
+    e.preventDefault();
+    const up=e.key==='ArrowUp', nr=r+(up?-1:1);
+    if(nr>=0&&nr<b.rows.length){ const nc=b.rows[nr].cells[c]; focusLine(b.id,nr,c,up?nc.lines.length-1:0,up?'end':0); return; }
+    const blk=t.closest('#blocks > .blk'); if(blk&&navFrom(blk,up)) return;
+    if(!LOCK) lineAround(b.id,up);
     return;
   }
   if(e.key==='Tab'){
