@@ -1,12 +1,13 @@
 /* Úkolníček – Nabídka „/“ a markdownové zkratky (# , - , [] …) */
 import { $, clamp, norm, simpleUi, SLASH, TEXT_TYPES, TYPE_ICON, TYPE_LABEL } from '../core.js';
+import { S } from '../state.js';
 import { savePage } from '../store.js';
 import { curPage, newBlock } from '../pages.js';
 import { isIndex, openSubjPicker } from '../school.js';
 import { isBlank, isBlankEl, sanitize } from '../sanitize.js';
 import { caretOffset, caretRect, deleteOffsets, focusBlock, focusLine } from './caret.js';
 import { rerenderBlocks } from './render.js';
-import { insertPageLinkAt, insertSubjAt, insertTypeAt, noteShortcut, numShortcutOff, openPagePicker, rememberTypedNum, setType } from './blocks.js';
+import { applyTemplate, insertPageLinkAt, insertSubjAt, insertTypeAt, noteShortcut, numShortcutOff, openPagePicker, openTemplatePicker, rememberTypedNum, setType } from './blocks.js';
 import { placePop } from '../ui.js';
 import { openLinkDialog } from './links.js';
 import { pickImageBlock, pickImageInline } from './images.js';
@@ -19,7 +20,7 @@ import { insertEq, openEqEditor, toEqBlock } from './math.js';
 /* ---- slash menu ---- */
 let slash={open:false};
 /* položky nabídky; „Předmět“ jen ve školním režimu se zapnutým Indexem */
-const slashItems=()=>SLASH.filter(it=>(!it.school||isIndex())&&(!it.ai||aiUsable())&&!((it.adv||it.ai)&&simpleUi()));   /* AI jen s nastaveným poskytovatelem, odemčeno a online; v jednoduchém režimu jen základní bloky */   /* AI jen s nastaveným poskytovatelem, odemčeno a online */
+const slashItems=()=>SLASH.filter(it=>(!it.school||isIndex())&&(!it.tpl||S.settings.templates)&&(!it.ai||aiUsable())&&!((it.adv||it.ai)&&simpleUi()));   /* AI jen s nastaveným poskytovatelem, odemčeno a online; v jednoduchém režimu jen základní bloky */   /* AI jen s nastaveným poskytovatelem, odemčeno a online */
 function openSlash(el,bid,start,mode){ slash={open:true,el,bid,start,mode,idx:0,items:slashItems()}; drawSlash(); }
 function closeSlash(){ if(slash.open){ slash.open=false; const p=$('#slash'); if(p) p.remove(); } }
 function slashQuery(){
@@ -43,7 +44,7 @@ function drawSlash(){
     p.addEventListener('mousedown',e=>e.preventDefault());
     p.addEventListener('click',e=>{ const b=e.target.closest('[data-i]'); if(b) chooseSlash(slash.items[+b.dataset.i]); });
   }
-  p.innerHTML=slash.items.length?`<div class="pop-h">Bloky</div>`+slash.items.map((it,i)=>`<button class="pop-item ${i===slash.idx?'act':''}" data-i="${i}" role="option"><span class="pi-ic">${TYPE_ICON[it.k]}</span><span>${TYPE_LABEL[it.k]}<small>${it.hint}</small></span></button>`).join(''):`<div class="empty" style="padding:10px">Nic nenalezeno</div>`;
+  p.innerHTML=slash.items.length?`<div class="pop-h">Bloky</div>`+slash.items.map((it,i)=>`<button class="pop-item ${i===slash.idx?'act':''}" data-i="${i}" role="option"><span class="pi-ic">${TYPE_ICON[it.k]}</span><span>${TYPE_LABEL[it.k]}<small>${it.hint}</small></span></button>`).join(''):`<div class="empty">Nic nenalezeno.</div>`;
   const rc=caretRect()||slash.el.getBoundingClientRect();
   placePop(p,{left:rc.left,right:rc.right,top:rc.top,bottom:rc.bottom});
   const act=p.querySelector('.act'); if(act) act.scrollIntoView({block:'nearest'});
@@ -69,6 +70,7 @@ function chooseSlash(it){
     return;
   }
   if(it.k==='mdimport'){ savePage(pg); importMd(pg,b.id); return; }
+  if(it.k==='tpl'){ savePage(pg); openTemplatePicker(el,v=>applyTemplate(pg,v,b)); return; }
   if(it.k==='ai'||it.k==='aisum'){ savePage(pg); aiSlash(it.k,pg,b); return; }
   if(it.k==='eq'){
     /* prázdný odstavec → rovnice na samostatném řádku, jinak rovnice v textu na místě kurzoru */

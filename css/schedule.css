@@ -1,37 +1,37 @@
 /* Úkolníček – Rozvrh: týdenní mřížka, hodiny, bublina s informacemi, agenda na mobilu */
-.sg{border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden}
+.sg{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--panel);overflow:hidden}
 .sg-head,.sg-body{display:grid;grid-template-columns:58px repeat(var(--days),minmax(0,1fr))}
 .sg-head{border-bottom:1px solid var(--line)}
-.dh{padding:10px 10px 8px;border-left:1px solid var(--line);display:flex;align-items:baseline;gap:8px}
+.dh{padding:var(--sp5) var(--sp5) var(--sp4);border-left:1px solid var(--line);display:flex;align-items:baseline;gap:var(--sp4)}
 .dh span{font-size:calc(12px*var(--fs));font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
 .dh b{font:650 calc(17px*var(--fs)) var(--f-display);font-variant-numeric:tabular-nums}
 .dh.today span{color:var(--accent)}
-.dh.today b{background:var(--accent);color:var(--on-accent);border-radius:6px;padding:0 6px}
+.dh.today b{background:var(--accent);color:var(--on-accent);border-radius:var(--r);padding:0 var(--sp3)}
 .sg-times{position:relative;height:calc(var(--hours)*var(--hh))}
 .sg-times span{position:absolute;right:8px;transform:translateY(-50%);font-size:calc(11.5px*var(--fs));font-weight:500;font-variant-numeric:tabular-nums;color:var(--muted)}
 .sg-times span:first-child{transform:none;top:3px!important}
 .sg-col{position:relative;height:calc(var(--hours)*var(--hh));border-left:1px solid var(--line);background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--hh) - 1px),var(--line) calc(var(--hh) - 1px),var(--line) var(--hh));cursor:copy}
 .sg-col.today{background-color:color-mix(in srgb,var(--accent-soft) 70%,transparent)}
-.ev{position:absolute;display:flex;flex-direction:column;gap:1px;overflow:hidden;background:var(--c-bg);color:var(--fg);border:1px solid color-mix(in srgb,var(--c-fg) 26%,transparent);border-radius:8px;padding:5px 7px;font-size:calc(12.5px*var(--fs));line-height:1.3;cursor:pointer;text-align:left}
+.ev{position:absolute;display:flex;flex-direction:column;gap:1px;overflow:hidden;background:var(--c-bg);color:var(--fg);border:1px solid color-mix(in srgb,var(--c-fg) 26%,transparent);border-radius:var(--r-md);padding:var(--sp3) 7px;font-size:calc(12.5px*var(--fs));line-height:1.3;cursor:pointer;text-align:left}
 .ev:hover{border-color:var(--c-fg)}
 .ev-t{font-weight:650;color:var(--c-fg);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .ev-m{color:var(--fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ev-k{font-size:calc(11px*var(--fs));font-weight:600;color:var(--fg2)}
-.ev-one{font-size:calc(11px*var(--fs));font-weight:600;color:var(--c-fg)}
 .now{position:absolute;left:-1px;right:0;height:2px;background:var(--danger);z-index:3;pointer-events:none}
 .now::before{content:"";position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--danger)}
-.ghost{position:absolute;left:4px;right:4px;border:1.5px dashed var(--accent);border-radius:8px;color:var(--accent);font-size:calc(12.5px*var(--fs));font-weight:600;padding:4px 7px;pointer-events:none;z-index:2;background:color-mix(in srgb,var(--panel) 70%,transparent)}
-.sched-hint{margin:12px 2px 0;font-size:calc(13.5px*var(--fs));color:var(--muted)}
+.ghost{position:absolute;left:4px;right:4px;border:1.5px dashed var(--accent);border-radius:var(--r-md);color:var(--accent);font-size:calc(12.5px*var(--fs));font-weight:600;padding:var(--sp2) 7px;pointer-events:none;z-index:2;background:color-mix(in srgb,var(--panel) 70%,transparent)}
+.ghost>.ic{margin-right:3px}
+.sched-hint{margin:var(--sp6) var(--sp1) 0;font-size:calc(13.5px*var(--fs));color:var(--muted)}
 .agenda{display:none}
-.ag-day{border:1px solid var(--line);border-radius:10px;background:var(--panel);margin-bottom:10px;overflow:hidden}
-.ag-dh{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid var(--line);font-weight:600}
+.ag-day{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--panel);margin-bottom:var(--sp5);overflow:hidden}
+.ag-dh{display:flex;align-items:center;justify-content:space-between;padding:var(--sp4) var(--sp6);border-bottom:1px solid var(--line);font-weight:600}
 .ag-dh.today{color:var(--accent)}
-.ag-empty{padding:10px 12px;color:var(--faint);font-size:calc(13.5px*var(--fs))}
-.ev-row{display:grid;grid-template-columns:calc(112px*var(--fs)) 10px minmax(0,1fr);gap:12px;align-items:start;width:100%;padding:10px 12px;border-bottom:1px solid var(--line);text-align:left}
+.ag-empty{padding:var(--sp5) var(--sp6);color:var(--faint);font-size:calc(13.5px*var(--fs))}
+.ev-row{display:grid;grid-template-columns:calc(112px*var(--fs)) 10px minmax(0,1fr);gap:var(--sp6);align-items:start;width:100%;padding:var(--sp5) var(--sp6);border-bottom:1px solid var(--line);text-align:left}
 .ev-row:last-child{border-bottom:0}
 .ev-row:hover{background:var(--hover)}
 .ev-row .t{font-size:calc(14px*var(--fs));font-weight:500;font-variant-numeric:tabular-nums;color:var(--fg2);padding-top:1px;white-space:nowrap}
-.ev-row .dot{width:10px;height:10px;border-radius:3px;background:var(--c-fg);margin-top:6px}
+.ev-row .dot{width:10px;height:10px;border-radius:var(--r-sm);background:var(--c-fg);margin-top:var(--sp3)}
 .ev-row b{font-weight:600;display:block}
 .ev-row small{color:var(--muted);font-size:calc(13px*var(--fs))}
 .ev-row.now-ev .t{color:var(--accent);font-weight:600}
@@ -39,82 +39,85 @@
 /* ---------- rozvrh – souběžné události a pevný počet ---------- */
 .ev-w{position:absolute;z-index:1}
 .ev-w>.ev{position:absolute;inset:0}
-.ev-add{position:absolute;top:0;bottom:0;right:-3px;width:18px;border-radius:0 8px 8px 0;display:grid;place-items:center;font-size:calc(15px*var(--fs));font-weight:700;line-height:1;color:var(--on-accent);background:var(--accent);opacity:0;transition:opacity .12s;z-index:2;cursor:pointer}
+.ev-add{position:absolute;top:0;bottom:0;right:-3px;width:18px;border-radius:0 var(--r-md) var(--r-md) 0;display:grid;place-items:center;font-size:calc(15px*var(--fs));font-weight:700;line-height:1;color:var(--on-accent);background:var(--accent);opacity:0;transition:opacity .12s;z-index:2;cursor:pointer}
 .ev-w:hover .ev-add{opacity:.16}
 .ev-add:hover,.ev-add:focus-visible{opacity:1!important}
 @media (hover:none){ .ev-add{opacity:.16} }
-.cnt{display:flex;align-items:center;gap:8px}
+.cnt{display:flex;align-items:center;gap:var(--sp4)}
 .cnt input{max-width:90px}
 .cnt span{color:var(--muted);font-weight:600}
 
 /* ---------- krátké hodiny v rozvrhu + bublina s informacemi ---------- */
 .ev.ev-s .ev-k,.ev.ev-s .ev-m:not(.mono){display:none}
 .ev.ev-s .ev-t{-webkit-line-clamp:1}
-.ev.ev-xs{flex-direction:row;align-items:center;gap:6px;padding:2px 7px}
+.ev.ev-xs{flex-direction:row;align-items:center;gap:var(--sp3);padding:var(--sp1) 7px}
 .ev.ev-xs .ev-k,.ev.ev-xs .ev-m:not(.mono){display:none}
 .ev.ev-xs .ev-t{flex:1;min-width:0;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ev.ev-xs .ev-m.mono{flex:none;font-size:calc(11.5px*var(--fs))}
-.evtip{position:fixed;z-index:72;width:max-content;max-width:280px;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--c-fg);border-radius:10px;box-shadow:var(--shadow);padding:9px 12px 10px;pointer-events:none;font-size:calc(13px*var(--fs));line-height:1.45;animation:tipin .12s ease-out}
+.evtip{position:fixed;z-index:72;width:max-content;max-width:280px;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--c-fg);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:var(--sp4) var(--sp6) var(--sp5);pointer-events:none;font-size:calc(13px*var(--fs));line-height:1.45;animation:tipin .12s ease-out}
 @keyframes tipin{from{opacity:0;transform:translateY(2px)}}
 .et-k{font-size:calc(12px*var(--fs));font-weight:600;color:var(--c-fg)}
-.et-t{font:700 calc(15px*var(--fs))/1.3 var(--f-display);margin:2px 0 5px;color:var(--fg)}
+.et-t{font:700 calc(15px*var(--fs))/1.3 var(--f-display);margin:var(--sp1) 0 var(--sp3);color:var(--fg)}
 .et-r{color:var(--fg2)}
-.et-n{margin-top:6px;padding-top:6px;border-top:1px solid var(--line);color:var(--muted);white-space:pre-wrap}
+.et-n{margin-top:var(--sp3);padding-top:var(--sp3);border-top:1px solid var(--line);color:var(--muted);white-space:pre-wrap}
 
 /* ---------- zámek v rozvrhu ---------- */
 body.locked .ev-add,body.locked .ag-dh [data-act="day-add"],body.locked .lk-hide{display:none!important}
 .v-tools .lock-btn{width:32px;height:32px}
-.v-tools .lock-btn,.v-tools .mode-btn,.filters .mode-btn{border:1px solid var(--line);border-radius:8px;background:var(--panel);height:auto;min-height:34px;width:36px}
-.v-tools .lock-btn svg,.v-tools .mode-btn svg,.filters .mode-btn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.v-tools .lock-btn,.v-tools .mode-btn,.filters .lock-btn,.filters .mode-btn{border:1px solid var(--line);border-radius:var(--r-md);background:var(--panel);height:auto;min-height:34px;width:36px}
+.v-tools .lock-btn svg,.v-tools .mode-btn svg,.filters .lock-btn svg,.filters .mode-btn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:var(--ic-w);stroke-linecap:round;stroke-linejoin:round}
 .v-tools .lock-btn.on{border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
 
 /* barva hodiny „podle předmětu“ (mění se s předmětem v Indexu) */
-.sw-auto{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px 0 7px;border-radius:7px;background:var(--c-bg);color:var(--c-fg);border:1.5px solid color-mix(in srgb,var(--c-fg) 35%,transparent);font-size:calc(12.5px*var(--fs));font-weight:600}
+.sw-auto{display:inline-flex;align-items:center;gap:var(--sp3);height:24px;padding:0 9px 0 7px;border-radius:var(--r);background:var(--c-bg);color:var(--c-fg);border:1.5px solid color-mix(in srgb,var(--c-fg) 35%,transparent);font-size:calc(12.5px*var(--fs));font-weight:600}
 .sw-auto.on{outline:2px solid var(--c-fg);outline-offset:2px}
 
 /* zamčená hodina: nabídka skoku na předmět */
-.ev-lk-t{padding:0 8px 6px}
-.ev-lk-n{padding:6px 8px 4px;border-top:1px solid var(--line);margin-top:4px;font-size:calc(12.5px*var(--fs))}
+/* od 4.20.0: stejná hlavička jako náhled hodiny (.et-*) */
+.ev-lk-h{padding:var(--sp3) var(--sp4) var(--sp2);font-size:calc(13px*var(--fs));line-height:1.45}
 
 /* světlý/tmavý vedle zámku */
-.filters .mode-btn{padding:0;display:grid;place-items:center;color:var(--muted)}
-.v-tools .mode-btn:hover,.filters .mode-btn:hover{color:var(--fg)}
+.filters :is(.lock-btn,.mode-btn){padding:0;display:grid;place-items:center;color:var(--muted)}
+.v-tools .mode-btn:hover,.filters :is(.lock-btn,.mode-btn):hover{color:var(--fg)}
 
 /* ================= vzhled „stránka“ (4.10.0) =================
    mřížka bez rámečku (čára nahoře), dnešek červeně, hodiny jako bílé bloky s tenkým okrajem a barevným čtverečkem předmětu */
 .sch-view .sg{border:0;border-top:1px solid var(--rule);border-radius:0;background:none;overflow:visible}
 .sch-view .sg-head{border-bottom:1px solid var(--rule)}
-.sch-view .dh{padding:10px 10px 8px;border-left-color:transparent}
+.sch-view .dh{padding:var(--sp5) var(--sp5) var(--sp4);border-left-color:transparent}
 .sch-view .dh span{font-size:calc(12.5px*var(--fs));font-weight:500;letter-spacing:0;text-transform:none;color:var(--muted)}
 .sch-view .dh b{font:600 calc(16px*var(--fs)) var(--f-body)}
 .sch-view .dh.today span,.sch-view .dh.today b{color:var(--now);background:none;padding:0}
 .sch-view .sg-col.today{background-color:color-mix(in srgb,var(--fg) 3%,transparent)}
 .sch-view .sg-times span{font-weight:400;color:var(--faint)}
 /* hodiny zůstávají v barvě předmětu (na první pohled je vidět přednáška a cvičení), jen menší zaoblení */
-.sch-view .ev{border-radius:5px}
-.sch-view .ev-add{border-radius:0 5px 5px 0;background:var(--fg);color:var(--bg)}
-.sch-view .ghost{border-color:var(--fg2);color:var(--fg2);border-radius:5px}
+.sch-view .ev{border-radius:var(--r-sm)}
+.sch-view .ev-add{border-radius:0 var(--r-sm) var(--r-sm) 0;background:var(--fg);color:var(--bg)}
+.sch-view .ghost{border-color:var(--fg2);color:var(--fg2);border-radius:var(--r-sm)}
 /* rozsah týdne vedle nadpisu: při přepínání týdnů se tlačítka vpravo nehýbou */
-.sch-title{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 16px;min-width:0}
+.sch-title{display:flex;align-items:baseline;flex-wrap:wrap;gap:var(--sp2) var(--sp8);min-width:0}
 .sch-view .wk-label{font-size:calc(14px*var(--fs));font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}
 /* agenda (úzké okno): den = čára a nadpis */
-.sch-view .ag-day{margin-bottom:18px;border:0;border-top:1px solid var(--rule);border-radius:0;background:none}
-.sch-view .ag-dh{padding:9px 0 4px;border-bottom:0}
+.sch-view .ag-day{margin-bottom:var(--sp8);border:0;border-top:1px solid var(--rule);border-radius:0;background:none}
+.sch-view .ag-dh{padding:var(--sp4) 0 var(--sp2);border-bottom:0}
 .sch-view .ag-dh.today{color:var(--now)}
-.sch-view .ag-empty{padding:2px 0 8px}
-.sch-view .ev-row{padding:8px 0;border-bottom:1px solid var(--line);grid-template-columns:calc(100px*var(--fs)) 7px minmax(0,1fr)}
+.sch-view .ag-empty{padding:var(--sp1) 0 var(--sp4)}
+.sch-view .ev-row{padding:var(--sp4) 0;border-bottom:1px solid var(--line);grid-template-columns:calc(100px*var(--fs)) 7px minmax(0,1fr)}
 .sch-view .ev-row:hover{background:none}
 .sch-view .ev-row:hover b{text-decoration:underline;text-underline-offset:3px}
-.sch-view .ev-row .dot{width:7px;height:7px;border-radius:2px;margin-top:7px}
+.sch-view .ev-row .dot{width:7px;height:7px;border-radius:var(--r-xs);margin-top:var(--sp3)}
 /* bublina s informacemi: bez barevného okraje vlevo */
-.evtip{border-left:1px solid var(--line);border-radius:8px}
+.evtip{border-left:1px solid var(--line);border-radius:var(--r-md)}
 .et-k{color:var(--muted)}
 
 /* ================= varianta B „deska“ (4.11.0): mřížka rozvrhu i agenda jako list s okrajem ================= */
-.sch-view .sg{border:1px solid var(--rule);border-radius:4px;background:var(--panel);overflow:hidden}
+.sch-view .sg{border:1px solid var(--rule);border-radius:var(--r-sm);background:var(--panel);overflow:hidden}
 .sch-view .dh{border-left-color:var(--line)}
 .sch-view .dh:first-child{border-left-color:transparent}
-.sch-view .agenda{border:1px solid var(--rule);border-radius:4px;background:var(--panel);padding:0 14px}
+.sch-view .agenda{border:1px solid var(--rule);border-radius:var(--r-sm);background:var(--panel);padding:0 var(--sp7)}
 .sch-view .ag-day{margin:0;border-top:1px solid var(--rule)}
 .sch-view .ag-day:first-child{border-top:0}
 .sch-view .ev-row:last-child{border-bottom:0}
+
+/* kód předmětu v barvě předmětu před názvem (náhled hodiny i menu hodiny, od 4.20.0) */
+.et-t .et-c{color:var(--c-fg);margin-right:.3em}

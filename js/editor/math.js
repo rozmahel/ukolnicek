@@ -29,11 +29,11 @@ function loadKatex(){
   return loading;
 }
 function toHtml(tex,display){
-  if(!tex.trim()) return `<span class="ph">${display?'Prázdná rovnice – klikni a napiš ji':'rovnice'}</span>`;
+  if(!tex.trim()) return `<span class="ph">${display?'Prázdná rovnice':'rovnice'}</span>`;
   try{ return window.katex.renderToString(tex,{displayMode:!!display,throwOnError:false,strict:false,output:'html',errorColor:'var(--danger)'}); }
   catch(_){ return `<span class="err">${esc(tex)}</span>`; }
 }
-const SHADOW_CSS='<link rel="stylesheet" href="'+BASE+'katex.min.css"><style>:host{white-space:nowrap}.katex{font-size:1.08em}.ph{color:var(--muted);font-style:italic;font-size:.9em;padding:0 3px;border:1px dashed var(--line);border-radius:4px}.err{color:var(--danger);font-family:var(--f-mono)}</style><span class="k"></span>';
+const SHADOW_CSS='<link rel="stylesheet" href="'+BASE+'katex.min.css"><style>:host{white-space:nowrap}.katex{font-size:1.08em}.ph{color:var(--muted);font-style:italic;font-size:.9em;padding:0 3px;border:1px dashed var(--line);border-radius:var(--r-sm)}.err{color:var(--danger);font-family:var(--f-mono)}</style><span class="k"></span>';
 /* rovnice v textu: vykreslení do shadow DOM (text uvnitř zůstává TeX) */
 function drawInline(el,tex){
   if(!window.katex) return;
@@ -95,10 +95,9 @@ function openEqEditor(el,fresh){
   closePop();
   const p=document.createElement('div'); p.className='pop eq-pop'; p.setAttribute('role','dialog'); p.setAttribute('aria-label','Upravit rovnici');
   p.innerHTML=`<div class="pop-h">${isBlock?'Rovnice na samostatném řádku':'Rovnice v textu'} · LaTeX</div>
-    <textarea class="eq-in" rows="2" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="např. E = mc^2, \\frac{a}{b}, 5\\,\\text{m/s}"></textarea>
+    <textarea class="eq-in" rows="2" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
     <div class="eq-prev" aria-live="polite"></div>
-    <p class="note">Enter = hotovo · Shift+Enter = nový řádek · Esc = zrušit</p>
-    <div class="it-row">${LOCK?'':'<button type="button" class="danger" data-v="del">Odebrat</button>'}<span class="sp"></span><button type="button" class="on" data-v="ok">Hotovo</button></div>`;
+    <div class="pop-acts"><button type="button" class="pop-act" data-v="ok"><span>Uložit</span></button><span class="sp"></span>${LOCK?'':'<button type="button" class="pop-act danger" data-v="del"><span>Odebrat</span></button>'}</div>`;
   document.body.appendChild(p);
   const ta=$('.eq-in',p), prev=$('.eq-prev',p);
   ta.value=orig;

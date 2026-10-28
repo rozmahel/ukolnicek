@@ -3,7 +3,7 @@
    Data se změní až tlačítkem Použít / Vložit: jedno savePage = jeden krok ⌘Z. Překreslení stránky náhled vrátí na místo (aiPlace).
    AP = {pgId, action, kind:'inline'|'blocks'|'insert', ids, snap, after, blank, inline:{id,a,b,html,lead,trail}, src, prompt,
          text, state:'ask'|'run'|'done'|'stop'|'err', err, provider, again, ctrl, el} */
-import { $, $$, esc, plain, TEXT_TYPES } from '../core.js';
+import { $, $$, esc, IC, plain, TEXT_TYPES } from '../core.js';
 import { S } from '../state.js';
 import { LOCK } from '../lock.js';
 import { savePage } from '../store.js';
@@ -60,10 +60,14 @@ function aiCapture(){
   return {kind:'blocks',pgId:pg.id,ids:els.map(el=>el.dataset.id)};
 }
 /* menu ✦: akce nad výběrem */
+/* ikona AI akce (od 4.20.0): velká jiskra a malý znak toho, co akce dělá */
+const AI_GLYPH={fix:['M5 12.5l4 4 9-9'],check:['M10.5 5a5.5 5.5 0 1 0 0 11a5.5 5.5 0 1 0 0-11z','M14.5 14.5l5 5'],rephrase:['M5 9h12','M14 5.5l3.5 3.5-3.5 3.5','M19 16H7','M10 12.5l-3.5 3.5 3.5 3.5'],shorten:['M4 9h16','M4 15h8'],expand:['M4 6h16','M4 12h16','M4 18h16'],summary:['M5 7.5h.01','M5 16.5h.01','M10 7.5h9','M10 16.5h6'],translate:['M5 20l5-14 5 14','M7 15h6','M17 6v6','M14.5 9h5']};
+const AI_SPARK='M12 3.5c.6 4.4 3.1 6.9 7.5 7.5-4.4.6-6.9 3.1-7.5 7.5-.6-4.4-3.1-6.9-7.5-7.5 4.4-.6 6.9-3.1 7.5-7.5z';
+const aiIcon=k=>AI_GLYPH[k]?`<svg class="ic ai-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${AI_SPARK}" transform="translate(-2.6 -2.6) scale(1.02)" vector-effect="non-scaling-stroke"/><g transform="translate(12.4 12.4) scale(.48)">${AI_GLYPH[k].map(d=>`<path d="${d}" vector-effect="non-scaling-stroke"/>`).join('')}</g></svg>`:IC.spark;
 function aiMenu(anchor,sel,at){
   if(!sel) return;
   if(!aiUsable()) return toast(LOCK?'Zamčeno: AI jde použít po odemčení.':navigator.onLine===false?'AI potřebuje připojení k internetu.':AI_ERR.none);
-  openPop(anchor,`<div class="pop-h">AI</div>`+AI_MENU.map(k=>`<button class="pop-item" data-v="${k}"><span class="pi-ic">✦</span>${AI_ACTIONS[k].label}</button>`).join(''),k=>aiRun(k,sel),at);
+  openPop(anchor,AI_MENU.map(k=>`<button class="pop-item" data-v="${k}"><span class="pi-ic">${aiIcon(k)}</span>${AI_ACTIONS[k].label}</button>`).join(''),k=>aiRun(k,sel),at);
 }
 
 function aiRun(action,sel){
@@ -79,7 +83,7 @@ function aiRun(action,sel){
     else { const rep=bl.filter(b=>!AI_KEEP.has(b.type)); ap.kind='blocks'; ap.ids=rep.map(b=>b.id); ap.src=aiMd(rep); ap.snap=JSON.stringify(rep); }
   } else Object.assign(ap,sel);
   if(action!=='write'&&!String(ap.src).trim()) return toast('Ve výběru není text pro AI.');
-  if(ap.src.length>aiMaxChars()) return toast('Výběr je na AI moc dlouhý. Vyber menší část.');
+  if(ap.src.length>aiMaxChars()) return toast('Výběr je na AI moc dlouhý, pomůže menší část.');
   AP=ap; getSelection().removeAllRanges(); clearBsel(); hideFmt(); aiPlace();
   if(ap.state==='run') aiGo(); else { const q=$('.ai-q',ap.el); if(q) q.focus(); }
 }
@@ -121,7 +125,7 @@ function aiDrawOut(){ const ap=AP; if(!ap||!ap.el) return; const o=$('.ai-out',a
 function aiDraw(){
   const ap=AP; if(!ap||!ap.el) return;
   aiDrawOut();
-  const again='<button type="button" data-ai="again">Zkusit znovu</button>', x='<button type="button" data-ai="x" title="Esc">Zrušit</button>';
+  const again='<button type="button" data-ai="again">Zkusit znovu</button>', x='<button type="button" data-ai="x" title="Esc">Zavřít</button>';
   let msg='', btn='';
   if(ap.state==='ask'){ btn='<button type="button" class="pri" data-ai="go">Napsat</button>'+x; }
   else if(ap.state==='run'){ msg='<span class="ai-dot" aria-hidden="true"></span>Píšu…'; btn='<button type="button" data-ai="stop">Zastavit</button>'; }
@@ -140,7 +144,7 @@ function aiDraw(){
 }
 function aiBuild(ap){
   const el=document.createElement('div'); el.className='ai-prev'+(ap.kind==='insert'?' ins':''); el.contentEditable='false';
-  el.innerHTML=(ap.state==='ask'?`<div class="ai-ask"><span class="ai-ic" aria-hidden="true">✦</span><input class="ai-q" type="text" placeholder="Co napsat?" aria-label="Co napsat?" enterkeyhint="go" autocomplete="off"></div>`:'')
+  el.innerHTML=(ap.state==='ask'?`<div class="ai-ask"><span class="ai-ic" aria-hidden="true">${IC.spark}</span><input class="ai-q" type="text" placeholder="Co napsat?" aria-label="Co napsat?" enterkeyhint="go" autocomplete="off"></div>`:'')
     +'<div class="ai-out" inert></div><div class="ai-bar"></div>';
   el.addEventListener('mousedown',e=>{ if(e.target.closest('button')) e.preventDefault(); });
   el.addEventListener('click',e=>{
@@ -190,7 +194,7 @@ function aiApply(){
   if(aiNoIssues(ap.text)&&AI_ACTIONS[ap.action]&&AI_ACTIONS[ap.action].check){ aiClose(true); return; }
   if(LOCK) return toast('Zamčeno: výsledek AI jde použít po odemčení.');
   const pg=S.pages[ap.pgId]; if(!pg){ aiClose(); return; }
-  const changed=()=>toast('Text se mezitím změnil. Zkus to znovu.');
+  const changed=()=>toast('Text se mezitím změnil. Stačí to zkusit znovu.');
   let focusId=null, pos='end', nb=null;
   if(ap.kind==='inline'){
     const b=pg.blocks.find(x=>x.id===ap.inline.id), t=b&&aiTxtOf(b.id);
@@ -242,7 +246,7 @@ function aiSlash(k,pg,b){
 /* ---- ✦ v horní liště stránky: otevře panel s chatem (kontext je nahoře v panelu) ---- */
 function aiCtxBtn(pg){
   const c=aiCtxOf(pg), t='AI: chat nad stránkou'+(c.text?' · kontext: '+c.text.slice(0,60)+(c.text.length>60?'…':''):'');
-  return `<button class="icon-btn ai-ctx-btn${aipIsOpen()?' on':''}" data-act="ai-ctx" title="${esc(t)}" aria-label="AI: chat nad stránkou"><svg viewBox="0 0 24 24"><path d="M12 3.5c.6 4.4 3.1 6.9 7.5 7.5-4.4.6-6.9 3.1-7.5 7.5-.6-4.4-3.1-6.9-7.5-7.5 4.4-.6 6.9-3.1 7.5-7.5z"/></svg></button>`;
+  return `<button class="icon-btn ai-ctx-btn${aipIsOpen()?' on':''}" data-act="ai-ctx" title="${esc(t)}" aria-label="AI: chat nad stránkou">${IC.spark}</button>`;
 }
 
 export function initAi(){

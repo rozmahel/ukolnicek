@@ -14,8 +14,8 @@
 /* ===== Papír: béžový papír, patkové písmo ===== */
 :root[data-skin="paper"],
 .skin-sw[data-sk="paper"]{
-  --bg:#F4ECD8; --side:#E6DABC; --panel:#ECE2C8; --fg:#3B3226; --fg2:#54472F; --muted:#645743; --faint:#6A5E4A;
-  --line:#D9CBA8; --hover:#DDD0B0; --sel:#EAD3A5; --accent:#944B29; --accent-soft:#F3E0C8; --on-accent:#FFFAF0;
+  --bg:#F6F2EA; --side:#ECE5D7; --panel:#F1EBE0; --fg:#383128; --fg2:#514636; --muted:#625746; --faint:#685D4C;
+  --line:#DED5C3; --hover:#E6DECF; --sel:#EADDC6; --accent:#8A5236; --accent-soft:#F0E5D6; --on-accent:#FFFBF4;
   --danger:#B3261E; --on-danger:#FFFAF0; --ok:#296B3F; --scrim:rgba(43,32,16,.34);
   --shadow:0 1px 2px rgba(59,50,38,.08),0 12px 32px rgba(59,50,38,.16);
   --hl-purple-bg:#EFE6FD; --hl-purple-fg:#6E33CB;
@@ -31,9 +31,9 @@
 @media (prefers-color-scheme: dark){
   :root[data-skin="paper"]:not([data-theme="light"]),
   :root:not([data-theme="light"]) .skin-sw[data-sk="paper"]{
-    --bg:#1F1A14; --side:#17130E; --panel:#2A231B; --fg:#E6D9C0; --fg2:#CBBD9F; --muted:#A39477; --faint:#988A70;
-    --line:#3D3427; --hover:#352C21; --sel:#4A3A24; --accent:#D08A5C; --accent-soft:#3A2A1D; --on-accent:#1F1A14;
-    --danger:#EF8277; --on-danger:#1F1A14; --ok:#7BC58F; --scrim:rgba(0,0,0,.55);
+    --bg:#1E1B17; --side:#171512; --panel:#27231E; --fg:#E4DBCC; --fg2:#C9BEAA; --muted:#A19681; --faint:#978C78;
+    --line:#38332B; --hover:#312C25; --sel:#45392B; --accent:#CB9573; --accent-soft:#352B22; --on-accent:#1E1B17;
+    --danger:#EF8277; --on-danger:#1E1B17; --ok:#7BC58F; --scrim:rgba(0,0,0,.55);
     --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 36px rgba(0,0,0,.5);
     --hl-purple-bg:#382656; --hl-purple-fg:#D3B8FF;
     --hl-pink-bg:#452136; --hl-pink-fg:#FF9DCB;
@@ -48,9 +48,9 @@
 }
 :root[data-skin="paper"][data-theme="dark"],
 :root[data-theme="dark"] .skin-sw[data-sk="paper"]{
-  --bg:#1F1A14; --side:#17130E; --panel:#2A231B; --fg:#E6D9C0; --fg2:#CBBD9F; --muted:#A39477; --faint:#988A70;
-  --line:#3D3427; --hover:#352C21; --sel:#4A3A24; --accent:#D08A5C; --accent-soft:#3A2A1D; --on-accent:#1F1A14;
-  --danger:#EF8277; --on-danger:#1F1A14; --ok:#7BC58F; --scrim:rgba(0,0,0,.55);
+  --bg:#1E1B17; --side:#171512; --panel:#27231E; --fg:#E4DBCC; --fg2:#C9BEAA; --muted:#A19681; --faint:#978C78;
+  --line:#38332B; --hover:#312C25; --sel:#45392B; --accent:#CB9573; --accent-soft:#352B22; --on-accent:#1E1B17;
+  --danger:#EF8277; --on-danger:#1E1B17; --ok:#7BC58F; --scrim:rgba(0,0,0,.55);
   --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 36px rgba(0,0,0,.5);
   --hl-purple-bg:#382656; --hl-purple-fg:#D3B8FF;
   --hl-pink-bg:#452136; --hl-pink-fg:#FF9DCB;
@@ -169,8 +169,8 @@
 /* ===== Šípek: pudrová růžová, patkové písmo Literata ===== */
 :root[data-skin="rose"],
 .skin-sw[data-sk="rose"]{
-  --bg:#F7EEEE; --side:#EEDFDF; --panel:#F3E7E7; --fg:#33232A; --fg2:#4D3640; --muted:#654A55; --faint:#6A4F5A;
-  --line:#E2CDD0; --hover:#E8D7D9; --sel:#EBCBD2; --accent:#8C3550; --accent-soft:#F4DEE3; --on-accent:#FFF8F9;
+  --bg:#F8F3F2; --side:#EFE6E5; --panel:#F4EDEC; --fg:#33282C; --fg2:#4C3B41; --muted:#634F57; --faint:#68545C;
+  --line:#E3D6D7; --hover:#EAE0E0; --sel:#ECD8DD; --accent:#8A4459; --accent-soft:#F3E5E8; --on-accent:#FFF9FA;
   --danger:#B3261E; --on-danger:#FFF8F9; --ok:#2B6B44; --scrim:rgba(45,25,32,.34);
   --shadow:0 1px 2px rgba(51,35,42,.07),0 12px 32px rgba(51,35,42,.15);
   --hl-purple-bg:#EFE6FD; --hl-purple-fg:#7134D0;
@@ -186,9 +186,9 @@
 @media (prefers-color-scheme: dark){
   :root[data-skin="rose"]:not([data-theme="light"]),
   :root:not([data-theme="light"]) .skin-sw[data-sk="rose"]{
-  --bg:#1D1619; --side:#161013; --panel:#261D21; --fg:#EBDCE0; --fg2:#CDB9BF; --muted:#A68F96; --faint:#9A848B;
-  --line:#3A2C31; --hover:#31252A; --sel:#4A2F39; --accent:#E39AB0; --accent-soft:#3A2430; --on-accent:#1D1619;
-  --danger:#F2837A; --on-danger:#1D1619; --ok:#7BC59A; --scrim:rgba(0,0,0,.55);
+  --bg:#1C1819; --side:#151213; --panel:#251F21; --fg:#E8DFE1; --fg2:#CBBEC2; --muted:#A39398; --faint:#98888D;
+  --line:#372E31; --hover:#2F2729; --sel:#45333A; --accent:#D8A6B4; --accent-soft:#35282E; --on-accent:#1C1819;
+  --danger:#F2837A; --on-danger:#1C1819; --ok:#7BC59A; --scrim:rgba(0,0,0,.55);
   --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 36px rgba(0,0,0,.5);
   --hl-purple-bg:#382656; --hl-purple-fg:#D3B8FF;
   --hl-pink-bg:#452136; --hl-pink-fg:#FF9DCB;
@@ -203,9 +203,9 @@
 }
 :root[data-skin="rose"][data-theme="dark"],
 :root[data-theme="dark"] .skin-sw[data-sk="rose"]{
-  --bg:#1D1619; --side:#161013; --panel:#261D21; --fg:#EBDCE0; --fg2:#CDB9BF; --muted:#A68F96; --faint:#9A848B;
-  --line:#3A2C31; --hover:#31252A; --sel:#4A2F39; --accent:#E39AB0; --accent-soft:#3A2430; --on-accent:#1D1619;
-  --danger:#F2837A; --on-danger:#1D1619; --ok:#7BC59A; --scrim:rgba(0,0,0,.55);
+  --bg:#1C1819; --side:#151213; --panel:#251F21; --fg:#E8DFE1; --fg2:#CBBEC2; --muted:#A39398; --faint:#98888D;
+  --line:#372E31; --hover:#2F2729; --sel:#45333A; --accent:#D8A6B4; --accent-soft:#35282E; --on-accent:#1C1819;
+  --danger:#F2837A; --on-danger:#1C1819; --ok:#7BC59A; --scrim:rgba(0,0,0,.55);
   --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 36px rgba(0,0,0,.5);
   --hl-purple-bg:#382656; --hl-purple-fg:#D3B8FF;
   --hl-pink-bg:#452136; --hl-pink-fg:#FF9DCB;

@@ -1,5 +1,5 @@
 /* Úkolníček – Šablony stránek a převody typů bloků */
-import { $, esc, norm, TEXT_TYPES } from '../core.js';
+import { $, esc, IC, norm, TEXT_TYPES } from '../core.js';
 import { calloutDef, S } from '../state.js';
 import { savePage } from '../store.js';
 import { createPage, flatPages, newBlock, newTable, pIcon, pTitle } from '../pages.js';
@@ -12,27 +12,43 @@ import { isHeading, renderPage, rerenderBlocks } from './render.js';
 import { closePop, openPop } from '../ui.js';
 import { codeNorm } from './code.js';
 
-/* ---- templates ---- */
-function applyTemplate(pg,k){
+/* ---- šablony (od 4.19.0 jen přes /šablona, zapínají se v Nastavení → Formát = settings.templates) ---- */
+const TEMPLATES=[['subject','📘','Předmět'],['weeks','🗓️','Přehled týdnů'],['info','📌','Obecné informace']];
+/* b = blok, na jehož místě se šablona vloží (prázdný se nahradí, jinak pod něj). Na prázdné stránce
+   šablona nastaví i ikonu, vlastnosti a šířku jako dřív; jinde vloží jen bloky. */
+function applyTemplate(pg,k,b){
   const tx=(type,html,extra)=>newBlock(type,Object.assign({html:html||''},extra||{}));
+  const empty=(pg.blocks||[]).length<=1&&isBlank(((pg.blocks||[])[0]||{}).html||'');
+  let bl, icon, props, wide;
   if(k==='subject'){
-    pg.icon=pg.icon||'📘';
-    pg.props=[{k:'Garant',v:''},{k:'Kredity',v:''},{k:'Ukončení',v:''}];
+    icon='📘'; props=[{k:'Garant',v:''},{k:'Kredity',v:''},{k:'Ukončení',v:''}];
     const t=newTable(4,3); t.hrow=true;
     ['Test','Termín','Body'].forEach((x,i)=>t.rows[0].cells[i].lines[0].html=x);
-    pg.blocks=[tx('h2','Úkoly'),tx('todo',''),tx('h2','Body a testy'),t,tx('h2','Poznámky'),tx('p','')];
+    bl=[tx('h2','Úkoly'),tx('todo',''),tx('h2','Body a testy'),t,tx('h2','Poznámky'),tx('p','')];
   } else if(k==='weeks'){
-    pg.icon=pg.icon||'🗓️'; pg.wide=true;
+    icon='🗓️'; wide=true;
     const t=newTable(4,6); t.hcol=true;
     ['','1. týden','2. týden','3. týden','4. týden','Zkouškový'].forEach((x,i)=>t.rows[0].cells[i].lines[0].html=x);
     t.hrow=true;
     [['purple','První měsíc'],['green','Druhý měsíc'],['blue','Třetí měsíc']].forEach(([c,x],i)=>t.rows[i+1].cells[0].lines[0].html=`<mark class="hl-${c}">${x}</mark>`);
-    pg.blocks=[t,tx('p','')];
+    bl=[t,tx('p','')];
   } else {
-    pg.icon=pg.icon||'📌';
-    pg.blocks=[tx('h2','Kontakty'),tx('bullet',''),tx('h2','Důležité odkazy a pravidla'),tx('bullet',''),tx('h2','Termíny zkoušek'),tx('todo','')];
+    icon='📌';
+    bl=[tx('h2','Kontakty'),tx('bullet',''),tx('h2','Důležité odkazy a pravidla'),tx('bullet',''),tx('h2','Termíny zkoušek'),tx('todo','')];
+  }
+  if(empty){
+    pg.icon=pg.icon||icon; if(props&&!(pg.props||[]).length) pg.props=props; if(wide) pg.wide=true;
+    pg.blocks=bl;
+  } else {
+    const i=b?pg.blocks.indexOf(b):-1;
+    if(i<0) pg.blocks.push(...bl);
+    else if(b.type==='p'&&isBlank(b.html)) pg.blocks.splice(i,1,...bl);
+    else pg.blocks.splice(i+1,0,...bl);
   }
   savePage(pg,0); renderSidebar(); renderPage(pg);
+}
+function openTemplatePicker(anchor,cb){
+  openPop(anchor,`<div class="pop-h">Šablona</div>`+TEMPLATES.map(([k,ic,nm])=>`<button class="pop-item" data-v="${k}"><span class="pi-ic">${ic}</span>${nm}</button>`).join(''),cb);
 }
 
 /* ---- conversions ---- */
@@ -96,7 +112,7 @@ function openPagePicker(anchor,pg,onPick){
   const q=$('.sp-q',p); let idx=0, items=[];
   const draw=()=>{
     const t=q.value.trim(), nq=norm(t); items=['*new'];
-    let h=`<button class="pop-item sp-it ${idx===0?'act':''}" data-v="*new" role="option"><span class="pi-ic">+</span><span class="sp-t">Nová podstránka${t?` <b>${esc(t)}</b>`:''}</span></button>`;
+    let h=`<button class="pop-item sp-it ${idx===0?'act':''}" data-v="*new" role="option"><span class="pi-ic">${IC.plus}</span><span class="sp-t">Nová podstránka${t?` <b>${esc(t)}</b>`:''}</span></button>`;
     const l=pages.filter(x=>!nq||norm(pTitle(x.p)).includes(nq));
     if(l.length) h+='<div class="pop-h">Odkaz na stránku</div>'+l.map(({p:pp,depth})=>{ const i=items.push(pp.id)-1;
       return `<button class="pop-item sp-it ${i===idx?'act':''}" data-v="${pp.id}" role="option"${!nq&&depth?` style="padding-left:${8+depth*14}px"`:''}>${pIcon(pp)}<span class="sp-t">${esc(pTitle(pp))}</span></button>`; }).join('');
@@ -133,4 +149,4 @@ function toSubject(pg,b,su){ b.type='subj'; b.subj=su.id; b.html=esc(subjLabel(s
 /* blok předmětu → obyčejný nadpis H1 s názvem předmětu */
 function subjToH1(pg,b){ subjAsH1(b); savePage(pg); rerenderBlocks(); focusBlock(b.id,'end'); }
 
-export { applyTemplate, clearShortcut, insertPageLinkAt, insertSubjAt, insertTypeAt, noteShortcut, numShortcutOff, openPagePicker, rememberTypedNum, setType, subjToH1, takeShortcut, toSubject };
+export { applyTemplate, clearShortcut, insertPageLinkAt, insertSubjAt, insertTypeAt, noteShortcut, numShortcutOff, openPagePicker, openTemplatePicker, rememberTypedNum, setType, subjToH1, takeShortcut, toSubject };

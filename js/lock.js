@@ -19,7 +19,7 @@ function applyLock(){
 function toggleLock(){
   LOCK=!LOCK; lsSet('uk-lock',LOCK); closePop(); hideImgSel(); closeSlash(); applyLock();
   if(S.view.kind==='schedule') renderMain();
-  toast(LOCK?'Zamčeno: nic se nepřidá, nepřesune ani nesmaže omylem. Psát, zaškrtávat a upravovat můžeš dál.':'Odemčeno: můžeš zase přidávat, přesouvat a mazat.');
+  toast(LOCK?'Zamčeno: tlačítka pro přidávání, přesouvání a odstraňování jsou schovaná. Psát, zaškrtávat a upravovat jde dál.':'Odemčeno: zase jde přidávat, přesouvat a odstraňovat.');
 }
 
 export { applyLock, LOCK, toggleLock };

@@ -2,54 +2,54 @@
 
 /* ---------- rozložení a levý panel ---------- */
 #app{--side-w:268px;display:grid;grid-template-columns:var(--side-w) minmax(0,1fr);height:100%;transition:grid-template-columns .15s ease}
-.side{background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:4px;padding:16px 10px 10px;overflow-x:hidden;overflow-y:auto;min-height:0;min-width:0}
+.side{background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:var(--sp2);padding:var(--sp8) var(--sp5) var(--sp5);overflow-x:hidden;overflow-y:auto;min-height:0;min-width:0}
 #main{overflow:auto;min-width:0;position:relative}
 .topbar{display:none}
 .scrim{display:none}
-.ws{padding:4px 8px 12px;display:grid;gap:2px}
+.ws{padding:var(--sp2) var(--sp4) var(--sp6);display:grid;gap:var(--sp1)}
 .ws-name{font:700 calc(17px*var(--fs))/1.25 var(--f-display);letter-spacing:-.005em;text-wrap:balance}
 .ws-week{font-size:calc(12.5px*var(--fs));color:var(--muted)}
 .ws-week b{font-weight:650;color:var(--fg2)}
 .linkbtn{color:var(--accent);font-size:calc(13px*var(--fs));text-decoration:underline;text-underline-offset:3px}
-.nav{display:grid;gap:1px;margin-bottom:10px}
-.nv{display:flex;align-items:center;gap:10px;width:100%;padding:6px 8px;border-radius:7px;color:var(--fg2);font-size:calc(14.5px*var(--fs))}
-.nv svg{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+.nav{display:grid;gap:1px;margin-bottom:var(--sp5)}
+.nv{display:flex;align-items:center;gap:var(--sp5);width:100%;padding:var(--sp3) var(--sp4);border-radius:var(--r);color:var(--fg2);font-size:calc(14.5px*var(--fs))}
+.nv svg{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:var(--ic-w);stroke-linecap:round;stroke-linejoin:round;opacity:.85}
 .nv:hover{background:var(--hover)}
 .nv.on{background:var(--hover);color:var(--fg);font-weight:600}
 .nv .badge{margin-left:auto;font-size:calc(12.5px*var(--fs));font-variant-numeric:tabular-nums;color:var(--muted)}
 .nv kbd{margin-left:auto;font:500 calc(11.5px*var(--fs)) var(--f-body);color:var(--faint)}
 @media (hover:none){ .nv kbd{display:none} }
-.sec-h{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 4px;font-size:calc(12.5px*var(--fs));font-weight:600;color:var(--muted)}
-.icon-btn{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;color:var(--muted);font-size:calc(17px*var(--fs));line-height:1}
+.sec-h{display:flex;align-items:center;justify-content:space-between;padding:var(--sp3) var(--sp4) var(--sp2);font-size:calc(12.5px*var(--fs));font-weight:600;color:var(--muted)}
+.icon-btn{width:24px;height:24px;border-radius:var(--r);display:grid;place-items:center;color:var(--muted);font-size:calc(17px*var(--fs));line-height:1}
 .icon-btn:hover{background:var(--hover);color:var(--fg)}
 .tree{display:grid;grid-template-columns:minmax(0,1fr);gap:1px;flex:1;align-content:start}
-.ti{display:flex;align-items:center;border-radius:7px;padding-left:calc(var(--d)*14px);min-height:32px;min-width:0}
+.ti{display:flex;align-items:center;border-radius:var(--r);padding-left:calc(var(--d)*14px);min-height:32px;min-width:0}
 .ti:hover,.ti.on{background:var(--hover)}
 .ti.on .ti-t{font-weight:600;color:var(--fg)}
 .ti-tog{width:20px;height:24px;flex:none;display:grid;place-items:center;color:var(--faint)}
 .ti-tog::before{content:"";width:0;height:0;border-left:5px solid currentColor;border-top:4px solid transparent;border-bottom:4px solid transparent;transition:transform .15s}
 .ti-tog.open::before{transform:rotate(90deg)}
 .ti-tog.none{visibility:hidden}
-.ti-main{flex:1;min-width:0;display:flex;align-items:center;gap:7px;padding:5px 4px}
+.ti-main{flex:1;min-width:0;display:flex;align-items:center;gap:var(--sp3);padding:var(--sp3) var(--sp2)}
 .ti-ic{width:20px;flex:none;text-align:center;font-size:calc(15px*var(--fs))}
-.ti-dot{width:9px;height:9px;border-radius:3px;background:var(--c-fg);display:inline-block}
+.ti-dot{width:9px;height:9px;border-radius:var(--r-sm);background:var(--c-fg);display:inline-block}
 .ti-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--fg2);font-size:calc(14.5px*var(--fs))}
 .ti-acts{display:flex;opacity:0;padding-right:3px}
 .ti:hover .ti-acts,.ti:focus-within .ti-acts{opacity:1}
 .ti{position:relative}
 .ti.ti-dragging{opacity:.45}
 @media (hover:none){ #side .ti{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none} }
-.ti.drop-before::before,.ti.drop-after::after{content:"";position:absolute;left:calc(var(--d)*14px + 6px);right:6px;height:2px;border-radius:1px;background:var(--accent);pointer-events:none}
+.ti.drop-before::before,.ti.drop-after::after{content:"";position:absolute;left:calc(var(--d)*14px + 6px);right:6px;height:2px;border-radius:var(--r-xs);background:var(--accent);pointer-events:none}
 .ti.drop-before::before{top:-1px}
 .ti.drop-after::after{bottom:-1px}
 body.tree-drag,body.tree-drag *{cursor:grabbing!important;user-select:none}
-.tree-empty{padding:6px 10px;color:var(--muted);font-size:calc(13.5px*var(--fs))}
+.tree-empty{padding:var(--sp3) var(--sp5);color:var(--muted);font-size:calc(13.5px*var(--fs))}
 /* archiv v levém panelu */
-.sec-h>span:first-child{display:flex;align-items:center;gap:6px}
-.sec-h svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sec-h>span:first-child{display:flex;align-items:center;gap:var(--sp3)}
+.sec-h svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:var(--ic-w);stroke-linecap:round;stroke-linejoin:round}
 .sec-h .sec-n{font-weight:500;font-variant-numeric:tabular-nums}
 .nv.arch-back{color:var(--fg);font-weight:600}
-.side-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--line);padding:10px 6px 2px;margin-top:8px}
+.side-foot{display:flex;align-items:center;justify-content:space-between;gap:var(--sp4);border-top:1px solid var(--line);padding:var(--sp5) var(--sp3) var(--sp1);margin-top:var(--sp4)}
 .side-foot .nv{width:auto}
 #save-state{font-size:calc(12px*var(--fs));color:var(--muted);white-space:nowrap}
 #save-state.err{color:var(--danger);font-weight:600}
@@ -57,15 +57,15 @@ body.tree-drag,body.tree-drag *{cursor:grabbing!important;user-select:none}
 /* ---------- mini kalendář v levém panelu ---------- */
 /* mini kalendář (4.9.0): název měsíce vlevo, šipky vpravo, dnešek = plné kolečko v barvě textu,
    dny s úkolem = tenký šedý kroužek, aktuální týden v roce červeně */
-.mc{margin-top:10px;font-variant-numeric:tabular-nums}
-.mc-h{display:flex;align-items:center;gap:0;margin:0 -4px 6px}
-.mc-t{flex:1;text-align:left;font-size:calc(13px*var(--fs));font-weight:600;color:var(--fg);padding:3px 4px;border-radius:6px;text-transform:capitalize}
+.mc{margin-top:var(--sp5);font-variant-numeric:tabular-nums}
+.mc-h{display:flex;align-items:center;gap:0;margin:0 -4px var(--sp3)}
+.mc-t{flex:1;text-align:left;font-size:calc(13px*var(--fs));font-weight:600;color:var(--fg);padding:var(--sp2) var(--sp2);border-radius:var(--r);text-transform:capitalize}
 .mc-t:hover{background:var(--hover)}
 .mc-t:not(.cur){color:var(--fg2);text-decoration:underline dotted;text-underline-offset:3px}
-.mc-nav{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;color:var(--muted);font-size:calc(16px*var(--fs));line-height:1}
+.mc-nav{width:24px;height:24px;border-radius:var(--r);display:grid;place-items:center;color:var(--muted);font-size:calc(16px*var(--fs));line-height:1}
 .mc-nav:hover{background:var(--hover);color:var(--fg)}
-.mc-g{display:grid;grid-template-columns:20px repeat(7,minmax(0,1fr));row-gap:2px;align-items:center;margin:0 -4px}
-.mc-dh{font-size:calc(10.5px*var(--fs));font-weight:500;color:var(--faint);text-align:center;padding-bottom:3px;text-transform:lowercase}
+.mc-g{display:grid;grid-template-columns:20px repeat(7,minmax(0,1fr));row-gap:var(--sp1);align-items:center;margin:0 -4px}
+.mc-dh{font-size:calc(10.5px*var(--fs));font-weight:500;color:var(--faint);text-align:center;padding-bottom:var(--sp2);text-transform:lowercase}
 .mc-dh.we{color:color-mix(in srgb,var(--faint) 70%,transparent)}
 .mc-wk{font:400 calc(10px*var(--fs)) var(--f-body);color:var(--faint);text-align:center;align-self:stretch;display:grid;place-items:center}
 .mc-wk.mc-dh{font-family:var(--f-body)}
@@ -90,8 +90,8 @@ button.mc-d.today:hover{color:var(--bg)}
   .ti:hover .ti-acts,.ti:focus-within .ti-acts{display:flex;opacity:1}
 }
 /* koš v levém panelu */
-.tr-it{padding-left:4px}
-.tr-left{margin-left:auto;padding-left:6px;flex:none;color:var(--muted);font-size:calc(12px*var(--fs));font-variant-numeric:tabular-nums}
+.tr-it{padding-left:var(--sp2)}
+.tr-left{margin-left:auto;padding-left:var(--sp3);flex:none;color:var(--muted);font-size:calc(12px*var(--fs));font-variant-numeric:tabular-nums}
 .tr-acts{display:flex;flex:none;padding-right:3px}
 .tr-acts .icon-btn{color:var(--muted)}
 .tr-acts .tr-del:hover{color:var(--danger)}
@@ -100,28 +100,33 @@ button.mc-d.today:hover{color:var(--bg)}
 body.locked .tr-del,body.locked .tr-empty{display:none}
 
 /* ---------- schovaný levý panel (4.16.0) ----------
-   ☰ vlevo od názvu, aby ikonky zůstaly vodorovně na stejném místě; schovaný panel = úzký pruh (jen na širokém okně).
+   ☰ vpravo od názvu, ve schovaném panelu ve sloupci ikonek; schovaný panel = úzký pruh (jen na širokém okně).
    Texty zmizí, ikonky (menu, projekty, mráček, Nastavení) zůstanou; bublina s názvem .side-tip, bublina projektu .side-pop */
-.ws-top{display:flex;align-items:center;gap:6px;min-width:0}
+.ws-top{display:flex;align-items:center;gap:var(--sp3);min-width:0}
 /* název a týden se nezalamují: při schování a rozbalení panelu by se jinak zalomily a ikonky pod nimi poskočily */
 .ws-top .ws-name,.ws-week{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.side-tog{flex:none;margin-left:-4px;font-size:calc(15px*var(--fs))}
+.ws-top .ws-name{flex:1}
+.side-tog{flex:none;order:1;margin:0 -4px 0 auto;font-size:calc(15px*var(--fs))}   /* ☰ vpravo, aby název a týden začínaly zarovnaně vlevo */
 .nv>span{white-space:nowrap}
-.side-tip{position:fixed;z-index:90;pointer-events:none;background:var(--fg);color:var(--bg);font-size:calc(12.5px*var(--fs));font-weight:500;padding:4px 8px;border-radius:6px;white-space:nowrap;box-shadow:var(--shadow-sm)}
+.tip{position:fixed;z-index:200;max-width:280px;white-space:normal!important;pointer-events:none;background:var(--fg);color:var(--bg);font-size:calc(12.5px*var(--fs));font-weight:500;padding:var(--sp2) var(--sp4);border-radius:var(--r);white-space:nowrap;box-shadow:var(--shadow-sm)}
 .side-pop{min-width:200px}
-.side-pop .sp-it{padding-left:calc(8px + (var(--d) - 1)*14px)}
-.side-pop .sp-row{display:flex;align-items:center;gap:2px}
+.side-pop .sp-it{padding-left:calc(8px + var(--d)*16px)}
+.side-pop .sp-row{display:flex;align-items:center;gap:var(--sp1)}
 .side-pop .sp-row>.pop-item{flex:1;min-width:0}
 .side-pop .sp-more{flex:none;opacity:0}
 .side-pop .sp-row:hover .sp-more,.side-pop .sp-more:focus-visible{opacity:1}
 @media (hover:none){ .side-pop .sp-more{opacity:1} }
 .side-pop .sp-h{font-weight:650}
+.side-pop .sp-add{font-size:calc(16px*var(--fs));line-height:1}
 .side-pop .sp-t{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .side-pop .ti-ic{width:18px}
-@media (max-width:860px){ .side-tog{display:none} .side-tip{display:none} }
+@media (max-width:860px){ .side-tog{display:none} .tip{display:none} }
 @media (min-width:861px){
   #app.side-mini{--side-w:54px}   /* střed ikonek 26,5 px od levého i pravého okraje */
   #app.side-mini .syncbar,#app.side-mini .side-foot{padding-left:0;padding-right:0}
+  #app.side-mini .ws-top{gap:0}
+  #app.side-mini .ws-top .ws-name{flex:0 0 0}
+  #app.side-mini .side-tog{margin:0 0 0 -4px}   /* ve schovaném panelu ve sloupci ikonek */
   #app.side-mini .ws-name,#app.side-mini .nv>span,#app.side-mini .sec-h>*,#app.side-mini .ti-t{opacity:0;pointer-events:none}
   /* bez mini kalendáře zůstane místo po čísle týdne, aby ikonky neposkočily; s kalendářem se řádek schová */
   #app.side-mini .ws-week,#app.side-mini .ws>.linkbtn{visibility:hidden}
@@ -130,7 +135,7 @@ body.locked .tr-del,body.locked .tr-empty{display:none}
   #app.side-mini .ti,#app.side-mini .ti:hover,#app.side-mini .ti.on{background:none}
   /* projekty ve sloupci s ikonkami menu (střed 26 px od kraje) */
   #app.side-mini .ti-tog{display:none}
-  #app.side-mini .ti-main{border-radius:7px;flex:none;width:32px;padding:4px 6px}
+  #app.side-mini .ti-main{border-radius:var(--r);flex:none;width:32px;padding:var(--sp2) var(--sp3)}
   #app.side-mini .ti:hover .ti-main,#app.side-mini .ti.on .ti-main{background:var(--hover)}
   #app.side-mini .syncbar{flex-wrap:nowrap}
 }
@@ -144,16 +149,16 @@ body.locked .tr-del,body.locked .tr-empty{display:none}
 #panes>#main{flex:1 1 0}
 #panes.split{display:grid;grid-template-columns:calc((100% - 7px)*var(--sr,.5)) 7px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
 #split-bar{grid-column:1/-1;grid-row:1;min-width:0;border-bottom:1px solid var(--line);background:var(--bg)}
-#split-bar .pagebar{position:static;margin:0;padding:8px 20px;border:0}
+#split-bar .pagebar{position:static;margin:0;padding:var(--sp4) var(--sp9);border:0}
 #panes.split>.sp-l{grid-column:1;grid-row:2}
 #panes.split>.split-h{grid-column:2;grid-row:2}
 #panes.split>.sp-r{grid-column:3;grid-row:2}
 #panes.split>#main,.split-ghost{min-width:0;min-height:0;border-top:2px solid transparent}
 #panes.split>#main{border-top-color:color-mix(in srgb,var(--accent) 75%,transparent)}
 @media (min-width:861px){
-  #panes.split #doc,.split-ghost .doc{padding-top:18px}
+  #panes.split #doc,.split-ghost .doc{padding-top:var(--sp8)}
   /* v polovině o 60 % menší okraje (76 → 30 px); úchyt ⋮⋮ se vejde do levého okraje jako na telefonu, + je schované (stačí Enter nebo ⋮⋮) */
-  #panes.split .doc{padding-left:40px;padding-right:30px}
+  #panes.split .doc{padding-left:var(--sp13);padding-right:30px}
   #panes.split .blk:not(.bfl,.b-image)>.gut{left:calc(var(--lv,0)*26px - 30px)}
   #panes.split .blk.bfl>.gut{left:calc(var(--gx) + var(--lv,0)*26px - 30px)}
   /* nadpis a předmět mají šipku sbalení: ⋮⋮ vždy vlevo vedle ní (užší úchyt i šipka, aby se oba vešly do okraje) */
@@ -167,7 +172,7 @@ body.locked .tr-del,body.locked .tr-empty{display:none}
 .split-h:hover,body.split-drag .split-h{background:linear-gradient(90deg,transparent 2px,var(--accent) 2px,var(--accent) 5px,transparent 5px)}
 body.split-drag,body.split-drag *{cursor:col-resize!important;user-select:none!important}
 /* náhled jen ke čtení: ovládací prvky schované, ale drží místo (po kliknutí je živá stránka na stejném místě) */
-.split-ghost :is(.gut,.tbl-tools,.tpl,.add-prop,.prop .icon-btn,.ta,.rh,.ch,.head-acts){visibility:hidden!important}
+.split-ghost :is(.gut,.tbl-tools,.add-prop,.prop .icon-btn,.ta,.rh,.ch){visibility:hidden!important}
 .split-ghost [contenteditable]{cursor:default}
 .split-ghost [contenteditable]:empty::after{content:"\200b"}   /* prázdný blok bez úprav by měl výšku 0 a text by po kliknutí poskočil */
 .split-x{font-size:calc(19px*var(--fs))}

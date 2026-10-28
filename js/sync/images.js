@@ -38,7 +38,7 @@ const ImgSync={
     const p=[];
     if(this.up.length) p.push(`${this.up.length} ${plural(this.up.length,'čeká','čekají','čeká')} na nahrání`);
     if(this.miss.length) p.push(`${this.miss.length} ${plural(this.miss.length,'chybí','chybí','chybí')} v tomto zařízení`);
-    if(this.orphans) p.push(`${this.orphans} na Disku ${plural(this.orphans,'čeká','čekají','čeká')} na smazání`);
+    if(this.orphans) p.push(`${this.orphans} na Disku ${plural(this.orphans,'čeká','čekají','čeká')} na odstranění`);
     return p.join(', ');
   },
   async list(){
@@ -110,7 +110,7 @@ function askBig(n,size){
     let done=false; const fin=v=>{ if(!done){ done=true; res(v); } };
     const m=openModal('Stáhnout obrázky přes mobilní data?',`<div class="m-body">
       <p>Chybí tu ${n} ${plural(n,'obrázek','obrázky','obrázků')}, dohromady asi <b>${esc(mb(size))}</b>. Jsi na mobilních datech.</p>
-      <p class="note">Když teď nestáhneš, ukážou se jako rámeček s názvem. Stáhneš je později šipkou ↓ nebo v Nastavení → Google Disk.</p>
+      <p class="note">Bez stažení se ukážou jako rámeček s názvem. Stáhnout jdou i později šipkou ↓ nebo v Nastavení → Google Disk.</p>
       <div class="m-actions"><span class="sp"></span><button type="button" class="btn" id="ib-no">Později</button><button type="button" class="btn pri" id="ib-go">Stáhnout</button></div></div>`);
     $('#ib-no',m).addEventListener('click',()=>{ fin(false); closeModal(); });
     $('#ib-go',m).addEventListener('click',()=>{ fin(true); closeModal(); });
@@ -123,9 +123,9 @@ function imgNote(r,dir){
   if(!r) return '';
   const p=[];
   if(r.done) p.push(`${r.done} ${dir==='up'?plural(r.done,'obrázek nahrán','obrázky nahrány','obrázků nahráno'):plural(r.done,'obrázek stažen','obrázky staženy','obrázků staženo')}`);
-  if(r.err) p.push(r.left?`${r.left} ${plural(r.left,'obrázek se nepřenesl','obrázky se nepřenesly','obrázků se nepřeneslo')}, zkus to znovu`:'obrázky se nepodařilo zkontrolovat, zkus to znovu');
+  if(r.err) p.push(r.left?`${r.left} ${plural(r.left,'obrázek se nepřenesl','obrázky se nepřenesly','obrázků se nepřeneslo')}, stačí to zkusit znovu`:'obrázky se nepodařilo zkontrolovat, stačí to zkusit znovu');
   else if(r.waiting) p.push(`${r.left} ${plural(r.left,'obrázek čeká','obrázky čekají','obrázků čeká')} na Wi-Fi nebo ↓`);
-  if(r.absent) p.push(`${r.absent} ${plural(r.absent,'obrázek není','obrázky nejsou','obrázků není')} na Disku, nahraj ${r.absent===1?'ho':'je'} z druhého zařízení`);
+  if(r.absent) p.push(`${r.absent} ${plural(r.absent,'obrázek není','obrázky nejsou','obrázků není')} na Disku, ${r.absent===1?'nahraje se':'nahrají se'} z druhého zařízení`);
   return p.length?' · '+p.join(' · '):'';
 }
 

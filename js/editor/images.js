@@ -1,5 +1,5 @@
 /* Úkolníček – Obrázky: vložení, zmenšení, zarovnání, velikost */
-import { $, $$, clamp, esc, lsGet, lsSet, simpleUi, TEXT_TYPES } from '../core.js';
+import { $, $$, clamp, esc, IC, lsGet, lsSet, simpleUi, TEXT_TYPES } from '../core.js';
 import { S } from '../state.js';
 import { LOCK } from '../lock.js';
 import { IMGURL, savePage } from '../store.js';
@@ -9,6 +9,7 @@ import { focusBlock, focusEl } from './caret.js';
 import { ctxOf, rerenderBlocks } from './render.js';
 import { hideCellbar, hideFmt } from './toolbar.js';
 import { closePop, openModal, openPop, placePop, toast } from '../ui.js';
+import { openBlockMenu } from './menus.js';
 import { editDrawing } from './draw.js';
 
 /* ================= images ================= */
@@ -44,7 +45,7 @@ async function uploadImage(file){
     const id=await Local.putImage(pr.blob,name);
     IMGURL.set(id,URL.createObjectURL(pr.blob)); noteRatio(id,pr.nw,pr.nh);
     return {id,name,nw:pr.nw};
-  }catch(e){ toast(e&&e.code==='decode'?'Tenhle formát obrázku se nepodařilo načíst. Ulož ho jako JPG nebo PNG.':(e&&e.name==='QuotaExceededError'?'Úložiště v zařízení je plné.':'Obrázek se nepodařilo uložit do zařízení.')); return null; }
+  }catch(e){ toast(e&&e.code==='decode'?'Tenhle formát obrázku se nepodařilo načíst. Pomůže ho uložit jako JPG nebo PNG.':(e&&e.name==='QuotaExceededError'?'Úložiště v zařízení je plné.':'Obrázek se nepodařilo uložit do zařízení.')); return null; }
 }
 async function pickImageBlock(pgId,blockId,replace,file){
   file=file||await pickFile(); if(!file) return;
@@ -65,7 +66,7 @@ async function pickImageInline(host,range,file){
   insertInline(host,range,im);
 }
 function insertInline(host,range,im){
-  if(!host||!document.contains(host)){ toast('Obrázek se nepodařilo vložit, místo mezitím zmizelo. Zkus to znovu.'); return; }
+  if(!host||!document.contains(host)){ toast('Obrázek se nepodařilo vložit, místo mezitím zmizelo. Stačí to zkusit znovu.'); return; }
   const inCell=!!host.closest('td');
   const img=document.createElement('img'); img.className='im '+(inCell?'al-center':'al-inline'); img.setAttribute('data-img',im.id); img.setAttribute('data-name',im.name); img.src=imgSrc(im.id,im.name); img.alt=''; img.draggable=false;
   img.setAttribute('width',Math.round(Math.min(im.nw||240,inCell?220:240)));
@@ -120,10 +121,11 @@ function placeFrame(){
   frame.classList.toggle('rz-left',imgAlign()==='right'); frame.hidden=false;
 }
 function hideImgSel(){ if(imgSel){ const blk=imgSel.img.closest('.blk'); if(blk) blk.classList.remove('isel'); } imgSel=null; frame.hidden=true; }
-/* klik na obrázek i kresbu: rámeček a menu; quiet = jen rámeček (výběr klávesnicí), from = blok, odkud se přišlo */
+/* klik na obrázek i kresbu: rámeček (a u obrázku v textu nabídka); quiet = jen rámeček (výběr klávesnicí, true posune stránku),
+   'frame' = jen rámeček pro roztažení (klik myší, od 4.20.0: nabídka je v ⋮⋮ a na pravém tlačítku); from = blok, odkud se přišlo */
 function selectImage(img,quiet,from){
   const x=ctxOf(img); if(!x) return;
-  hideFmt(); hideCellbar(); closePop(); if(imgSel) hideImgSel();
+  hideFmt(); hideCellbar(); if(quiet!=='hold') closePop(); if(imgSel) hideImgSel();
   const kind=img.classList.contains('bimg')?'block':'inline';
   if(kind==='block'){
     const a=document.activeElement; if(a&&a!==document.body&&a.blur) a.blur();
@@ -133,7 +135,7 @@ function selectImage(img,quiet,from){
   imgSel={img,kind,x,host:kind==='inline'?img.closest('.txt'):null,from:from||null};
   placeFrame();
   if(quiet){ const r=img.getBoundingClientRect(), m=$('#main'); if(m&&(r.top<70||r.bottom>innerHeight-30)) m.scrollTop+=r.top<70?r.top-90:r.bottom-innerHeight+50; placeFrame(); }
-  else openImgTools();
+  else if(quiet!=='frame'&&quiet!=='hold') openImgTools();
 }
 function applyImgWidth(w,commit){
   if(!imgSel) return;
@@ -150,7 +152,7 @@ function applyImgAlign(al,nw){
 /* stažení obrázku do zařízení (původní název souboru, přípona podle skutečného formátu) */
 const EXT={'image/png':'png','image/jpeg':'jpg','image/gif':'gif','image/webp':'webp','image/svg+xml':'svg'};
 async function downloadImage(id,name){
-  const url=IMGURL.get(id); if(!url) return toast('Obrázek v tomhle zařízení ještě není. Nejdřív ho stáhni z Disku (↓).');
+  const url=IMGURL.get(id); if(!url) return toast('Obrázek v tomhle zařízení ještě není. Stáhne se z Disku (↓).');
   try{
     const blob=await (await fetch(url)).blob(), ext=EXT[blob.type];
     let fn=String(name||'obrázek').replace(/[\\/:*?"<>|]+/g,'_').trim()||'obrázek';
@@ -177,8 +179,8 @@ function markTools(p){
   if(!imgSel||!p) return;
   const cur=curLay(), cw=imgContainerW(), w=imgSel.img.getBoundingClientRect().width;
   $$('[data-v^="lay:"]',p).forEach(b=>b.classList.toggle('on',b.dataset.v==='lay:'+cur));
-  $$('[data-v^="sz:"]',p).forEach(b=>b.classList.toggle('on',Math.abs(w-cw*parseFloat(b.dataset.v.slice(3)))<8));
-  requestAnimationFrame(()=>{ placeFrame(); if(imgSel) placePop(p,imgSel.img.getBoundingClientRect()); });
+  $$('[data-v^="sz:"]',p).forEach(b=>b.classList.toggle('act',Math.abs(w-cw*parseFloat(b.dataset.v.slice(3)))<8));
+  requestAnimationFrame(()=>{ placeFrame(); if(imgSel&&S.popAnchor===imgSel.img) placePop(p,imgSel.img.getBoundingClientRect()); });
 }
 /* obrázek z textu na samostatný blok: obtékaný jde před odstavec (text ho obteče), jinak tam, kde v textu byl */
 function inlineToBlock(al,nw){
@@ -207,7 +209,7 @@ function deleteSelected(back){
   if(!imgSel||imgSel.kind!=='block'||LOCK) return;
   const {x,from}=imgSel, pg=x.pg, bi=pg.blocks.indexOf(x.b); if(bi<0) return;
   pg.blocks.splice(bi,1); savePage(pg); hideImgSel(); closePop(); rerenderBlocks();
-  toast('Obrázek smazán','Vrátit',()=>{ pg.blocks.splice(Math.min(bi,pg.blocks.length),0,x.b); savePage(pg); rerenderBlocks(); });
+  toast('Obrázek odstraněn','Vrátit',()=>{ pg.blocks.splice(Math.min(bi,pg.blocks.length),0,x.b); savePage(pg); rerenderBlocks(); });
   const txt=b=>b&&TEXT_TYPES.includes(b.type);
   if(from&&pg.blocks.some(b=>b.id===from)){ const fi=pg.blocks.findIndex(b=>b.id===from); focusBlock(from,fi<bi?'end':0); return; }
   const prev=[...pg.blocks.slice(0,bi)].reverse().find(txt), next=pg.blocks.slice(bi).find(txt);
@@ -224,40 +226,55 @@ function navFrom(el,up){
   return true;
 }
 
-function openImgTools(){
-  const kind=imgSel.kind, inCell=kind==='inline'&&!!imgSel.img.closest('td'), isDraw=imgSel.img.classList.contains('bdraw');
+/* nabídka obrázku (od 4.20.0): řada rozvržení bez rámečků a položky s ikonou; blokový obrázek ji má v menu ⋮⋮ (menus.js),
+   obrázek v textu nebo v buňce přes openImgTools (pravé tlačítko, na dotyk klepnutí) */
+function imgMenuHtml(img){
+  const kind=img.classList.contains('bimg')?'block':'inline', inCell=kind==='inline'&&!!img.closest('td'), isDraw=img.classList.contains('bdraw'), x=ctxOf(img);
   const keys=inCell?['in','wl','c','wr']:['wl','l','c','r','wr'].concat(kind==='inline'?['in']:[]);
-  const sizes=[['25','Malý',.25],['50','Střední',.5],['75','Velký',.75],['100','Celá šířka',1]];
-  /* jednoduchý režim: obrázky jsou pod sebou přes celou šířku, rozvržení a velikost jen v plném editoru */
-  const lay=simpleUi()?'':`<div class="it-row lay-row">${keys.map(k=>`<button class="lay-b" data-v="lay:${k}" title="${LAY[k][2]}" aria-label="${LAY[k][2]}"><svg viewBox="0 0 28 20" aria-hidden="true">${LAY_IC[k]}</svg></button>`).join('')}</div>
-    <div class="pop-h">Velikost</div><div class="it-row">${sizes.map(([k,l,f])=>`<button data-v="sz:${f}">${l}</button>`).join('')}</div>
-    <div class="pop-sep"></div>`;
-  const h=`${lay}<div class="it-row">${isDraw?'<button data-v="draw">Upravit kresbu</button>':''}${kind==='block'?`<button data-v="cap">${imgSel.x.b.caption||imgSel.x.b.capOn?'Upravit popisek':'Přidat popisek'}</button>`:''}<button data-v="open">Zvětšit</button><button data-v="dl">Stáhnout</button>${LOCK?'':'<button class="danger" data-v="del">Smazat</button>'}</div>`;
-  const pop=openPop(imgSel.img,h,(v,btn,p)=>{
-    if(!imgSel) return;
-    if(v==='draw'){ const im=imgSel.img; hideImgSel(); editDrawing(im); return; }
-    if(v.startsWith('lay:')){
-      const k=v.slice(4), [al,nw]=LAY[k];
-      if(kind==='inline'&&!inCell&&k!=='in'){ inlineToBlock(al,!!nw); return; }
-      if(k==='in'){ applyImgAlign('inline',false); markTools(p); return true; }
-      applyImgAlign(al,!!nw);
-      if(kind==='block'&&isFloat()){ const cw=imgContainerW(); if((+imgSel.x.b.w||480)>cw*FLOAT_MAX) applyImgWidth(cw*.5,true); }
-      markTools(p); return true;
-    }
-    if(v.startsWith('sz:')){
-      const f=parseFloat(v.slice(3));
-      if(kind==='block'&&isFloat()&&f>FLOAT_MAX) applyImgAlign(imgAlign(),true);   /* velký obrázek: obtékání se vypne, zůstane na své straně */
-      applyImgWidth(imgContainerW()*f,true); markTools(p); return true;
-    }
-    if(v==='dl'){ const [id,name]=imgIdName(imgSel); downloadImage(id,name); return true; }
-    if(v==='open'){ const src=imgSel.img.src; const cap=kind==='block'?imgSel.x.b.caption:''; const [dlId,dlName]=imgIdName(imgSel); hideImgSel(); const mm=openModal('',`<div class="m-head"><span></span><span class="lb-acts"><button class="btn" data-lbdl>Stáhnout</button><button class="icon-btn" data-close aria-label="Zavřít">×</button></span></div><div class="lb"><img id="lb-img" alt="">${cap?`<p>${esc(cap)}</p>`:''}</div>`,'lbm'); $('#lb-img',mm).src=src; $('[data-lbdl]',mm).addEventListener('click',()=>downloadImage(dlId,dlName)); return; }
-    if(v==='cap'){ const {x}=imgSel; x.b.capOn=true; savePage(x.pg); hideImgSel(); rerenderBlocks(); const c=$(`#blocks .blk[data-id="${x.b.id}"] .cap`); focusEl(c,'end'); return; }
-    if(v==='del'&&!LOCK){
-      if(kind==='block'){ deleteSelected(true); return; }
-      const host=imgSel.host; imgSel.img.remove(); hideImgSel(); host.dispatchEvent(new Event('input',{bubbles:true}));
-    }
-  });
-  markTools(pop);
+  const it=(v,ic,t)=>`<button class="pop-item" data-v="${v}"><span class="pi-ic">${ic}</span>${t}</button>`;
+  /* jednoduchý režim: obrázky jsou pod sebou přes celou šířku, rozvržení jen v plném editoru */
+  const lay=simpleUi()?'':`<div class="bm-row lay-row">${keys.map(k=>`<button class="bm-ic lay-b" data-v="lay:${k}" title="${LAY[k][2]}" aria-label="${LAY[k][2]}"><svg viewBox="0 0 28 20" aria-hidden="true">${LAY_IC[k]}</svg></button>`).join('')}</div><div class="pop-sep"></div>`;
+  const b=kind==='block'&&x?x.b:null;
+  return lay+(isDraw&&!LOCK?it('draw',IC.edit,'Upravit kresbu'):'')
+    +(b&&!LOCK?it('cap',IC.caption,b.caption||b.capOn?'Upravit popisek':'Přidat popisek'):'')
+    +(simpleUi()||LOCK?'':it('sz:1',IC.wide,'Celá šířka'))
+    +it('open',IC.resize,'Zvětšit')+it('dl',IC.download,'Stáhnout');
+}
+function markImgMenu(img,p){ if(!imgSel||imgSel.img!==img) selectImage(img,'hold'); markTools(p); }
+/* akce z nabídky; vrací true, když má nabídka zůstat otevřená */
+function imgMenuAct(img,v,p){
+  if(!imgSel||imgSel.img!==img) selectImage(img,'hold');
+  if(!imgSel) return;
+  const kind=imgSel.kind, inCell=kind==='inline'&&!!imgSel.img.closest('td');
+  if(v==='draw'){ const im=imgSel.img; hideImgSel(); setTimeout(()=>editDrawing(im),0); return; }
+  if(v.startsWith('lay:')){
+    const k=v.slice(4), [al,nw]=LAY[k];
+    if(kind==='inline'&&!inCell&&k!=='in'){ inlineToBlock(al,!!nw); return; }
+    if(k==='in'){ applyImgAlign('inline',false); markTools(p); return true; }
+    applyImgAlign(al,!!nw);
+    if(kind==='block'&&isFloat()){ const cw=imgContainerW(); if((+imgSel.x.b.w||480)>cw*FLOAT_MAX) applyImgWidth(cw*.5,true); }
+    markTools(p); return true;
+  }
+  if(v.startsWith('sz:')){
+    const f=parseFloat(v.slice(3));
+    if(kind==='block'&&isFloat()&&f>FLOAT_MAX) applyImgAlign(imgAlign(),true);   /* velký obrázek: obtékání se vypne, zůstane na své straně */
+    applyImgWidth(imgContainerW()*f,true); markTools(p); return true;
+  }
+  if(v==='dl'){ const [id,name]=imgIdName(imgSel); downloadImage(id,name); return true; }
+  if(v==='open'){ const src=imgSel.img.src; const cap=kind==='block'?imgSel.x.b.caption:''; const [dlId,dlName]=imgIdName(imgSel); hideImgSel(); const mm=openModal('',`<div class="m-head"><span></span><span class="lb-acts"><button class="btn" data-lbdl>Stáhnout</button><button class="icon-btn" data-close aria-label="Zavřít">${IC.x}</button></span></div><div class="lb"><img id="lb-img" alt="">${cap?`<p>${esc(cap)}</p>`:''}</div>`,'lbm'); $('#lb-img',mm).src=src; $('[data-lbdl]',mm).addEventListener('click',()=>downloadImage(dlId,dlName)); return; }
+  if(v==='cap'){ const {x}=imgSel; x.b.capOn=true; savePage(x.pg); hideImgSel(); rerenderBlocks(); const c=$(`#blocks .blk[data-id="${x.b.id}"] .cap`); focusEl(c,'end'); return; }
+  if(v==='del'&&!LOCK){
+    if(kind==='block'){ deleteSelected(true); return; }
+    const host=imgSel.host; imgSel.img.remove(); hideImgSel(); host.dispatchEvent(new Event('input',{bubbles:true}));
+  }
+}
+/* obrázek v textu nebo v buňce: nabídka u obrázku (blokový obrázek ji má v ⋮⋮) */
+function openImgTools(){
+  const img=imgSel.img;
+  if(imgSel.kind==='block'){ const pg=imgSel.x.pg, b=imgSel.x.b; openBlockMenu(img,pg,b); return; }
+  const h=imgMenuHtml(img)+(LOCK?'':`<div class="pop-sep"></div><button class="pop-item danger" data-v="del"><span class="pi-ic">${IC.trash}</span>Odstranit</button>`);
+  const pop=openPop(img,h,(v,btn,p)=>imgMenuAct(img,v,p));
+  pop.classList.add('bm-pop'); markTools(pop);
 }
 
 /* posluchače a nastavení při startu (volá main.js ve stejném pořadí jako dřív) */
@@ -305,4 +322,4 @@ function placeGut(blk){
   else if(blk.classList.contains('bfl')){ blk.style.removeProperty('--gx'); blk.classList.remove('bfl'); }
 }
 
-export { applyRatio, handleImageFiles, hideImgSel, imgSel, lineAround, navFrom, noteRatio, pickImageBlock, pickImageInline, placeFrame, rangeFromPoint, selectImage };
+export { applyRatio, handleImageFiles, hideImgSel, imgMenuAct, imgMenuHtml, imgSel, lineAround, markImgMenu, navFrom, noteRatio, pickImageBlock, pickImageInline, placeFrame, rangeFromPoint, selectImage };

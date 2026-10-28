@@ -1,7 +1,8 @@
 /* Úkolníček – Úkoly: sběr ze všech stránek, přehled po projektech, skrývání projektů */
-import { $, esc, ICONS, lsGet, lsSet, plain } from '../core.js';
+import { $, esc, IC, ICONS, lsGet, lsSet, plain } from '../core.js';
 import { S } from '../state.js';
 import { modeBtn } from '../theme.js';
+import { applyLock } from '../lock.js';
 import { DATA_REV, savePage, saveSettings } from '../store.js';
 import { dueChip, parseDue } from '../dates.js';
 import { flatPages, isArchived, pIcon, pTitle } from '../pages.js';
@@ -68,15 +69,12 @@ const DUE='_due';
 const tFold=()=>new Set(lsGet('uk-tfold',[]));
 function toggleFold(id){ const f=tFold(); if(f.has(id)) f.delete(id); else f.add(id); lsSet('uk-tfold',[...f]); renderMain(); }
 const dotOf=t=>{ const su=t.subj&&S.subjects[t.subj]; return su?(su.color||'purple'):(t.root.color||'gray'); };
-/* ukazatel „x / y hotovo“ je zatím vypnutý (rušil), kód zůstává pro případný návrat v jiné podobě */
-const SHOW_PROG=false;
-const tkProg=(done,n)=>!SHOW_PROG?'':`<span class="ix-prog tk-prog"><i style="width:${n?Math.round(done/n*100):0}%"></i><span>${done} / ${n} hotovo</span></span>`;
 function tkRow(t,showPage){
   return `<div class="tk-row ${t.done?'done':''}"><button class="mk check ${t.done?'on':''}" data-act="task-check" data-k="${esc(t.key)}" role="checkbox" aria-checked="${t.done}" aria-label="Hotovo"></button>
     <div class="tk-body"><div class="task-t">${sanitize(t.html)||'<span class="muted">Bez textu</span>'}</div>${showPage?`<button class="tk-path" data-act="goto-task" data-k="${esc(t.key)}"><span class="ti-dot hl-${esc(dotOf(t))}"></span><span class="tp-t">${esc(taskPath(t))}${t.inTable?' · v tabulce':''}</span></button>`:''}</div>
     ${t.due?dueChip(t.due,t.done):''}</div>`;
 }
-const tkActs=(id,label)=>`<span class="tk-acts"><button class="tk-ib" data-act="t-hide" data-id="${id}" title="Skrýt v Úkolech" aria-label="Skrýt ${esc(label)} v Úkolech">${ICONS.eyeOff}</button><button class="tk-ib tk-more" data-act="t-more" data-id="${id}" aria-haspopup="true" aria-label="Další volby">⋯</button></span>`;
+const tkActs=(id,label)=>`<span class="tk-acts"><button class="tk-ib" data-act="t-hide" data-id="${id}" title="Skrýt v Úkolech" aria-label="Skrýt ${esc(label)} v Úkolech">${ICONS.eyeOff}</button><button class="tk-ib tk-more" data-act="t-more" data-id="${id}" aria-haspopup="true" aria-label="Další volby">${IC.more}</button></span>`;
 /* úkol odškrtnutý v Nesplněných zůstane přeškrtnutý vidět, dokud z Úkolů neodejdeš (omylem odškrtnutý jde hned vrátit) */
 const kept=new Set(); let keptFor=null;
 function renderTasks(){
@@ -114,14 +112,14 @@ function renderTasks(){
   };
   const projHtml=P=>{ const r=P.root, f=fold.has(r.id);
     return `<section class="tk-proj ${f?'folded':''}">
-      <div class="tk-h"><button class="tk-pt" data-act="open" data-id="${r.id}">${r.icon?`<span class="tk-pic">${esc(r.icon)}</span>`:''}<span>${esc(pTitle(r))}</span></button>${tkProg(P.done,P.n)}${tkActs(r.id,pTitle(r))}</div>
+      <div class="tk-h"><button class="tk-pt" data-act="open" data-id="${r.id}">${r.icon?`<span class="tk-pic">${esc(r.icon)}</span>`:''}<span>${esc(pTitle(r))}</span></button>${tkActs(r.id,pTitle(r))}</div>
       ${f?'':P.groups.map(g=>grpHtml(g,r)).join('')}</section>`;
   };
   const shownProjs=projs.filter(P=>P.shown);
   let empty='';
   if(!dated.length&&!shownProjs.length){
-    if(!every.length||(!all.length&&!hiddenRoots.length)) empty=`Úkol přidáš na libovolné stránce: napiš <b>[]</b> a mezeru, nebo <b>/úkol</b>. Když do textu dáš datum jako <span class="mono">5.10.</span>, objeví se tu s termínem.`;
-    else if(!all.length) empty=`Všechny projekty s úkoly jsou tady skryté. <button class="linkbtn" data-act="t-showall">Zobrazit všechny</button>`;
+    if(!every.length||(!all.length&&!hiddenRoots.length)) empty=`Zatím žádné úkoly.`;
+    else if(!all.length) empty=`Všechny projekty jsou skryté. <button class="linkbtn" data-act="t-showall">Zobrazit všechny</button>`;
     else empty=`Všechno hotovo.`;
   }
   const tile=(l,v,extra,cls)=>`<div class="tk-tile"><div class="tk-tl">${l}</div><div class="tk-tv ${cls||''}">${v}${extra?`<small>${extra}</small>`:''}</div></div>`;
@@ -129,15 +127,16 @@ function renderTasks(){
   $('#view').innerHTML=`<div class="view tk-view">
     <div class="v-head"><div><h1 class="v-title">Úkoly</h1></div>
       <div class="filters"><button class="${S.taskFilter==='open'?'on':''}" data-act="tfilter" data-v="open">Nesplněné (${openN})</button><button class="${S.taskFilter==='all'?'on':''}" data-act="tfilter" data-v="all">Vše (${all.length})</button>
-        <button class="t-projbtn ${hiddenNames.length?'has':''}" data-act="t-projs" aria-haspopup="true">${ICONS.eyeOff}Projekty${hiddenNames.length?` (${hiddenNames.length})`:''}</button><span class="dash-sep" aria-hidden="true"></span>${modeBtn()}</div></div>
+        <button class="t-projbtn ${hiddenNames.length?'has':''}" data-act="t-projs" aria-haspopup="true">${ICONS.eyeOff}Projekty${hiddenNames.length?` (${hiddenNames.length})`:''}</button><span class="dash-sep" aria-hidden="true"></span><button class="icon-btn lock-btn" data-act="lock"></button>${modeBtn()}</div></div>
     <div class="sheet tk-sheet">
     ${all.length?`<div class="tk-sum">${tile('Po termínu',lateN,'',lateN?'late':'')}${tile('Příštích 7 dní',weekN)}${tile('Nesplněné',openN,` z ${all.length}`)}</div>`:''}
-    ${empty?`<div class="card"><div class="empty" style="padding:18px">${empty}</div></div>`:''}
-    ${dated.length?`<section class="tk-sec ${fD?'folded':''}"><div class="tk-h"><h2>S termínem</h2>${tkProg(datedAll.filter(t=>t.done).length,datedAll.length)}${tkActs(DUE,'S termínem')}</div>${fD?'':`<div class="tk-list">${dated.map(t=>tkRow(t,true)).join('')}</div>`}</section>`:''}
+    ${empty?`<div class="empty">${empty}</div>`:''}
+    ${dated.length?`<section class="tk-sec ${fD?'folded':''}"><div class="tk-h"><h2>S termínem</h2>${tkActs(DUE,'S termínem')}</div>${fD?'':`<div class="tk-list">${dated.map(t=>tkRow(t,true)).join('')}</div>`}</section>`:''}
     ${shownProjs.map(projHtml).join('')}
     </div>
     ${hiddenNames.length&&(dated.length||shownProjs.length)?`<p class="tk-hidnote">Skryté: ${hiddenNames.map(esc).join(', ')} <button class="linkbtn" data-act="t-showall">Zobrazit</button></p>`:''}
   </div>`;
+  applyLock();
 }
 /* ⋯ u sekce: otevřít stránku projektu, sbalit/rozbalit */
 function openTaskMore(anchor){
@@ -152,9 +151,9 @@ function openTaskProjects(anchor){
   const cnt=id=>every.filter(t=>t.root.id===id&&!t.done).length;
   const item=r=>`<button class="pop-item t-pi ${hid.has(r.id)?'':'on'}" data-v="${r.id}" role="menuitemcheckbox" aria-checked="${!hid.has(r.id)}"><span class="t-ck" aria-hidden="true"></span>${pIcon(r)}<span class="nm">${esc(pTitle(r))}</span><span class="n">${cnt(r.id)}</span></button>`;
   const dueN=every.filter(t=>t.due&&!t.done&&!hid.has(t.root.id)).length;
-  const dueItem=`<button class="pop-item t-pi ${hid.has(DUE)?'':'on'}" data-v="${DUE}" role="menuitemcheckbox" aria-checked="${!hid.has(DUE)}"><span class="t-ck" aria-hidden="true"></span><span class="ti-ic">📅</span><span class="nm">S termínem</span><span class="n">${dueN}</span></button><div class="pop-sep"></div>`;
-  const h=`<div class="pop-h">Zobrazit v Úkolech</div>${roots.length?dueItem+roots.map(item).join(''):'<p class="note" style="padding:4px 8px 8px">Zatím žádný projekt nemá úkoly.</p>'}
-    ${roots.length>1?'<div class="pop-sep"></div><button class="pop-item" data-v="*all"><span class="pi-ic">◉</span>Zobrazit všechny</button>':''}`;
+  const dueItem=`<button class="pop-item t-pi ${hid.has(DUE)?'':'on'}" data-v="${DUE}" role="menuitemcheckbox" aria-checked="${!hid.has(DUE)}"><span class="t-ck" aria-hidden="true"></span><span class="ti-ic">${IC.calendar}</span><span class="nm">S termínem</span><span class="n">${dueN}</span></button><div class="pop-sep"></div>`;
+  /* od 4.20.0: „Vše“ vpravo v nadpisu místo řádku Zobrazit všechny */
+  const h=`<div class="pop-h pop-hr"><span>Zobrazit v Úkolech</span>${roots.length>1?'<button class="pop-hl" data-v="*all">Vše</button>':''}</div>${roots.length?dueItem+roots.map(item).join(''):'<p class="note" style="padding:4px 8px 8px">Zatím žádný projekt nemá úkoly.</p>'}`;
   openPop(anchor,h,(v,b,p)=>{
     if(v==='*all'){ S.settings.taskHidden=[]; setTaskHidden('',false); return; }
     const hide=!taskHidden().has(v);

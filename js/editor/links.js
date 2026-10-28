@@ -1,11 +1,11 @@
 /* Úkolníček – Odkazy v textu */
-import { $, $$, esc, norm } from '../core.js';
+import { $, $$, esc, IC, norm } from '../core.js';
 import { S } from '../state.js';
 import { LOCK } from '../lock.js';
 import { flatPages, pIcon, pTitle } from '../pages.js';
 import { normUrl, unwrap, urlLabel } from '../sanitize.js';
 import { go } from '../router.js';
-import { closeModal, openModal, openPop, toast } from '../ui.js';
+import { closeModal, openModal, openPop, placePop, toast } from '../ui.js';
 
 /* ================= odkazy =================
    Webový odkaz: <a class="lnk" href>. Skrytý odkaz na stránku (od 4.8.0): <a class="hlnk" data-hp="ID"> – vypadá jako obyčejný text,
@@ -34,14 +34,14 @@ function openLinkDialog(host,range,fromSel,existing){
       <p class="note">Odkaz nebude vidět. Na stránku přejdeš dvojklikem nebo ⌘ + klikem.</p></div>
     <div class="fld"><label for="lk-name">Text odkazu</label><input id="lk-name" value="${esc(selText)}" placeholder="Jak se má odkaz jmenovat (nepovinné)" autocomplete="off"></div>
     <p class="err" id="lk-err" hidden></p>
-    <div class="m-actions">${existing?'<button type="button" class="btn danger" id="lk-del">Odebrat odkaz</button>':''}<span class="sp"></span><button type="button" class="btn" data-close>Zrušit</button><button type="submit" class="btn pri">${existing?'Uložit':'Vložit'}</button></div>
+    <div class="m-actions">${existing?'<button type="button" class="btn danger" id="lk-del">Odebrat odkaz</button>':''}<span class="sp"></span><button type="button" class="btn" data-close>Zavřít</button><button type="submit" class="btn pri">${existing?'Uložit':'Vložit'}</button></div>
   </form>`);
   const drawList=()=>{
     const q=$('#lk-q',m).value, list=pageList(q,selText);
     const cur=isH&&!q&&S.pages[existing.dataset.hp]; if(cur&&!list.includes(cur)) list.unshift(cur);
     /* předvybraná: při hledání první výsledek, jinak stránka s názvem jako označený text */
     if(!pick||!list.some(p=>p.id===pick)){ const t=list[0]&&norm(pTitle(list[0])), w=norm(selText.trim()); pick=list[0]&&(q.trim()||(w&&(t.includes(w)||w.includes(t))))?list[0].id:null; }
-    $('#lk-list',m).innerHTML=list.length?list.map(p=>{ const c=crumbs(p); return `<button type="button" class="pop-item ${p.id===pick?'act':''}" data-id="${p.id}" role="option" aria-selected="${p.id===pick}"><span class="pi-ic">${pIcon(p)}</span><span>${esc(pTitle(p))}${c?`<small>${esc(c)}</small>`:''}</span></button>`; }).join(''):'<div class="empty">Nic nenalezeno</div>';
+    $('#lk-list',m).innerHTML=list.length?list.map(p=>{ const c=crumbs(p); return `<button type="button" class="pop-item ${p.id===pick?'act':''}" data-id="${p.id}" role="option" aria-selected="${p.id===pick}"><span class="pi-ic">${pIcon(p)}</span><span>${esc(pTitle(p))}${c?`<small>${esc(c)}</small>`:''}</span></button>`; }).join(''):'<div class="empty">Nic nenalezeno.</div>';
   };
   const setMode=v=>{ mode=v; $('.lk-web',m).hidden=v!=='web'; $('.lk-pg',m).hidden=v!=='page'; $$('#lk-tabs button',m).forEach(b=>b.classList.toggle('on',b.dataset.v===v)); $('#lk-err',m).hidden=true;
     if(v==='page'){ drawList(); setTimeout(()=>$('#lk-q',m).focus(),20); } else setTimeout(()=>$('#lk-url',m).focus(),20); };
@@ -64,10 +64,10 @@ function openLinkDialog(host,range,fromSel,existing){
     e.preventDefault();
     const name=$('#lk-name',m).value.trim();
     let href='';
-    if(mode==='web'){ href=normUrl($('#lk-url',m).value); if(!href) return fail('Vlož adresu, třeba https://www.google.com'); }
-    else if(!pick||!S.pages[pick]) return fail('Vyber stránku.');
+    if(mode==='web'){ href=normUrl($('#lk-url',m).value); if(!href) return fail('Chybí adresa, třeba https://www.google.com'); }
+    else if(!pick||!S.pages[pick]) return fail('Chybí stránka.');
     closeModal();
-    if(!document.contains(host)){ toast('Místo pro odkaz mezitím zmizelo, zkus to znovu.'); return; }
+    if(!document.contains(host)){ toast('Místo pro odkaz mezitím zmizelo, stačí to zkusit znovu.'); return; }
     if(existing){
       if(mode==='page'){ existing.dataset.hp=pick; if(name&&name!==existing.textContent) existing.textContent=name; }
       else { existing.setAttribute('href',href); existing.textContent=name||urlLabel(href); }
@@ -101,12 +101,14 @@ function openHiddenLink(a){
 }
 function openLinkPop(a){
   const href=a.getAttribute('href')||'', host=a.closest('.txt');
-  const h=`<div class="lk-pop"><span class="lk-url" title="${esc(href)}">${esc(urlLabel(href))}</span></div><div class="it-row"><button data-v="open">Otevřít ↗</button><button data-v="edit">Upravit</button>${LOCK?'':'<button class="danger" data-v="del">Odebrat</button>'}</div><p class="note" style="padding:2px 8px 4px">Tip: ⌘ + klik odkaz rovnou otevře.</p>`;
-  openPop(a,h,v=>{
+  /* od 4.20.0: jeden řádek – adresa je hlavní akce (Otevřít), Upravit a Odebrat jen jako ikony */
+  const h=`<button class="lk-open" data-v="open" title="${esc(href)}"><span class="lk-url">${esc(urlLabel(href))}</span>${IC.pageLink}</button><span class="lk-sep" aria-hidden="true"></span><button class="lk-b" data-v="edit" title="Upravit odkaz" aria-label="Upravit odkaz">${IC.edit}</button>${LOCK?'':`<button class="lk-b danger" data-v="del" title="Odebrat odkaz" aria-label="Odebrat odkaz">${IC.x}</button>`}`;
+  const p=openPop(a,h,v=>{
     if(v==='open') window.open(href,'_blank','noopener');
     else if(v==='edit') openLinkDialog(host,null,false,a);
     else if(v==='del'){ unwrap(a); host.dispatchEvent(new Event('input',{bubbles:true})); }
   });
+  p.classList.add('lk-one'); placePop(p,a.getBoundingClientRect());
 }
 
 export { openHiddenLink, openLinkDialog, openLinkPop };

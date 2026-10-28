@@ -1,5 +1,5 @@
 /* Úkolníček – Nastavení, motiv a velikost písma, návod a novinky */
-import { $, $$, CALLOUT_IC, COLOR_CZ, COLORS, downloadFile, esc, ICONS, lsGet, lsSet, plural, spellOn } from '../core.js';
+import { $, $$, CALLOUT_IC, COLOR_CZ, COLORS, downloadFile, esc, IC, ICONS, lsGet, lsSet, plural, spellOn } from '../core.js';
 import { calloutDef, defaultSettings, S, setCalloutDef } from '../state.js';
 import { applySkin, fontOf, FONTS, setFont, setSkin, skinOf, SKINS, syncModeBtns, syncThemeColor } from '../theme.js';
 import { LOCK } from '../lock.js';
@@ -20,16 +20,18 @@ import { checkUpdate } from '../update.js';
 import { aiPaneBind } from './aiset.js';
 
 /* ================= settings ================= */
-const APP_VERSION='4.18.0';
+const APP_VERSION='4.20.0';
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
-const FS_STEPS=[1,1.15,1.3,1.45,1.6];
+const FS_STEPS=[1,1.1,1.2,1.3,1.4];
+/* uložená velikost textu přichycená na nejbližší krok (starší kroky 1,15 … 1,6 se převedou) */
+const fsVal=()=>{ const f=+lsGet('uk-fs',1)||1; return FS_STEPS.reduce((a,v)=>Math.abs(v-f)<Math.abs(a-f)?v:a,1); };
 function applyTheme(){
   const t=lsGet('uk-theme','auto'), root=document.documentElement;
   if(t==='light'||t==='dark') root.setAttribute('data-theme',t); else root.removeAttribute('data-theme');
   syncThemeColor(); syncModeBtns();
 }
 function applyFontScale(){
-  const f=+lsGet('uk-fs',1); const v=FS_STEPS.includes(f)?f:1;
+  const v=fsVal();
   if(v===1) document.documentElement.style.removeProperty('--fs'); else document.documentElement.style.setProperty('--fs',v);
   requestAnimationFrame(()=>placeFrame());
 }
@@ -49,7 +51,7 @@ async function openSettings(focus){
   const st=S.settings, cid=DriveSync.clientId(), ds=DriveSync.state();
   let backups=[]; try{ backups=await Local.listBackups(); }catch(_){}
   const tab=focus==='drive'?'sync':(SET_TABS.some(t=>t[0]===S.setTab)?S.setTab:'general');
-  const theme=lsGet('uk-theme','auto'), fs=+lsGet('uk-fs',1), cnt=schoolCounts(), skin=skinOf();
+  const theme=lsGet('uk-theme','auto'), fs=fsVal(), cnt=schoolCounts(), skin=skinOf();
   const seg=(id,opts,cur)=>`<div class="seg" id="${id}">${opts.map(([v,l])=>`<button type="button" class="${String(v)===String(cur)?'on':''}" data-v="${v}">${l}</button>`).join('')}</div>`;
   const m=openModal('Nastavení',`<div class="set">
     <nav class="set-nav" role="tablist">${SET_TABS.map(([k,l,ic])=>`<button type="button" role="tab" data-tab="${k}" class="${k===tab?'on':''}"><span aria-hidden="true">${ic}</span>${l}</button>`).join('')}</nav>
@@ -61,22 +63,22 @@ async function openSettings(focus){
       <label class="chk"><input type="checkbox" id="st-mc" ${st.miniCal?'checked':''}> Mini kalendář pod číslem týdne</label>
       <label class="chk sub"><input type="checkbox" id="st-mcw" ${st.miniCalWeeks!==false?'checked':''} ${st.miniCal?'':'disabled'}> V kalendáři ukazovat čísla týdnů v roce</label>
       <label class="chk"><input type="checkbox" id="st-mm" ${st.mindmap?'checked':''}> Myšlenková mapa</label>
-      <p class="note" style="margin-top:-8px;padding-left:26px">Plátno s bloky a čarami, propojitelné s projekty. Vypnutím se nic nesmaže.</p>
+      <p class="note" style="margin-top:-8px;padding-left:26px">Plátno s bloky a čarami, propojitelné s projekty. Vypnutím se nic neodstraní.</p>
       <h3 class="set-h">Poznámky</h3>
       <label class="chk"><input type="checkbox" id="st-hid" ${st.showHidden!==false?'checked':''}> U sbaleného nadpisu ukazovat, kolik bloků je skrytých</label>
       <label class="chk"><input type="checkbox" id="st-caps" ${lsGet('uk-caps',true)!==false?'checked':''}> Podtrhnout text napsaný se zapnutým Caps Lockem</label>
     </section>
 
     <section class="set-pane" data-pane="look">
-      <div class="fld"><span class="lbl" id="st-skin-l">Barevný motiv</span>
+      <div class="fld"><span class="lbl" id="st-skin-l">Motiv</span>
         <div class="skins" id="st-skin" role="group" aria-labelledby="st-skin-l">${SKINS.map(([id,nm])=>`<button type="button" class="skin ${id===skin?'on':''}" data-v="${id}" aria-pressed="${id===skin}"><span class="skin-sw" data-sk="${id}" aria-hidden="true"><b>Aa</b><i></i><i></i><i></i></span><span class="skin-nm">${nm}</span></button>`).join('')}</div>
       </div>
       <div class="fld"><span class="lbl" id="st-font-l">Písmo</span>
         <div class="fonts" id="st-font" role="group" aria-labelledby="st-font-l">${FONTS.map(([id,nm])=>`<button type="button" class="fnt ${id===fontOf()?'on':''}" data-v="${id}" aria-pressed="${id===fontOf()}"${id==='auto'?'':` data-fnt="${id}"`}>${nm}</button>`).join('')}</div>
         <p class="note">Motiv a písmo se přes Disk přenesou i do ostatních zařízení.</p></div>
-      <div class="fld"><span class="lbl">Světlý nebo tmavý režim</span>${seg('st-theme',[['auto','Podle zařízení'],['light','☀︎ Světlý'],['dark','☾ Tmavý']],theme)}</div>
-      <div class="fld"><span class="lbl">Velikost textu</span>${seg('st-fs',FS_STEPS.map(v=>[v,Math.round(v*100)+' %']),FS_STEPS.includes(fs)?fs:1)}
-        <p class="note">Režim a velikost textu platí jen pro toto zařízení.</p></div>
+      <div class="fld"><span class="lbl">Režim</span>${seg('st-theme',[['auto','Auto'],['light','Světlý'],['dark','Tmavý']],theme)}</div>
+      <div class="fld"><span class="lbl">Velikost textu</span>${seg('st-fs',FS_STEPS.map(v=>[v,Math.round(v*100)+' %']),fs)}
+        <p class="note">Režim Auto se řídí nastavením zařízení. Režim a velikost textu platí jen pro toto zařízení.</p></div>
     </section>
 
     <section class="set-pane" data-pane="format">
@@ -87,13 +89,15 @@ async function openSettings(focus){
         <span class="lbl co-sub">Ikona</span><div class="swatches" id="st-co-ic"><button type="button" class="pop-item co-ib" data-ic="" title="Bez ikony" aria-label="Bez ikony">∅</button>${CALLOUT_IC.map(ic=>`<button type="button" class="pop-item co-ib" data-ic="${ic}">${ic}</button>`).join('')}</div>
         <p class="note">Platí pro nově vložené bloky, stávající se nemění. <a href="#" class="set-news" id="st-co-def" data-co-def>Vrátit výchozí</a></p></div>
       <h3 class="set-h">Psaní</h3>
+      <label class="chk"><input type="checkbox" id="st-tpl" ${S.settings.templates?'checked':''}> Šablony stránek</label>
+      <p class="note" style="margin-top:-8px;padding-left:26px">Vkládají se přes <b>/šablona</b>: předmět, přehled týdnů, obecné informace.</p>
       <label class="chk"><input type="checkbox" id="st-spell" ${spellOn()?'checked':''}> Kontrola pravopisu</label>
       <p class="note" style="margin-top:-8px;padding-left:26px">Podtržení překlepů a návrhy oprav při psaní. Jen pro toto zařízení.</p>
     </section>
 
     <section class="set-pane" data-pane="school">
       <label class="chk"><input type="checkbox" id="st-school" ${isSchool()?'checked':''}> <b>Školní režim</b></label>
-      <p class="note" style="margin-top:-8px;padding-left:26px">Rozvrh, Index předmětů, týden výuky a bloky <b>/předmět</b>. Vypnutím se nic nesmaže, jen schová.</p>
+      <p class="note" style="margin-top:-8px;padding-left:26px">Rozvrh, Index předmětů, týden výuky a bloky <b>/předmět</b>. Vypnutím se nic neodstraní, jen schová.</p>
       <div class="set-school" id="st-school-box" ${isSchool()?'':'hidden'}>
         <label class="chk"><input type="checkbox" id="st-ix" ${S.settings.noIndex===true?'':'checked'}> Zobrazovat Index</label>
         <p class="note" style="margin-top:-8px;padding-left:26px">Předměty s kredity, body a známkami. Bez něj mají hodiny v rozvrhu vlastní názvy a /předmět se nenabízí.</p>
@@ -105,13 +109,13 @@ async function openSettings(focus){
       </div>
       <div class="set-sep lk-hide"></div>
       <div class="fld lk-hide"><span class="lbl">Školní data</span>
-        <div class="m-actions"><button type="button" class="btn danger" id="st-clear" ${cnt.subj+cnt.sem+cnt.ev?'':'disabled'}>Smazat školní data…</button><span class="note">${cnt.subj+cnt.sem+cnt.ev?`${cnt.subj} ${plural(cnt.subj,'předmět','předměty','předmětů')}, ${cnt.sem} ${plural(cnt.sem,'semestr','semestry','semestrů')}, ${hodin(cnt.ev)} v rozvrhu`:'Žádná školní data tu nejsou.'}</span></div>
-        <p class="note">Smaže předměty a semestry v Indexu a hodiny v rozvrhu. Poznámky, úkoly a nastavení zůstanou, bloky /předmět se změní na obyčejné nadpisy.</p></div>
+        <div class="m-actions"><button type="button" class="btn danger" id="st-clear" ${cnt.subj+cnt.sem+cnt.ev?'':'disabled'}>Odstranit školní data…</button><span class="note">${cnt.subj+cnt.sem+cnt.ev?`${cnt.subj} ${plural(cnt.subj,'předmět','předměty','předmětů')}, ${cnt.sem} ${plural(cnt.sem,'semestr','semestry','semestrů')}, ${hodin(cnt.ev)} v rozvrhu`:'Žádná školní data tu nejsou.'}</span></div>
+        <p class="note">Odstraní předměty a semestry v Indexu a hodiny v rozvrhu. Poznámky, úkoly a nastavení zůstanou, bloky /předmět se změní na obyčejné nadpisy.</p></div>
     </section>
 
     <section class="set-pane" data-pane="sync">
       <div class="fld" id="st-drive"><span class="lbl">Připojení</span>
-        <div class="drive-state ${ds==='ok'?'cl-ok':ds==='expired'?'cl-exp':'cl-off'}">${cloudSvg(ds==='off')}<span>${ds==='ok'?`Připojeno. ${META.lastUpload?'Naposledy nahráno '+fmtTime(META.lastUpload)+'.':'Zatím nic nenahráno.'}`:ds==='expired'?'Přihlášení vypršelo. Připoj se znovu.':'Nepřipojeno.'}</span></div>
+        <div class="drive-state ${ds==='ok'?'cl-ok':ds==='expired'?'cl-exp':'cl-off'}">${cloudSvg(ds==='off')}<span>${ds==='ok'?`Připojeno. ${META.lastUpload?'Naposledy nahráno '+fmtTime(META.lastUpload)+'.':'Zatím nic nenahráno.'}`:ds==='expired'?'Přihlášení vypršelo, je potřeba se připojit znovu.':'Nepřipojeno.'}</span></div>
         <label for="st-cid" class="note">OAuth Client ID (typ „Webová aplikace“) z Google Cloud. Ukládá se jen v tomto prohlížeči.</label>
         <input id="st-cid" value="${esc(cid)}" placeholder="123456789-abc….apps.googleusercontent.com" autocomplete="off" spellcheck="false">
         <label for="st-acc" class="note">Účet Google (nepovinné): přihlášení pak nenabízí výběr účtu.</label>
@@ -132,9 +136,9 @@ async function openSettings(focus){
         <p class="note" style="margin-top:-8px;padding-left:26px">Jen s platným přihlášením a když na Disku není novější verze. Jen pro toto zařízení.</p>
         <h3 class="set-h">Stahování z Disku</h3>
         <label class="chk"><input type="checkbox" id="st-auto" ${autoPull()?'checked':''}> Po otevření aplikace stáhnout novější verzi z Disku</label>
-        <p class="note" style="margin-top:-8px;padding-left:26px">Jen když tu nemáš změny, které na Disku nejsou; když se změnilo obojí, zeptá se. Před stažením se uloží místní záloha. Jen pro toto zařízení.</p>
+        <p class="note" style="margin-top:-8px;padding-left:26px">Jen když tu nejsou změny, které na Disku chybí; když se změnilo obojí, zeptá se. Před stažením se uloží místní záloha. Jen pro toto zařízení.</p>
         <label class="chk"><input type="checkbox" id="st-dll" ${lsGet('uk-dl-latest',false)?'checked':''}> Šipka ↓ stáhne rovnou nejnovější verzi (bez výběru z 10)</label>
-        <p class="note" style="margin-top:-8px;padding-left:26px">Starší verzi vybereš v menu mráčku. Jen pro toto zařízení.</p>
+        <p class="note" style="margin-top:-8px;padding-left:26px">Starší verze se vybírá v menu mráčku. Jen pro toto zařízení.</p>
       </div>
     </section>
 
@@ -151,8 +155,8 @@ async function openSettings(focus){
     <section class="set-pane" data-pane="ai" id="st-ai"></section>
 
     <section class="set-pane" data-pane="help">
-      <button type="button" class="guide-link" data-guide="navod"><span class="gl-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H14a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z"/></svg></span><span><b>Návod</b><small>Základní funkce v kostce</small></span><span class="gl-arr" aria-hidden="true">›</span></button>
-      <button type="button" class="guide-link" data-guide="novinky"><span class="gl-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="8.5"/></svg></span><span><b>Novinky</b><small>Co přibylo v posledních verzích</small></span><span class="gl-arr" aria-hidden="true">›</span></button>
+      <button type="button" class="guide-link" data-guide="navod"><span class="gl-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H14a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z"/></svg></span><span><b>Návod</b><small>Základní funkce v kostce</small></span><span class="gl-arr" aria-hidden="true">${IC.chevR}</span></button>
+      <button type="button" class="guide-link" data-guide="novinky"><span class="gl-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="8.5"/></svg></span><span><b>Novinky</b><small>Co přibylo v posledních verzích</small></span><span class="gl-arr" aria-hidden="true">${IC.chevR}</span></button>
     </section>
     <p class="set-foot">Úkolníček ${APP_VERSION} · <a href="#" class="set-news" id="st-news">co je nového</a> · <a href="#" class="set-news" id="st-upd">zkontrolovat aktualizace</a></p>
     </form></div>`,'set-m');
@@ -225,6 +229,7 @@ async function openSettings(focus){
     else { if(b.dataset.c!=null) setCalloutDef('color',b.dataset.c); if(b.dataset.ic!=null) setCalloutDef('icon',b.dataset.ic); }
     saveSettings(); coPaint();
   });
+  $('#st-tpl',m).addEventListener('change',e=>{ if(e.target.checked) S.settings.templates=true; else delete S.settings.templates; saveSettings(); });
   $('#st-spell',m).addEventListener('change',e=>{ if(e.target.checked){ try{ localStorage.removeItem('uk-spell'); }catch(_){} } else lsSet('uk-spell',false); applySpell(); });
   $('#st-caps',m).addEventListener('change',e=>{ lsSet('uk-caps',e.target.checked); if(!e.target.checked) capsOff(); });
   /* doba nečinnosti: uloží se v sekundách, mimo rozsah se srovná na 5 s / 2 h a políčko ukáže skutečnou hodnotu */
@@ -237,7 +242,7 @@ async function openSettings(focus){
   $('#st-upd',m).addEventListener('click',e=>{ e.preventDefault(); checkUpdate(); });
   const conn=$('#st-conn',m); if(conn) conn.addEventListener('click',async()=>{
     saveCid(); DriveSync.setAccount($('#st-acc',m).value);
-    if(!DriveSync.clientId()){ toast('Nejdřív vlož Client ID.'); $('#st-cid',m).focus(); return; }
+    if(!DriveSync.clientId()){ toast('Chybí Client ID.'); $('#st-cid',m).focus(); return; }
     if(await Sync.ensure()){ toast('Připojeno k Google Disku'); closeModal(); await openSettings('drive'); Sync.check('login'); }
   });
   const up=$('#st-up',m); if(up) up.addEventListener('click',()=>{ closeModal(); Sync.upload(); });
@@ -268,7 +273,7 @@ function importFile(f){
       if(d.settings){ S.settings=Object.assign(defaultSettings(),n.settings); applySkin(); }
       HIST.clear(); Store.queue();
       closeModal(); renderSidebar(); renderMain(); const np=Object.keys(n.pages).length, ne=Object.keys(n.events).length; toast(`Importováno: ${np} ${np===1?'stránka':np<5&&np>0?'stránky':'stránek'}, ${ne} ${ne===1?'událost':ne<5&&ne>0?'události':'událostí'}`);
-    }catch(_){ toast('Soubor se nepodařilo načíst. Vyber zálohu exportovanou z Úkolníčku.'); }
+    }catch(_){ toast('Soubor se nepodařilo načíst. Načíst jde jen záloha exportovaná z Úkolníčku.'); }
   };
   rd.readAsText(f);
 }
@@ -276,15 +281,15 @@ function importFile(f){
 /* potvrzení smazání školních dat (před smazáním se uloží místní záloha, v oznámení jde vrátit) */
 function confirmClearSchool(){
   const c=schoolCounts(), parts=[c.subj&&`${c.subj} ${plural(c.subj,'předmět','předměty','předmětů')}`,c.sem&&`${c.sem} ${plural(c.sem,'semestr','semestry','semestrů')}`,c.ev&&`${hodin(c.ev)} v rozvrhu`].filter(Boolean);
-  const m=openModal('Smazat školní data?',`<div class="m-body">
-    <p>Smaže se ${parts.join(', ').replace(/, ([^,]*)$/,' a $1')}.</p>
-    <p class="note">Poznámky, úkoly a nastavení zůstanou.${c.blk?` ${c.blk} ${plural(c.blk,'blok /předmět se změní','bloky /předmět se změní','bloků /předmět se změní')} na obyčejný nadpis H1 s názvem předmětu.`:''} Před smazáním se uloží místní záloha (Nastavení → Zálohy → Místní zálohy).</p>
-    <div class="m-actions"><span class="sp"></span><button type="button" class="btn" id="cs-no">Zrušit</button><button type="button" class="btn pri danger-pri" id="cs-yes">Smazat školní data</button></div></div>`);
+  const m=openModal('Odstranit školní data?',`<div class="m-body">
+    <p>Odstraní se ${parts.join(', ').replace(/, ([^,]*)$/,' a $1')}.</p>
+    <p class="note">Poznámky, úkoly a nastavení zůstanou.${c.blk?` ${c.blk} ${plural(c.blk,'blok /předmět se změní','bloky /předmět se změní','bloků /předmět se změní')} na obyčejný nadpis H1 s názvem předmětu.`:''} Před odstraněním se uloží místní záloha (Nastavení → Zálohy → Místní zálohy).</p>
+    <div class="m-actions"><span class="sp"></span><button type="button" class="btn" id="cs-no">Zavřít</button><button type="button" class="btn pri danger-pri" id="cs-yes">Odstranit školní data</button></div></div>`);
   $('#cs-no',m).addEventListener('click',()=>{ closeModal(); openSettings(); });
   $('#cs-yes',m).addEventListener('click',async()=>{
     closeModal();
     const undo=await clearSchoolData();
-    toast('Školní data smazána. Poznámky zůstaly.','Vrátit',undo);
+    toast('Školní data odstraněna. Poznámky zůstaly.','Vrátit',undo);
   });
 }
 
@@ -300,8 +305,8 @@ async function loadGuide(){
   GUIDE=secs; return secs;
 }
 async function openGuide(tab){
-  const m=openModal('Návod a novinky','<div class="m-body guide"><div class="loading">Načítám…</div></div>','guide-m');
-  let secs; try{ secs=await loadGuide(); }catch(_){ $('.guide',m).innerHTML='<p class="note">Návod se nepodařilo načíst. Zkus to znovu, až budeš online.</p>'; return; }
+  const m=openModal('Návod a novinky','<div class="m-body guide"><div class="loading">Načítání…</div></div>','guide-m');
+  let secs; try{ secs=await loadGuide(); }catch(_){ $('.guide',m).innerHTML='<p class="note">Návod se nepodařilo načíst. Stačí to zkusit znovu po připojení.</p>'; return; }
   if(S.modal!==m.parentElement) return;
   const k0=secs.some(s=>s.k===tab)?tab:secs[0].k;
   $('.guide',m).innerHTML=`<div class="g-tabs" role="tablist">${secs.map(s=>`<button type="button" role="tab" data-k="${esc(s.k)}">${esc(s.title)}</button>`).join('')}</div>${secs.map(s=>`<div class="g-pane" data-k="${esc(s.k)}">${s.html}</div>`).join('')}`;
@@ -322,4 +327,4 @@ export function initSettings(){
   document.addEventListener('focusin',e=>{ const t=e.target; if(spellOn()||!t||!(t.isContentEditable||/^(INPUT|TEXTAREA)$/.test(t.tagName))||t.hasAttribute('autocorrect')) return; t.setAttribute('autocorrect','off'); });
 }
 
-export { APP_VERSION, applyFontScale, applyTheme, exportData, FS_STEPS, importFile, openSettings };
+export { APP_VERSION, applyFontScale, applyTheme, exportData, FS_STEPS, fsVal, importFile, openSettings };

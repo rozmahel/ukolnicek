@@ -1,5 +1,5 @@
 /* Úkolníček – Levý panel: menu, strom projektů, mini kalendář */
-import { $, DAYS, DAYS_FULL, esc, ICONS, lsGet, lsSet } from './core.js';
+import { $, DAYS, DAYS_FULL, esc, IC, ICONS, lsGet, lsSet } from './core.js';
 import { IS_MAC, MONTHS_NOM, S, SEARCH_KEY } from './state.js';
 import { LOCK } from './lock.js';
 import { savePage, updateSaving } from './store.js';
@@ -8,7 +8,7 @@ import { archRoots, createPage, curPage, kids, kidsAll, pIcon, pTitle } from './
 import { isIndex, isSchool } from './school.js';
 import { go } from './router.js';
 import { renderPage } from './editor/render.js';
-import { closePop, openPop } from './ui.js';
+import { closePop, hideTip, openPop, showTip } from './ui.js';
 import { openPageMenu } from './editor/menus.js';
 import { shownTasks } from './views/tasks.js';
 import { updateSyncUI } from './sync/sync.js';
@@ -27,7 +27,7 @@ function toggleSideMini(){
   if(S.pop&&S.pop.classList.contains('side-pop')) closePop();
   renderSidebar();
 }
-const wsTop=mini=>`<div class="ws-top"><button class="icon-btn side-tog" data-act="side-mini" ${mini?`data-tip="Rozbalit panel (${togKey})"`:`title="Schovat panel (${togKey})"`} aria-label="${mini?'Rozbalit':'Schovat'} panel">☰</button><div class="ws-name">${esc(S.settings.name||'Úkolníček')}</div></div>`;
+const wsTop=mini=>`<div class="ws-top"><button class="icon-btn side-tog" data-act="side-mini" ${mini?`data-tip="Rozbalit panel (${togKey})"`:`title="Schovat panel (${togKey})"`} aria-label="${mini?'Rozbalit':'Schovat'} panel">${IC.menu}</button><div class="ws-name">${esc(S.settings.name||'Úkolníček')}</div></div>`;
 function renderSidebar(){
   const side=$('#side'); const wk=weekInfo(new Date());
   const mini=sideMini(); $('#app').classList.toggle('side-mini',mini);
@@ -41,7 +41,7 @@ function renderSidebar(){
     return `<div class="ti ${v.kind==='page'&&v.pageId===p.id?'on':''}" style="--d:${d}">
       <button class="ti-tog ${ch?'':'none'} ${open?'open':''}" data-act="tog" data-id="${p.id}" aria-label="${open?'Sbalit':'Rozbalit'}"></button>
       <button class="ti-main" data-act="open" data-id="${p.id}">${pIcon(p)}<span class="ti-t">${esc(pTitle(p))}</span></button>
-      <span class="ti-acts"><button class="icon-btn" data-act="page-menu" data-id="${p.id}" aria-label="Možnosti" data-popanchor>⋯</button>${arch?'':`<button class="icon-btn" data-act="new-sub" data-id="${p.id}" aria-label="Přidat podstránku">+</button>`}</span>
+      <span class="ti-acts"><button class="icon-btn" data-act="page-menu" data-id="${p.id}" aria-label="Možnosti" data-popanchor>${IC.more}</button>${arch?'':`<button class="icon-btn" data-act="new-sub" data-id="${p.id}" aria-label="Přidat podstránku">${IC.plus}</button>`}</span>
     </div>${ch&&open?tree(p.id,d+1):''}`;
   }).join('');
   const school=isSchool();
@@ -60,7 +60,7 @@ function renderSidebar(){
     <div class="ws">${wsTop(false)}</div>
     <nav class="nav"><button class="nv arch-back" data-act="arch-back">${ICONS.back}<span>Zpět</span></button></nav>
     <div class="sec-h"><span>${ICONS.archive}Archiv</span><span class="sec-n">${roots.length||''}</span></div>
-    <div class="tree arch-tree">${roots.length?tree(null,0,roots):`<div class="tree-empty">Archiv je prázdný.<br>Stránku sem přesuneš v jejím menu ⋯ → Archivovat.</div>`}</div>
+    <div class="tree arch-tree">${roots.length?tree(null,0,roots):`<div class="tree-empty">Archiv je prázdný.</div>`}</div>
     <div class="syncbar" id="sync-box"></div>
     <div class="side-foot"><button class="nv" data-act="settings">${ICONS.settings}<span>Nastavení</span></button><span id="save-state"></span></div>`;
     updateSaving(); updateSyncUI(); return;
@@ -68,7 +68,7 @@ function renderSidebar(){
   const archN=archRoots().length;
   side.innerHTML=`
     <div class="ws">${wsTop(mini)}
-      ${!S.ready||!school?'':wk?`<div class="ws-week"><b>${wk.n}.</b> týden výuky · ${wk.parity}</div>`:`<button class="linkbtn" data-act="settings">Nastav začátek semestru</button>`}
+      ${!S.ready||!school?'':wk?`<div class="ws-week"><b>${wk.n}.</b> týden výuky · ${wk.parity}</div>`:`<button class="linkbtn" data-act="settings">Nastavit začátek semestru</button>`}
       ${S.ready&&S.settings.miniCal?renderMiniCal():''}</div>
     <nav class="nav">
       ${nav('today','Dnes')}
@@ -79,8 +79,8 @@ function renderSidebar(){
       <button class="nv" data-act="arch" data-tip="Archiv">${ICONS.archive}<span>Archiv</span>${archN?`<span class="badge">${archN}</span>`:''}</button>
       <button class="nv" data-act="trash" data-tip="Koš">${TRASH_IC}<span>Koš</span></button>
     </nav>
-    <div class="sec-h"><span>Projekty</span><button class="icon-btn" data-act="new-page" aria-label="Nový projekt">+</button></div>
-    <div class="tree">${mini?miniTree():kids(null).length?tree(null,0):`<div class="tree-empty">Zatím žádné projekty.<br><button class="linkbtn" data-act="new-page">Vytvořit první projekt</button></div>`}</div>
+    <div class="sec-h"><span>Projekty</span><button class="icon-btn" data-act="new-page" aria-label="Nový projekt">${IC.plus}</button></div>
+    <div class="tree">${mini?miniTree():kids(null).length?tree(null,0):`<div class="tree-empty">Zatím žádné projekty. <button class="linkbtn" data-act="new-page">Přidat projekt</button></div>`}</div>
     <div class="syncbar" id="sync-box"></div>
     <div class="side-foot"><button class="nv" data-act="settings" data-tip="Nastavení">${ICONS.settings}<span>Nastavení</span></button><span id="save-state"></span></div>`;
   updateSaving(); updateSyncUI();
@@ -90,40 +90,56 @@ function miniTree(){
   const v=S.view, cur=v.kind==='page'?v.pageId:null;
   return kids(null).map(p=>`<div class="ti ${cur&&isInside(cur,p.id)?'on':''}" style="--d:0"><button class="ti-tog none" tabindex="-1" aria-hidden="true"></button><button class="ti-main" data-act="side-proj" data-id="${p.id}" data-tip="${esc(pTitle(p))}" aria-label="${esc(pTitle(p))}">${pIcon(p)}<span class="ti-t">${esc(pTitle(p))}</span></button></div>`).join('');
 }
-/* bublina vpravo vedle ikonky projektu: název, stromeček stránek (odsazený), dole ＋ Stránka */
+/* bublina vpravo vedle ikonky projektu (po najetí myší): hlavní stránka, pod ní odsazené podstránky.
+   Nová podstránka = malé + u hlavní stránky (jen po najetí na řádek, se zámkem schované). */
 function openProjPop(a){
   const id=a.dataset.id, root=S.pages[id]; if(!root) return;
-  if(S.pop&&S.popAnchor===a){ closePop(); return; }
+  if(S.pop&&S.popAnchor===a) return;
   hideTip();
   const v=S.view, on=pid=>v.kind==='page'&&v.pageId===pid?'act':'';
   /* řádek stránky + ⋯ (stejné menu jako ve stromu: posunout, Otevřít vpravo/vlevo…) */
-  const more=pid=>`<button class="icon-btn sp-more" data-v="m:${pid}" aria-label="Možnosti" title="Možnosti">⋯</button>`;
+  const more=pid=>`<button class="icon-btn sp-more" data-v="m:${pid}" aria-label="Možnosti" title="Možnosti">${IC.more}</button>`;
+  const add=LOCK?'':`<button class="icon-btn sp-more sp-add" data-v="new" aria-label="Nová podstránka" title="Nová podstránka">${IC.plus}</button>`;
   const rows=(pid,d)=>kids(pid).map(p=>`<div class="sp-row"><button class="pop-item sp-it ${on(p.id)}" data-v="p:${p.id}" style="--d:${d}">${pIcon(p)}<span class="sp-t">${esc(pTitle(p))}</span></button>${more(p.id)}</div>`+rows(p.id,d+1)).join('');
-  const h=`<div class="sp-row"><button class="pop-item sp-h ${on(id)}" data-v="p:${id}">${pIcon(root)}<span class="sp-t">${esc(pTitle(root))}</span></button>${more(id)}</div>${rows(id,1)}`
-    +(LOCK?'':`<div class="pop-sep"></div><button class="pop-item sp-new" data-v="new"><span class="pi-ic">＋</span>Stránka</button>`);
+  const h=`<div class="sp-row"><button class="pop-item sp-h ${on(id)}" data-v="p:${id}">${pIcon(root)}<span class="sp-t">${esc(pTitle(root))}</span></button>${add}${more(id)}</div>${rows(id,1)}`;
   const p=openPop(a,h,val=>{
     if(val==='new'){ const np=createPage(id); renderSidebar(); go({kind:'page',pageId:np.id}); setTimeout(()=>$('#page-title')&&$('#page-title').focus(),30); return; }
     if(val.startsWith('m:')){ const pg=S.pages[val.slice(2)], b=p.querySelector(`[data-v="${val}"]`); if(pg&&b) openPageMenu(a,pg,{rect:b.getBoundingClientRect()}); return true; }   /* true: bublinu zavře až nové menu */
     go({kind:'page',pageId:val.slice(2)});
   });
   p.classList.add('side-pop'); p._fol=null;
+  p.addEventListener('mouseenter',popStay); p.addEventListener('mouseleave',popLeave);
   const rc=a.getBoundingClientRect();
   p.style.left=($('#side').getBoundingClientRect().right+8)+'px'; p.style.top=Math.max(8,Math.min(rc.top-6,innerHeight-p.offsetHeight-8))+'px';
 }
+/* klik na ikonku projektu = rovnou hlavní stránka; bez myši (dotyk) první klepnutí ukáže bublinu */
+const HOVER=matchMedia('(hover:hover)');
+function sideProjClick(a){
+  if(!HOVER.matches&&!(S.pop&&S.popAnchor===a)){ openProjPop(a); return; }
+  popStay(); closePop(); go({kind:'page',pageId:a.dataset.id});
+}
+/* otevření po krátkém najetí, zavření s malým zpožděním (aby šlo přejet myší z ikonky do bubliny) */
+let popOpenT=0, popCloseT=0;
+function popStay(){ clearTimeout(popCloseT); }
+function popLeave(){ clearTimeout(popOpenT); clearTimeout(popCloseT);
+  popCloseT=setTimeout(()=>{ if(S.pop&&S.pop.classList.contains('side-pop')) closePop(); },280); }
 /* bublina s názvem u ikonek schovaného panelu */
-const tip=document.createElement('div'); tip.className='side-tip'; tip.hidden=true;
-function hideTip(){ tip.hidden=true; }
 function initSideMini(){
-  const side=$('#side'); document.body.appendChild(tip);
+  const side=$('#side');
   side.addEventListener('mouseover',e=>{
     const el=e.target.closest&&e.target.closest('[data-tip]');
     if(!el||!$('#app').classList.contains('side-mini')){ hideTip(); return; }
-    /* otevřená bublina projektu: najetí na jiný projekt ji přepne */
-    if(S.pop&&S.pop.classList.contains('side-pop')){ hideTip(); if(el.dataset.act==='side-proj'&&S.popAnchor!==el) openProjPop(el); return; }
-    tip.textContent=el.dataset.tip; tip.hidden=false;
-    const rc=el.getBoundingClientRect(); tip.style.left=(rc.right+8)+'px'; tip.style.top=(rc.top+rc.height/2-tip.offsetHeight/2)+'px';
+    if(el.dataset.act==='side-proj'){
+      hideTip(); popStay(); clearTimeout(popOpenT);
+      if(S.popAnchor===el) return;
+      if(S.pop&&S.pop.classList.contains('side-pop')) openProjPop(el);
+      else popOpenT=setTimeout(()=>{ if(el.isConnected&&el.matches(':hover')) openProjPop(el); },120);
+      return;
+    }
+    if(S.pop&&S.pop.classList.contains('side-pop')) popLeave();
+    showTip(el,el.dataset.tip,'right');
   });
-  side.addEventListener('mouseleave',hideTip);
+  side.addEventListener('mouseleave',()=>{ hideTip(); popLeave(); });
   side.addEventListener('click',hideTip);
   side.addEventListener('scroll',hideTip,{passive:true});
   WIDE.addEventListener('change',()=>renderSidebar());
@@ -139,7 +155,7 @@ function renderMiniCal(){
   /* dny s nesplněnými úkoly s termínem (jen úkoly, které jsou vidět v Úkolech) dostanou tenký kroužek */
   const tk=new Map(); shownTasks().forEach(t=>{ if(t.done||!t.due) return; const k=ymd(t.due); tk.set(k,(tk.get(k)||0)+1); });
   let h=`<div class="mc" aria-label="Kalendář">
-    <div class="mc-h"><button class="mc-t ${S.calOffset?'':'cur'}" data-act="mc-now" title="Zpět na tento měsíc">${MONTHS_NOM[mo]} ${y}</button><button class="mc-nav" data-act="mc-prev" aria-label="Předchozí měsíc">‹</button><button class="mc-nav" data-act="mc-next" aria-label="Další měsíc">›</button></div>
+    <div class="mc-h"><button class="mc-t ${S.calOffset?'':'cur'}" data-act="mc-now" title="Zpět na tento měsíc">${MONTHS_NOM[mo]} ${y}</button><button class="mc-nav" data-act="mc-prev" aria-label="Předchozí měsíc">${IC.chevL}</button><button class="mc-nav" data-act="mc-next" aria-label="Další měsíc">${IC.chevR}</button></div>
     <div class="mc-g ${wk?'':'nowk'}">${wk?'<span class="mc-wk mc-dh" title="Kalendářní týden v roce"></span>':''}${DAYS.map((d,i)=>`<span class="mc-dh ${i>4?'we':''}">${d}</span>`).join('')}`;
   for(let w=0;w<weeks;w++){
     const mon=new Date(start); mon.setDate(start.getDate()+w*7);
@@ -211,4 +227,4 @@ function initTreeDrag(){
 function openSide(){ $('#side').classList.add('open'); $('#scrim').classList.add('open'); }
 function closeSide(){ $('#side').classList.remove('open'); $('#scrim').classList.remove('open'); }
 
-export { closeSide, initSideMini, initTreeDrag, openProjPop, openSide, renderSidebar, toggleSideMini };
+export { closeSide, initSideMini, initTreeDrag, openSide, renderSidebar, sideProjClick, toggleSideMini };

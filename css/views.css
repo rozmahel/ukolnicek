@@ -1,147 +1,145 @@
 /* Úkolníček – Pohledy Dnes a Úkoly, společné karty a hlavičky pohledů, hledání */
 
 /* ---------- hledání (⌘K) ---------- */
-.q-in{width:100%;border:0;outline:none;background:transparent;font-size:calc(17px*var(--fs));padding:16px 18px;border-bottom:1px solid var(--line)}
-.q-res{max-height:50vh;overflow:auto;padding:6px}
-.q-item{display:flex;gap:10px;align-items:flex-start;width:100%;padding:8px 10px;border-radius:8px}
+.q-in{width:100%;border:0;outline:none;background:transparent;font-size:calc(17px*var(--fs));padding:var(--sp8) 18px;border-bottom:1px solid var(--line)}
+.q-res{max-height:50vh;overflow:auto;padding:var(--sp3)}
+.q-item{display:flex;gap:var(--sp5);align-items:flex-start;width:100%;padding:var(--sp4) var(--sp5);border-radius:var(--r-md)}
 .q-item.act,.q-item:hover{background:var(--hover)}
-.q-arch{font-style:normal;font-size:calc(11px*var(--fs));color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:0 5px;margin-left:4px;vertical-align:1px}
+.q-arch{font-style:normal;font-size:calc(11px*var(--fs));color:var(--muted);border:1px solid var(--line);border-radius:var(--r-sm);padding:0 5px;margin-left:var(--sp2);vertical-align:1px}
 .q-item small{display:block;color:var(--muted);font-size:calc(12.5px*var(--fs));overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:420px}
 
 /* ---------- hlavičky pohledů, Dnes, karty, úkoly ---------- */
-.view{max-width:1120px;margin:0 auto;padding:44px 40px 80px}
-.v-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:22px}
+.view{max-width:calc(1120px*var(--fs));margin:0 auto;padding:44px var(--sp13) 80px}
+.v-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--sp7);margin-bottom:var(--sp9)}
 .v-title{font:750 2.05rem/1.12 var(--f-display);letter-spacing:-.012em;margin:0}
 /* řádek nad nadpisem pohledu (den, týden výuky): obyčejná věta, ne štítek velkými písmeny */
-.eyebrow{font-size:calc(14px*var(--fs));font-weight:500;color:var(--muted);margin-bottom:2px}
-.v-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:3px 10px;font-size:calc(13px*var(--fs));color:var(--fg2);background:var(--panel)}
-.pill b{font-weight:600;font-variant-numeric:tabular-nums;color:var(--accent)}
-.navbtn{width:32px;height:32px;border-radius:7px;border:1px solid var(--line);display:grid;place-items:center;background:var(--panel)}
+.eyebrow{font-size:calc(14px*var(--fs));font-weight:500;color:var(--muted);margin-bottom:var(--sp1)}
+.v-tools{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp4)}
+.navbtn{width:32px;height:32px;border-radius:var(--r);border:1px solid var(--line);display:grid;place-items:center;background:var(--panel)}
 .navbtn:hover{border-color:var(--faint)}
 .wk-label{font-weight:600;font-size:calc(14.5px*var(--fs));min-width:0}
 .wk-label span{font-variant-numeric:tabular-nums;white-space:nowrap}
-.cards{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px;align-items:start}
-.card{border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden}
-.card-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px 10px}
+.cards{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:var(--sp8);align-items:start}
+.card{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--panel);overflow:hidden}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:var(--sp5);padding:var(--sp6) var(--sp8) var(--sp5)}
 .card-h h2{font:700 1.05rem/1.3 var(--f-display);margin:0}
-.card-body{padding:0 0 4px}
-.empty{padding:6px 16px 16px;color:var(--muted);font-size:calc(14px*var(--fs))}
-.subj{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;padding:9px 16px;text-align:left}
+.card-body{padding:0 0 var(--sp2)}
+.empty{padding:var(--sp3) var(--sp8) var(--sp8);color:var(--muted);font-size:calc(14px*var(--fs))}
+.pop .empty{padding:var(--sp4) var(--sp5)}
+.subj{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:var(--sp5);align-items:center;width:100%;padding:var(--sp4) var(--sp8);text-align:left}
 .subj:hover{background:var(--hover)}
-.subj .bar{grid-column:2/4;height:5px;border-radius:3px;background:var(--hover);overflow:hidden;margin-top:-4px}
+.subj .bar{grid-column:2/4;height:5px;border-radius:var(--r-sm);background:var(--hover);overflow:hidden;margin-top:-4px}
 .subj .bar i{display:block;height:100%;background:var(--c-fg)}
 .subj .n{font-size:calc(12.5px*var(--fs));font-variant-numeric:tabular-nums;color:var(--muted)}
 .subj .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
-.task{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:8px;align-items:start;padding:8px 16px;border-bottom:1px solid var(--line)}
+.task{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:var(--sp4);align-items:start;padding:var(--sp4) var(--sp8);border-bottom:1px solid var(--line)}
 .task:last-child{border-bottom:0}
 .task .check{margin-top:1px}
 .task-t{word-break:break-word}
 .task.done .task-t{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--faint)}
-.task-pg{display:inline-flex;gap:5px;align-items:center;font-size:calc(12.5px*var(--fs));color:var(--muted);border-radius:5px;padding:0 4px;margin-left:-4px;margin-top:1px}
+.task-pg{display:inline-flex;gap:var(--sp3);align-items:center;font-size:calc(12.5px*var(--fs));color:var(--muted);border-radius:var(--r-sm);padding:0 var(--sp2);margin-left:-4px;margin-top:1px}
 .task-pg:hover{background:var(--hover);color:var(--fg)}
-.chip{font:600 calc(12.5px*var(--fs))/1.5 var(--f-body);font-variant-numeric:tabular-nums;padding:1px 8px;border-radius:6px;background:var(--hover);color:var(--fg2);white-space:nowrap;margin-top:2px}
+.chip{font:600 calc(12.5px*var(--fs))/1.5 var(--f-body);font-variant-numeric:tabular-nums;padding:1px var(--sp4);border-radius:var(--r);background:var(--hover);color:var(--fg2);white-space:nowrap;margin-top:var(--sp1)}
 .chip.soon{background:var(--hl-orange-bg);color:var(--hl-orange-fg)}
 .chip.late{background:var(--hl-red-bg);color:var(--hl-red-fg)}
 .chip.today{background:var(--accent);color:var(--on-accent)}
-.filters{display:flex;gap:6px}
-.filters button{border:1px solid var(--line);border-radius:7px;padding:4px 12px;font-size:calc(13.5px*var(--fs));background:var(--panel)}
+.filters{display:flex;gap:var(--sp3)}
+.filters button{border:1px solid var(--line);border-radius:var(--r);padding:var(--sp2) var(--sp6);font-size:calc(13.5px*var(--fs));background:var(--panel)}
 .filters button.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
-.loading{padding:80px 20px;text-align:center;color:var(--muted)}
-.welcome{max-width:480px;margin:6vh 0 0;display:grid;gap:10px;justify-items:start}
+.loading{padding:80px var(--sp9);text-align:center;color:var(--muted)}
+.welcome{max-width:480px;margin:6vh 0 0;display:grid;gap:var(--sp5);justify-items:start}
 .welcome h1{font:700 1.6rem/1.2 var(--f-display);margin:0}
 .welcome p{margin:0}
+.welcome .empty{padding:0}
+.welcome .btn{display:inline-flex;align-items:center;gap:var(--sp3)}
 
 /* ---------- Úkoly: souhrn, sekce, projekty (barvy z motivu) ---------- */
 .task-pg{max-width:100%}
 .tp-ic:empty{display:none}
 .tp-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .filters{flex-wrap:wrap}
-.filters .t-projbtn{display:inline-flex;align-items:center;gap:6px;color:var(--fg2)}
+.filters .t-projbtn{display:inline-flex;align-items:center;gap:var(--sp3);color:var(--fg2)}
 .filters .t-projbtn.has{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
-.t-pi .t-ck{width:16px;height:16px;flex:none;border-radius:4px;border:1.5px solid var(--faint);display:grid;place-items:center}
+.t-pi .t-ck{width:16px;height:16px;flex:none;border-radius:var(--r-sm);border:1.5px solid var(--faint);display:grid;place-items:center}
 .t-pi.on .t-ck{background:var(--accent);border-color:var(--accent)}
 .t-pi.on .t-ck::after{content:"";width:8px;height:4px;margin-top:-2px;border:2px solid var(--on-accent);border-top:0;border-right:0;transform:rotate(-45deg)}
 .t-pi .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
 .t-pi:not(.on) .nm{color:var(--muted)}
 .t-pi .n{font-size:calc(12.5px*var(--fs));font-variant-numeric:tabular-nums;color:var(--muted)}
-.t-projbtn svg{width:15px;height:15px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.filters button{min-height:34px;padding:4px 13px}
-.tk-view{max-width:1000px}
-.tk-view .v-head{margin-bottom:20px}
+.t-projbtn svg{width:15px;height:15px;flex:none;stroke:currentColor;fill:none;stroke-width:var(--ic-w);stroke-linecap:round;stroke-linejoin:round}
+.filters button{min-height:34px;padding:var(--sp2) 13px}
+.tk-view{max-width:calc(1000px*var(--fs))}
+.tk-view .v-head{margin-bottom:var(--sp9)}
 /* souhrn: jeden pruh rozdělený čarami (ne tři samostatné karty) */
-.tk-sum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:30px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
-.tk-tile{padding:11px 16px 10px;min-width:0}
+.tk-sum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:var(--sp12);border:1px solid var(--line);border-radius:var(--r-lg);background:var(--panel)}
+.tk-tile{padding:var(--sp6) var(--sp8) var(--sp5);min-width:0}
 .tk-tile+.tk-tile{border-left:1px solid var(--line)}
 .tk-tl{font-size:calc(13px*var(--fs));font-weight:500;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tk-tv{font:700 calc(26px*var(--fs))/1.2 var(--f-display);color:var(--fg);font-variant-numeric:tabular-nums;margin-top:2px}
+.tk-tv{font:700 calc(26px*var(--fs))/1.2 var(--f-display);color:var(--fg);font-variant-numeric:tabular-nums;margin-top:var(--sp1)}
 .tk-tv.late{color:var(--hl-red-fg)}
 .tk-tv small{font-size:.6em;font-weight:600;color:var(--muted)}
-.tk-h{display:flex;align-items:center;gap:12px;min-width:0;margin-bottom:12px}
+.tk-h{display:flex;align-items:center;gap:var(--sp6);min-width:0;margin-bottom:var(--sp6)}
 .tk-h h2,.tk-pt{font:700 calc(19.5px*var(--fs))/1.3 var(--f-display);margin:0;color:var(--fg)}
-.tk-pt{display:flex;align-items:center;gap:8px;min-width:0;border-radius:7px;padding:2px 6px;margin-left:-6px;text-align:left}
+.tk-pt{display:flex;align-items:center;gap:var(--sp4);min-width:0;border-radius:var(--r);padding:var(--sp1) var(--sp3);margin-left:-6px;text-align:left}
 .tk-pt>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tk-pt:hover{background:var(--hover)}
-.ix-prog.tk-prog{flex:none;height:24px;min-width:124px;justify-content:center;padding:0 12px;border-radius:6px;font-weight:500;color:var(--fg2)}
-.tk-acts{margin-left:auto;display:flex;align-items:center;gap:2px;flex:none}
-.tk-ib{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;color:var(--muted);font-size:calc(19px*var(--fs));line-height:1}
+.tk-acts{margin-left:auto;display:flex;align-items:center;gap:var(--sp1);flex:none}
+.tk-ib{width:30px;height:30px;border-radius:var(--r);display:grid;place-items:center;color:var(--muted);font-size:calc(19px*var(--fs));line-height:1}
 .tk-ib:hover{background:var(--hover);color:var(--fg)}
-.tk-ib svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.tk-sec{margin-bottom:26px}
-.tk-list{display:grid;gap:8px}
-.tk-row{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 14px;border-radius:8px;background:color-mix(in srgb,var(--panel) 62%,var(--hover));border:1px solid color-mix(in srgb,var(--line) 78%,var(--faint))}
-.tk-sec .tk-row{padding-block:9px;min-height:56px}
+.tk-ib svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:var(--ic-w);stroke-linecap:round;stroke-linejoin:round}
+.tk-sec{margin-bottom:var(--sp10)}
+.tk-list{display:grid;gap:var(--sp4)}
+.tk-row{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:var(--sp5);align-items:center;padding:var(--sp4) var(--sp7);border-radius:var(--r-md);background:color-mix(in srgb,var(--panel) 62%,var(--hover));border:1px solid color-mix(in srgb,var(--line) 78%,var(--faint))}
+.tk-sec .tk-row{padding-block:var(--sp4);min-height:56px}
 .tk-row .task-t{font-weight:500;word-break:break-word;line-height:1.4}
 .tk-row.done .task-t{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--faint)}
 .tk-row .chip{margin:0}
-.tk-path{display:flex;align-items:center;gap:7px;max-width:100%;font-size:calc(12.5px*var(--fs));color:var(--muted);border-radius:5px;padding:0 4px;margin:1px 0 0 -4px;text-align:left}
+.tk-path{display:flex;align-items:center;gap:var(--sp3);max-width:100%;font-size:calc(12.5px*var(--fs));color:var(--muted);border-radius:var(--r-sm);padding:0 var(--sp2);margin:1px 0 0 -4px;text-align:left}
 .tk-path:hover{background:var(--hover);color:var(--fg)}
 .tk-path .ti-dot{flex:none}
-.tk-proj{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 18px 18px;margin-bottom:26px}
+.tk-proj{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);padding:var(--sp8) 18px var(--sp8);margin-bottom:var(--sp10)}
 .tk-proj.folded .tk-h,.tk-sec.folded .tk-h{margin-bottom:0}
-.tk-grp{position:relative;padding-left:16px;margin-top:20px}
-.tk-h+.tk-grp{margin-top:6px}
-.tk-grp::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:2px;background:var(--c-fg)}
-.tk-gh{display:flex;align-items:baseline;gap:4px 10px;margin-bottom:8px;min-width:0}
-.tk-gt{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;min-width:0;border-radius:5px;padding:0 4px;margin-left:-4px;text-align:left}
+.tk-grp{position:relative;padding-left:var(--sp8);margin-top:var(--sp9)}
+.tk-h+.tk-grp{margin-top:var(--sp3)}
+.tk-grp::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:var(--r-xs);background:var(--c-fg)}
+.tk-gh{display:flex;align-items:baseline;gap:var(--sp2) var(--sp5);margin-bottom:var(--sp4);min-width:0}
+.tk-gt{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 var(--sp4);min-width:0;border-radius:var(--r-sm);padding:0 var(--sp2);margin-left:-4px;text-align:left}
 .tk-gt:hover,.tk-gpg:hover{background:color-mix(in srgb,var(--c-fg) 10%,transparent)}
 .tk-code{font:700 calc(16.5px*var(--fs))/1.35 var(--f-display);color:var(--c-fg)}
 .tk-nm{font-weight:600;color:var(--fg)}
-.tk-gpg{flex:none;font-size:calc(12.5px*var(--fs));color:var(--muted);border-radius:5px;padding:0 4px}
+.tk-gpg{flex:none;font-size:calc(12.5px*var(--fs));color:var(--muted);border-radius:var(--r-sm);padding:0 var(--sp2)}
 .tk-cnt{flex:none;margin-left:auto;font-size:calc(13px*var(--fs));font-variant-numeric:tabular-nums;color:var(--muted)}
-.tk-hidnote{margin:4px 0 0;font-size:calc(13px*var(--fs));color:var(--muted)}
-.tk-hidnote .linkbtn{margin-left:6px;color:var(--accent);text-decoration:underline}
+.tk-hidnote{margin:var(--sp2) 0 0;font-size:calc(13px*var(--fs));color:var(--muted)}
+.tk-hidnote .linkbtn{margin-left:var(--sp3);color:var(--accent);text-decoration:underline}
 @media (max-width:600px){
-  .tk-sum{margin-bottom:24px}
-  .tk-tile{padding:9px 11px 8px}
+  .tk-sum{margin-bottom:var(--sp10)}
+  .tk-tile{padding:var(--sp4) 11px var(--sp4)}
   .tk-tl{font-size:calc(12px*var(--fs))}
   .tk-tv{font-size:calc(21px*var(--fs))}
-  .tk-proj{padding:14px 12px}
-  .tk-grp{padding-left:12px}
-  .tk-row{grid-template-columns:24px minmax(0,1fr);padding-inline:10px}
+  .tk-proj{padding:var(--sp7) var(--sp6)}
+  .tk-grp{padding-left:var(--sp6)}
+  .tk-row{grid-template-columns:24px minmax(0,1fr);padding-inline:var(--sp5)}
   .tk-row .chip{grid-column:2;justify-self:start;margin-top:-4px}
-  .ix-prog.tk-prog{min-width:0}
 }
-.ix-prog.tk-prog i{min-width:0}
 
 /* ================= vzhled „stránka“ (4.10.0) pro Index, Rozvrh a Úkoly – stejný jazyk jako Dnes =================
    Bez krabic a stínů: obsah dělí tenké čáry. Barvy jen z motivu: inkoust (--fg) a červená (--now) pro teď, dnešek a po termínu.
    Barva předmětu je malý čtvereček. Jedno hlavní tlačítko (inkoust), ostatní obrysová nebo jen text, rohy 6 px. */
 .ix-view,.tk-view,.sch-view{--rule:color-mix(in srgb,var(--fg) 20%,var(--bg));--now:var(--danger);--accent:var(--fg);--accent-soft:var(--hover);--on-accent:var(--bg)}
 :is(.ix-view,.tk-view,.sch-view) .v-title{font-weight:650;letter-spacing:-.015em}
-:is(.ix-view,.tk-view,.sch-view) .btn{border:1px solid var(--rule);border-radius:6px;background:var(--panel);padding:6px 12px;font-size:calc(13.5px*var(--fs));font-weight:500;color:var(--fg);box-shadow:none}
+:is(.ix-view,.tk-view,.sch-view) .btn{border:1px solid var(--rule);border-radius:var(--r);background:var(--panel);padding:var(--sp3) var(--sp6);font-size:calc(13.5px*var(--fs));font-weight:500;color:var(--fg);box-shadow:none}
 :is(.ix-view,.tk-view,.sch-view) .btn:hover{border-color:var(--fg2)}
 :is(.ix-view,.tk-view,.sch-view) .btn.pri{background:var(--fg);border-color:var(--fg);color:var(--bg)}
-:is(.ix-view,.tk-view,.sch-view) .v-tools{gap:4px}
-:is(.ix-view,.tk-view,.sch-view) .v-tools .lock-btn,:is(.ix-view,.tk-view,.sch-view) .v-tools .mode-btn,.tk-view .filters .mode-btn,:is(.ix-view,.tk-view,.sch-view) .v-tools .ix-cfg{border-color:transparent;background:none;width:32px;height:32px;min-height:32px;border-radius:6px;color:var(--fg2)}
+:is(.ix-view,.tk-view,.sch-view) .v-tools{gap:var(--sp2)}
+:is(.ix-view,.tk-view,.sch-view) .v-tools .lock-btn,:is(.ix-view,.tk-view,.sch-view) .v-tools .mode-btn,.tk-view .filters .mode-btn,:is(.ix-view,.tk-view,.sch-view) .v-tools .ix-cfg{border-color:transparent;background:none;width:32px;height:32px;min-height:32px;border-radius:var(--r);color:var(--fg2)}
 :is(.ix-view,.tk-view,.sch-view) .v-tools .lock-btn:hover,:is(.ix-view,.tk-view,.sch-view) .v-tools .mode-btn:hover,.tk-view .filters .mode-btn:hover,:is(.ix-view,.tk-view,.sch-view) .v-tools .lock-btn.on,:is(.ix-view,.tk-view,.sch-view) .v-tools .ix-cfg:hover{background:var(--hover);color:var(--fg);border-color:transparent}
-:is(.ix-view,.tk-view,.sch-view) .navbtn{width:28px;height:28px;border:0;background:none;border-radius:6px;color:var(--fg2);font-size:calc(17px*var(--fs))}
+:is(.ix-view,.tk-view,.sch-view) .navbtn{width:28px;height:28px;border:0;background:none;border-radius:var(--r);color:var(--fg2);font-size:calc(17px*var(--fs))}
 :is(.ix-view,.tk-view,.sch-view) .navbtn:hover{background:var(--hover);color:var(--fg)}
-.sch-view .dash-sep,.tk-view .dash-sep{width:1px;height:20px;background:var(--rule);margin:0 6px}
-:is(.ix-view,.tk-view,.sch-view) .check::before{width:14px;height:14px;border:1.3px solid var(--fg2);border-radius:3px}
+.sch-view .dash-sep,.tk-view .dash-sep{width:1px;height:20px;background:var(--rule);margin:0 var(--sp3)}
+:is(.ix-view,.tk-view,.sch-view) .check::before{width:14px;height:14px;border:1.3px solid var(--fg2);border-radius:var(--r-sm)}
 :is(.ix-view,.tk-view,.sch-view) .check:hover::before{border-color:var(--fg)}
 :is(.ix-view,.tk-view,.sch-view) .check.on::before{background:var(--fg2);border-color:var(--fg2)}
-:is(.ix-view,.tk-view,.sch-view) .ti-dot{width:7px;height:7px;border-radius:2px;background:var(--c-fg)}
+:is(.ix-view,.tk-view,.sch-view) .ti-dot{width:7px;height:7px;border-radius:var(--r-xs);background:var(--c-fg)}
 /* termín jako tichý text: po termínu červeně, dnes tučně */
 :is(.ix-view,.tk-view,.sch-view) .chip{background:none;padding:0;margin:0;border-radius:0;font-size:calc(12.5px*var(--fs));font-weight:500;color:var(--fg2)}
 :is(.ix-view,.tk-view,.sch-view) .chip.soon{background:none;color:var(--fg2)}
@@ -149,7 +147,7 @@
 :is(.ix-view,.tk-view,.sch-view) .chip.late{background:none;color:var(--now)}
 /* souhrn nahoře (Index i Úkoly): tři čísla oddělená čarami, nad nimi čára, žádná krabice */
 .tk-view .tk-sum,.ix-view .ix-sum{border:0;border-top:1px solid var(--rule);border-radius:0;background:none}
-.tk-view .tk-tile,.ix-view .ix-tile{padding:10px 16px 4px}
+.tk-view .tk-tile,.ix-view .ix-tile{padding:var(--sp5) var(--sp8) var(--sp2)}
 .tk-view .tk-tile:first-child,.ix-view .ix-tile:first-child{padding-left:0}
 .tk-view .tk-tl,.ix-view .ix-tile .k{font-size:calc(12.5px*var(--fs));font-weight:400}
 .tk-view .tk-tv,.ix-view .ix-tile b{font:600 calc(22px*var(--fs))/1.25 var(--f-body);letter-spacing:-.01em}
@@ -157,60 +155,70 @@
 .tk-view .tk-tv small,.ix-view .ix-tile b span{font-size:.62em;font-weight:400}
 
 /* ---------- Úkoly ---------- */
-.tk-view .filters{gap:4px}
-.tk-view .filters button{min-height:32px;border:1px solid var(--rule);border-radius:6px;background:none;padding:4px 12px;font-size:calc(13.5px*var(--fs));color:var(--fg2)}
+.tk-view .filters{gap:var(--sp2)}
+.tk-view .filters button{min-height:32px;border:1px solid var(--rule);border-radius:var(--r);background:none;padding:var(--sp2) var(--sp6);font-size:calc(13.5px*var(--fs));color:var(--fg2)}
 .tk-view .filters button:hover{color:var(--fg);border-color:var(--fg2)}
 .tk-view .filters button.on{background:var(--fg);border-color:var(--fg);color:var(--bg)}
 .tk-view .filters .t-projbtn.has{color:var(--fg);border-color:var(--fg2)}
+.tk-view .filters :is(.lock-btn,.mode-btn){width:32px;height:32px;min-height:32px;padding:0;display:grid;place-items:center;border-color:transparent;background:none;color:var(--fg2)}
+.tk-view .filters :is(.lock-btn,.mode-btn):hover,.tk-view .filters .lock-btn.on{background:var(--hover);color:var(--fg);border-color:transparent}
 /* sekce a projekt: čára nahoře a nadpis, žádná krabice */
-.tk-view .tk-sec,.tk-view .tk-proj{margin:0 0 30px;padding:12px 0 0;border:0;border-top:1px solid var(--rule);border-radius:0;background:none}
-.tk-view .tk-h{margin-bottom:6px}
+.tk-view .tk-sec,.tk-view .tk-proj{margin:0 0 var(--sp12);padding:var(--sp6) 0 0;border:0;border-top:1px solid var(--rule);border-radius:0;background:none}
+.tk-view .tk-h{margin-bottom:var(--sp3)}
 .tk-view .tk-h h2,.tk-view .tk-pt{font:600 calc(17px*var(--fs))/1.3 var(--f-display)}
-.tk-view .tk-ib{width:28px;height:28px;border-radius:6px}
+.tk-view .tk-ib{width:28px;height:28px;border-radius:var(--r)}
 .tk-view .tk-list{gap:0}
-.tk-view .tk-row,.tk-view .tk-sec .tk-row{grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:center;min-height:0;padding:8px 0;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none}
+.tk-view .tk-row,.tk-view .tk-sec .tk-row{grid-template-columns:22px minmax(0,1fr) auto;gap:var(--sp4);align-items:center;min-height:0;padding:var(--sp4) 0;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none}
 .tk-view .tk-row .task-t{font-weight:400}
 .tk-view .tk-path{font-size:calc(12px*var(--fs));color:var(--muted)}
 .tk-view .tk-path:hover{background:none;color:var(--fg)}
 /* skupina (předmět, nadpis): bez barevného proužku, barva jen čtvereček před kódem */
-.tk-view .tk-grp{padding-left:0;margin-top:16px}
-.tk-view .tk-h+.tk-grp{margin-top:4px}
+.tk-view .tk-grp{padding-left:0;margin-top:var(--sp8)}
+.tk-view .tk-h+.tk-grp{margin-top:var(--sp2)}
 .tk-view .tk-grp::before{display:none}
-.tk-view .tk-gh{margin-bottom:2px}
+.tk-view .tk-gh{margin-bottom:var(--sp1)}
 .tk-view .tk-gt:hover,.tk-view .tk-gpg:hover{background:var(--hover)}
 .tk-view .tk-code{font:600 calc(14px*var(--fs))/1.35 var(--f-body);color:var(--fg)}
-.tk-view .tk-code::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--c-fg);margin-right:8px;vertical-align:1px}
+.tk-view .tk-code::before{content:"";display:inline-block;width:8px;height:8px;border-radius:var(--r-xs);background:var(--c-fg);margin-right:var(--sp4);vertical-align:1px}
 .tk-view .tk-nm{font-weight:400;color:var(--fg2)}
 .tk-view .tk-hidnote .linkbtn{color:var(--fg)}
 @media (max-width:600px){
-  .tk-view .tk-tile{padding:8px 10px 2px}
+  .tk-view .tk-tile{padding:var(--sp4) var(--sp5) var(--sp1)}
   .tk-view .tk-tv{font-size:calc(19px*var(--fs))}
   .tk-view .tk-row{grid-template-columns:22px minmax(0,1fr)}
   .tk-view .tk-row .chip{grid-column:2;justify-self:start;margin-top:-2px}
 }
 
 /* ================= varianta B „deska“ (4.11.0): obsah Indexu a Úkolů je jeden list rozdělený čarami ================= */
-.view .sheet{border:1px solid var(--rule);border-radius:4px;background:var(--panel);overflow:hidden}
+.view .sheet{border:1px solid var(--rule);border-radius:var(--r-sm);background:var(--panel);overflow:hidden}
 .view .sheet>.card{border:0;border-radius:0;background:none}
-.view .sheet>.note,.view .sheet>p{margin:0;padding:8px 20px;border-top:1px solid var(--line)}
+.view .sheet>.note,.view .sheet>p{margin:0;padding:var(--sp4) var(--sp9);border-top:1px solid var(--line)}
 /* souhrn nahoře = první řada listu */
 .view .sheet>.tk-sum,.view .sheet>.ix-sum{margin:0;border:0;border-bottom:1px solid var(--rule)}
-.view .sheet .tk-tile,.view .sheet .ix-tile,.view .sheet .tk-tile:first-child,.view .sheet .ix-tile:first-child{padding:12px 20px 10px}
+.view .sheet .tk-tile,.view .sheet .ix-tile,.view .sheet .tk-tile:first-child,.view .sheet .ix-tile:first-child{padding:var(--sp6) var(--sp9) var(--sp5)}
 /* sekce (S termínem, projekt, semestr) = řada listu, čára nad ní */
-.view .sheet>.tk-sec,.view .sheet>.tk-proj,.view .sheet>.ix-sem{margin:0;padding:14px 20px 10px;border:0;border-top:1px solid var(--rule);border-radius:0;background:none}
+.view .sheet>.tk-sec,.view .sheet>.tk-proj,.view .sheet>.ix-sem{margin:0;padding:var(--sp7) var(--sp9) var(--sp5);border:0;border-top:1px solid var(--rule);border-radius:0;background:none}
 .view .sheet>.tk-sum+.tk-sec,.view .sheet>.tk-sum+.tk-proj,.view .sheet>.ix-sum+.ix-sem,.view .sheet>:first-child{border-top:0}
 .view .sheet .tk-row:last-child,.view .sheet .ix-card:last-child{border-bottom:0}
 @media (max-width:600px){
-  .view .sheet .tk-tile,.view .sheet .ix-tile,.view .sheet .tk-tile:first-child,.view .sheet .ix-tile:first-child{padding:9px 12px 7px}
-  .view .sheet>.tk-sec,.view .sheet>.tk-proj,.view .sheet>.ix-sem{padding:12px 14px 8px}
+  .view .sheet .tk-tile,.view .sheet .ix-tile,.view .sheet .tk-tile:first-child,.view .sheet .ix-tile:first-child{padding:var(--sp4) var(--sp6) var(--sp3)}
+  .view .sheet>.tk-sec,.view .sheet>.tk-proj,.view .sheet>.ix-sem{padding:var(--sp6) var(--sp7) var(--sp4)}
 }
 
 /* ================= pořadí v hlavičce (4.12.0): vlevo věci dané karty, oddělovač, pak zámek, režim a nastavení ⚙ úplně vpravo =================
    textová tlačítka (＋ Semestr, ＋ Přidat…) ve stylu „＋ Přidat widget“ na Dnes, bez rámečku */
-:is(.ix-view,.sch-view,.mm-view) .v-tools .btn.btn-text{border:0;background:none;padding:5px 8px;font-size:calc(13.5px*var(--fs));font-weight:500;color:var(--fg2)}
+:is(.ix-view,.sch-view,.mm-view) .v-tools .btn.btn-text{border:0;background:none;padding:var(--sp3) var(--sp4);font-size:calc(13.5px*var(--fs));font-weight:500;color:var(--fg2)}
 :is(.ix-view,.sch-view,.mm-view) .v-tools .btn.btn-text:hover{background:var(--hover);color:var(--fg)}
 :is(.ix-view,.sch-view) .v-tools{align-items:center}
-.ix-view .dash-sep{width:1px;height:20px;background:var(--rule);margin:0 6px}
-.sch-view .sch-add{margin-right:4px}
+.ix-view .dash-sep{width:1px;height:20px;background:var(--rule);margin:0 var(--sp3)}
+.sch-view .sch-add{margin-right:var(--sp2)}
 .tk-view .filters{align-items:center}
-.tk-view .filters .dash-sep{margin:0 2px}
+.tk-view .filters .dash-sep{margin:0 var(--sp1)}
+
+/* 4.19.0: rámeček jen u stavu (přepínač Nesplněné / Vše), akce bez rámečku – Projekty v Úkolech, Tento týden v Rozvrhu */
+.tk-view .filters .t-projbtn{border:0;background:none;padding:var(--sp3) var(--sp4);font-weight:500}
+.tk-view .filters .t-projbtn:hover{background:var(--hover);color:var(--fg)}
+.tk-view .filters .t-projbtn.has{color:var(--fg)}
+.sch-view .v-tools .wk-today{margin:0 -2px}
+.sch-view .v-tools .wk-today.cur{color:var(--faint)}
+.sch-view .v-tools .wk-today.cur:hover{background:none;color:var(--faint);cursor:default}

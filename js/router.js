@@ -57,7 +57,7 @@ function go(view){
 }
 function renderMain(){
   const v=S.view, view=$('#view');
-  if(!S.ready){ view.innerHTML='<div class="loading">Načítám tvoje stránky…</div>'; return; }
+  if(!S.ready){ view.innerHTML='<div class="loading">Načítání stránek…</div>'; return; }
   let title='Úkolníček';
   if(v.kind==='page'){
     const pg=S.pages[v.pageId];

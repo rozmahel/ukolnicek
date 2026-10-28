@@ -234,17 +234,17 @@
     errText(e) {
       const c = (e && e.code) || '';
       switch (c) {
-        case 'no_client': return 'Nejdřív vlož Client ID v Nastavení → Google Disk.';
-        case 'bad_client': return 'Client ID nevypadá správně. Zkontroluj ho v Nastavení.';
+        case 'no_client': return 'Chybí Client ID (Nastavení → Google Disk).';
+        case 'bad_client': return 'Client ID nevypadá správně (Nastavení → Google Disk).';
         case 'gis_load': return 'Nepodařilo se načíst přihlášení Google. Jsi online?';
         case 'popup_closed': return 'Okno přihlášení bylo zavřené.';
-        case 'popup_failed_to_open': return 'Prohlížeč zablokoval okno přihlášení. Povol pro tuto stránku vyskakovací okna.';
+        case 'popup_failed_to_open': return 'Prohlížeč zablokoval okno přihlášení. Je potřeba povolit vyskakovací okna pro tuto stránku.';
         case 'access_denied':
         case 'scope_denied': return 'Bez povolení přístupu k datům aplikace na Disku to nepůjde. Při přihlášení ho zaškrtni.';
-        case 'expired': return 'Přihlášení vypršelo. Klepni na žlutý mráček.';
+        case 'expired': return 'Přihlášení vypršelo. Připojení obnoví klepnutí na žlutý mráček.';
         case 'network': return 'Nepodařilo se spojit s Google Diskem.';
         case 'forbidden': return 'Google odmítl přístup' + (e.message ? ': ' + e.message : '. Je v projektu zapnuté Google Drive API?');
-        case 'not_found': return 'Soubor na Disku už neexistuje. Zkus to znovu.';
+        case 'not_found': return 'Soubor na Disku už neexistuje. Stačí to zkusit znovu.';
         case 'bad_file': return 'Soubor na Disku není platná záloha Úkolníčku.';
         default: return 'Synchronizace selhala' + (c ? ' (' + c + ')' : '') + '.';
       }

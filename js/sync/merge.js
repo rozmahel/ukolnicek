@@ -61,7 +61,7 @@ function syncDiff(L,R,B){
     const v=lv||rv; const t=k==='trash'?'🗑 '+((v.pages&&v.pages[0]&&v.pages[0].title)||'Bez názvu'):k==='pages'?(v.icon?v.icon+' ':'')+(v.title||'Bez názvu'):k==='subjects'?'🎓 '+[v.code,v.name].filter(Boolean).join(' '):k==='semesters'?'📅 '+(v.name||'Semestr'):k==='maps'?'🧠 '+(v.title||'Myšlenková mapa'):'🗓️ '+(v.title||'Bez názvu')+(v.start?' '+v.start:'');
     if(lv&&rv) return t;
     if(inBase==null) return t+(lv?' (jen tady)':' (jen na Disku)');
-    return t+(inBase?(lv?' (na Disku smazáno)':' (tady smazáno)'):(lv?' (nové tady)':' (nové na Disku)'));
+    return t+(inBase?(lv?' (na Disku odstraněno)':' (tady odstraněno)'):(lv?' (nové tady)':' (nové na Disku)'));
   };
   [['pages',pageSig],['events',evSig],['subjects',evSig],['semesters',evSig],['trash',evSig],['maps',evSig]].forEach(([k,sig])=>{
     const l=L[k]||{}, r=R[k]||{}, b=B?(B[k]||{}):null;

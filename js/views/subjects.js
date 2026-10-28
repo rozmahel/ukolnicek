@@ -1,5 +1,5 @@
 /* Úkolníček – Index: semestry jako karty, předměty v nich (body a zápočet přímo na místě), nastavení předmětu (klik na název), semestry, známky a kredity */
-import { $, $$, clone, COLOR_CZ, COLORS, esc, ICONS, plural, rid } from '../core.js';
+import { $, $$, clone, COLOR_CZ, COLORS, esc, IC, ICONS, plural, rid } from '../core.js';
 import { S } from '../state.js';
 import { modeBtn } from '../theme.js';
 import { applyLock, LOCK } from '../lock.js';
@@ -94,26 +94,26 @@ function semHeadInner(sem,list){
   return `<h2>${esc(sem?sem.name||'Semestr':'Bez semestru')}</h2>
         <span class="ix-prog" title="Získané kredity v semestru">${target?`<i style="width:${Math.min(100,Math.round(got/target*100))}%"></i>`:''}<span>${fmtNum(got)}${target?` / ${fmtNum(target)}`:''} kr.</span></span>
         ${av!=null?`<span class="ix-avg" title="Vážený průměr splněných předmětů (A = 1 … E = 3)">⌀ ${fmtAvg(av)}</span>`:''}
-        ${sem?`<button class="icon-btn ix-more" data-act="sem-edit" data-id="${sem.id}" title="Upravit semestr" aria-label="Upravit semestr">⋯</button>`:''}`;
+        ${sem?`<button class="icon-btn ix-more" data-act="sem-edit" data-id="${sem.id}" title="Upravit semestr" aria-label="Upravit semestr">${IC.more}</button>`:''}`;
 }
 function semHtml(sem){
   const list=subjsOf(sem?sem.id:null); if(!sem&&!list.length) return '';
   return `<section class="ix-sem" data-sem="${sem?sem.id:''}">
       <div class="ix-sem-h">${semHeadInner(sem,list)}</div>
-      <div class="ix-cards">${list.length?list.map(cardHtml).join(''):`<div class="empty ix-empty">V semestru zatím nic není. <button class="linkbtn" data-act="subj-new" data-sem="${sem.id}">Přidat předmět</button></div>`}</div></section>`;
+      <div class="ix-cards">${list.length?list.map(cardHtml).join(''):`<div class="empty ix-empty">Zatím žádné předměty. <button class="linkbtn" data-act="subj-new" data-sem="${sem.id}">Přidat předmět</button></div>`}</div></section>`;
 }
 function renderIndex(){
   const subs=Object.values(S.subjects), sems=semList();
   /* skok na předmět ze skrytého semestru: semestr se tentokrát ukáže */
   const fsu=S.ixFocus&&S.subjects[S.ixFocus], peek=fsu&&S.semesters[fsu.sem]&&S.semesters[fsu.sem].hidden?fsu.sem:null;
   const shown=sems.filter(sm=>!sm.hidden||sm.id===peek), nHid=sems.filter(sm=>sm.hidden&&sm.id!==peek).length, stats=statSubs();
-  $('#view').innerHTML=`<div class="view ix-view" style="max-width:920px">
+  $('#view').innerHTML=`<div class="view ix-view" style="max-width:calc(920px*var(--fs))">
     <div class="v-head"><div><h1 class="v-title">Index</h1></div>
-      <div class="v-tools"><button class="btn btn-text" data-act="sem-new"><span aria-hidden="true">＋</span> Semestr</button>${sems.length?'<button class="btn btn-text" data-act="subj-new"><span aria-hidden="true">＋</span> Předmět</button>':''}<span class="dash-sep" aria-hidden="true"></span>${modeBtn()}${sems.length?'<button class="icon-btn ix-cfg" data-act="ix-view" title="Které semestry ukazovat" aria-label="Zobrazení semestrů">'+ICONS.settings+'</button>':''}</div></div>
+      <div class="v-tools"><button class="btn btn-text" data-act="sem-new">${IC.plus}Semestr</button>${sems.length?`<button class="btn btn-text" data-act="subj-new">${IC.plus}Předmět</button>`:''}<span class="dash-sep" aria-hidden="true"></span><button class="icon-btn lock-btn" data-act="lock"></button>${modeBtn()}${sems.length?'<button class="icon-btn ix-cfg" data-act="ix-view" title="Které semestry ukazovat" aria-label="Zobrazení semestrů">'+ICONS.settings+'</button>':''}</div></div>
     <div class="sheet ix-sheet">
     ${subs.length?`<div class="ix-sum">${sumInner(stats)}</div>${stats.length<subs.length?`<p class="note ix-sumnote">Souhrn bez ${sems.filter(sm=>sm.noStats).map(sm=>esc(sm.name||'Semestr')).join(', ')}.</p>`:''}`
-    :sems.length?`<div class="card"><div class="empty" style="padding:18px">Index je databáze tvých předmětů: kredity, body a známky. Předměty se zakládají jen tady. V rozvrhu je pak vybereš u hodiny a do poznámek je vložíš přes <b>/předmět</b>. <div class="m-actions" style="margin-top:10px"><button class="btn pri" data-act="subj-new">＋ První předmět</button></div></div></div>`
-    :`<div class="card"><div class="empty" style="padding:18px">Index je databáze tvých předmětů: kredity, body a známky. <b>Začni semestrem</b>, předměty se pak zakládají do něj. V rozvrhu je vybereš u hodiny a do poznámek je vložíš přes <b>/předmět</b>. <div class="m-actions" style="margin-top:10px"><button class="btn pri" data-act="sem-new">＋ První semestr</button></div></div></div>`}
+    :sems.length?`<div class="empty">Zatím žádné předměty. <button class="linkbtn" data-act="subj-new">Přidat předmět</button></div>`
+    :`<div class="empty">Zatím žádný semestr. <button class="linkbtn" data-act="sem-new">Přidat semestr</button></div>`}
     ${shown.map(semHtml).join('')}${semHtml(null)}
     </div>
     ${nHid?`<p class="note ix-hidnote">${nHid===1?'1 semestr je skrytý':`${nHid} ${plural(nHid,'semestr','semestry','semestrů')} ${nHid<5?'jsou skryté':'je skrytých'}`} · <button class="linkbtn" data-act="ix-view">Zobrazení semestrů</button></p>`:''}
@@ -145,20 +145,20 @@ function onPtsChange(e){
   if(t.classList.contains('ixc-in')&&t.classList.contains('bad')){
     const pid=t.dataset.part, p=pid?(x.su.parts||[]).find(q=>q.id===pid):null;
     t.value=pid?(p?p.pts||'':''):(x.su.pts||''); t.classList.remove('bad');
-    toast('Body piš jako číslo, třeba 12 nebo 7,5.');
+    toast('Body se zadávají jako číslo, třeba 12 nebo 7,5.');
   }
 }
 /* ---- zobrazení semestrů: co se počítá do souhrnu a co je vidět v seznamu ---- */
 function openIndexView(){
   const sems=semList();
   const m=openModal('Zobrazení semestrů',`<div class="m-body">
-    <p class="note">Hotový semestr můžeš schovat ze seznamu nebo nepočítat do souhrnu nahoře. Nic se nesmaže a kdykoli ho zase zapneš.</p>
+    <p class="note">Hotový semestr jde schovat ze seznamu nebo nepočítat do souhrnu nahoře. Nic se neodstraní a kdykoli jde zase zapnout.</p>
     <div class="ixv"><div class="ixv-h"><span>Semestr</span><span>Souhrn</span><span>Seznam</span></div>
       ${sems.map(sm=>{ const n=subjsOf(sm.id).length; return `<div class="ixv-r" data-id="${sm.id}"><span class="ixv-n"><b>${esc(sm.name||'Semestr')}</b><small>${n} ${plural(n,'předmět','předměty','předmětů')}</small></span>
         <label class="ixv-c" title="Počítat do souhrnu"><input type="checkbox" data-k="noStats" ${sm.noStats?'':'checked'} aria-label="${esc(sm.name)}: počítat do souhrnu"></label>
         <label class="ixv-c" title="Ukazovat v seznamu"><input type="checkbox" data-k="hidden" ${sm.hidden?'':'checked'} aria-label="${esc(sm.name)}: ukazovat v seznamu"></label></div>`; }).join('')}
     </div>
-    <div class="m-actions"><span class="sp"></span><button type="button" class="btn pri" data-close>Hotovo</button></div></div>`,'ixv-m');
+    <div class="m-actions"><span class="sp"></span><button type="button" class="btn pri" data-close>Uložit</button></div></div>`,'ixv-m');
   m.addEventListener('change',e=>{
     const cb=e.target.closest('input[data-k]'), row=cb&&cb.closest('.ixv-r'), sm=row&&S.semesters[row.dataset.id]; if(!sm) return;
     if(cb.checked) delete sm[cb.dataset.k]; else sm[cb.dataset.k]=true;
@@ -179,7 +179,7 @@ function openSubjectModal(su,preset){
     <div class="grid2 su-top"><div class="fld"><label for="su-code">Zkratka</label><input id="su-code" value="${esc(su.code)}" placeholder="MPA-ZJR" autocomplete="off"></div>
       <div class="fld"><label for="su-cr">Kredity</label><input id="su-cr" type="number" min="0" max="60" step="1" inputmode="numeric" value="${esc(su.credits)}" placeholder="5"></div></div>
     <div class="fld"><label for="su-name">Název</label><input id="su-name" value="${esc(su.name)}" placeholder="Celý název předmětu" autocomplete="off"></div>
-    <div class="grid2 su-semrow"><div class="fld"><label for="su-sem">Semestr</label><select id="su-sem">${sems.map(s=>`<option value="${s.id}" ${su.sem===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>${!isNew&&noSem?'<p class="note">Předmět zatím nemá semestr, vyber ho.</p>':''}</div>
+    <div class="grid2 su-semrow"><div class="fld"><label for="su-sem">Semestr</label><select id="su-sem">${sems.map(s=>`<option value="${s.id}" ${su.sem===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>${!isNew&&noSem?'<p class="note">Předmět zatím nemá semestr.</p>':''}</div>
       <div class="fld"><label for="su-end">Ukončení</label><select id="su-end">${ENDS.map(([k,l])=>`<option value="${k}" ${su.end===k?'selected':''}>${l}</option>`).join('')}</select></div></div>
     <div class="fld"><span class="lbl">Barva</span><div class="swatches" id="su-color" style="padding-left:0">${COLORS.map(c=>`<button type="button" class="sw hl-${c} ${su.color===c?'on':''}" data-c="${c}" aria-label="${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}</div></div>
     <div class="ix-eval" id="su-eval">
@@ -190,14 +190,14 @@ function openSubjectModal(su,preset){
     </div>
     <div class="fld"><label for="su-note">Poznámka</label><textarea id="su-note" rows="2" placeholder="Podmínky zápočtu, termíny zkoušek…">${esc(su.note)}</textarea></div>
     <p class="err" id="su-err" hidden></p>
-    <div class="m-actions">${isNew?'':'<button type="button" class="btn danger lk-hide" id="su-del">Smazat</button>'}<span class="sp"></span><button type="button" class="btn" data-close>Zrušit</button><button type="submit" class="btn pri">${isNew?'Přidat':'Uložit'}</button></div>
+    <div class="m-actions">${isNew?'':'<button type="button" class="btn danger lk-hide" id="su-del">Odstranit</button>'}<span class="sp"></span><button type="button" class="btn" data-close>Zavřít</button><button type="submit" class="btn pri">${isNew?'Přidat':'Uložit'}</button></div>
   </form>`,'su-m');
   let parts=clone(su.parts), color=su.color;
   const drawParts=()=>{
-    $('#su-parts',m).innerHTML=parts.map((p,i)=>`<div class="ix-part su-pdef" data-i="${i}"><input class="inp pn" value="${esc(p.name||'')}" placeholder="Cvičení, test, zkouška…" aria-label="Název"><span class="ps">max</span><input class="inp pm" value="${esc(p.max??'')}" inputmode="decimal" placeholder="–" aria-label="Maximum bodů"><span class="pz">${String(p.pts??'').trim()?`${esc(p.pts)} b`:''}</span><button type="button" class="icon-btn lk-hide" data-rm="${i}" aria-label="Odebrat">×</button></div>`).join('');
+    $('#su-parts',m).innerHTML=parts.map((p,i)=>`<div class="ix-part su-pdef" data-i="${i}"><input class="inp pn" value="${esc(p.name||'')}" placeholder="Cvičení, test, zkouška…" aria-label="Název"><span class="ps">max</span><input class="inp pm" value="${esc(p.max??'')}" inputmode="decimal" placeholder="–" aria-label="Maximum bodů"><span class="pz">${String(p.pts??'').trim()?`${esc(p.pts)} b`:''}</span><button type="button" class="icon-btn lk-hide" data-rm="${i}" aria-label="Odebrat">${IC.x}</button></div>`).join('');
     const mx=subjMax({parts});
     $('#su-sum',m).textContent=parts.length&&mx!=null?`celkem max ${fmtNum(mx)} b`:'';
-    $('#su-pnote',m).textContent=(parts.length?'Body do nich zapisuješ přímo na kartě předmětu. Body nad maximum se počítají jako bonus.':'Bez dílčích hodnocení se na kartě zapisují jen body celkem.')+' Známka se ukáže, až u předmětu přepneš Zápočet na Ano.';
+    $('#su-pnote',m).textContent=(parts.length?'Body se do nich zapisují přímo na kartě předmětu. Body nad maximum se počítají jako bonus.':'Bez dílčích hodnocení se na kartě zapisují jen body celkem.')+' Známka se ukáže po přepnutí Zápočtu na Ano.';
     applyLock();
   };
   $('#su-parts',m).addEventListener('input',e=>{ const r=e.target.closest('.ix-part'); if(!r) return; const p=parts[+r.dataset.i]; p[e.target.classList.contains('pn')?'name':'max']=e.target.value; const mx=subjMax({parts}); $('#su-sum',m).textContent=parts.length&&mx!=null?`celkem max ${fmtNum(mx)} b`:''; });
@@ -213,12 +213,12 @@ function openSubjectModal(su,preset){
   $('#su-end',m).addEventListener('change',endSync); endSync();
   $('#su-color',m).addEventListener('click',e=>{ const b=e.target.closest('[data-c]'); if(!b) return; color=b.dataset.c; $$('#su-color .sw',m).forEach(x=>x.classList.toggle('on',x===b)); });
   const del=$('#su-del',m); if(del) del.addEventListener('click',()=>{ if(LOCK) return; const o=S.subjects[su.id]; if(!o) return closeModal(); delete S.subjects[su.id]; Store.queue(); closeModal(); renderSidebar(); renderMain();
-    toast(`Předmět ${o.code||o.name||''} smazán`,'Vrátit',()=>{ S.subjects[o.id]=o; Store.queue(); renderSidebar(); renderMain(); }); });
+    toast(`Předmět ${o.code||o.name||''} odstraněn`,'Vrátit',()=>{ S.subjects[o.id]=o; Store.queue(); renderSidebar(); renderMain(); }); });
   $('#suf',m).addEventListener('submit',e=>{
     e.preventDefault();
     const err=$('#su-err',m), code=$('#su-code',m).value.trim(), name=$('#su-name',m).value.trim(), cr=$('#su-cr',m).value.trim();
     let msg=''; if(!code&&!name) msg='Vyplň zkratku nebo název předmětu.'; else if(cr&&(num(cr)==null||num(cr)<0)) msg='Kredity musí být kladné číslo.';
-    else if(parts.some(p=>!isNum(p.max))) msg='Maximum bodů piš jako číslo (třeba 30 nebo 12,5).';
+    else if(parts.some(p=>!isNum(p.max))) msg='Maximum bodů se zadává jako číslo (třeba 30 nebo 12,5).';
     if(msg){ err.textContent=msg; err.hidden=false; return; }
     const sem=$('#su-sem',m).value;
     const keep=parts.filter(p=>(p.name||'').trim()||String(p.pts??'').trim()||String(p.max??'').trim()).map(p=>({id:p.id||rid(),name:(p.name||'').trim(),pts:String(p.pts??'').trim(),max:String(p.max??'').trim()}));
@@ -239,20 +239,20 @@ function openSemModal(sem,then){
   const isNew=!sem; sem=sem?clone(sem):{id:rid(),name:semName(),target:30,order:Math.max(0,...Object.values(S.semesters).map(x=>x.order||0))+1};
   const n=subjsOf(sem.id).length;
   const m=openModal(isNew?'Nový semestr':'Semestr',`<form class="m-body" id="smf" novalidate>
-    ${then?'<p class="note">Předmět patří vždy do semestru. Nejdřív založ semestr, pak hned přidáš předmět.</p>':''}
+    ${then?'<p class="note">Předmět patří vždy do semestru. Nejdřív se zakládá semestr, hned potom předmět.</p>':''}
     <div class="grid2"><div class="fld"><label for="sm-name">Název</label><input id="sm-name" value="${esc(sem.name)}" placeholder="ZS 2026/27"></div>
       <div class="fld"><label for="sm-t">Kredity na semestr</label><input id="sm-t" type="number" min="0" max="90" step="1" inputmode="numeric" value="${esc(sem.target??'')}" placeholder="30"></div></div>
-    <p class="note">Podle počtu kreditů se ukazuje, kolik ti v semestru ještě chybí. Obvykle 30.</p>
-    ${isNew?'':`<label class="chk"><input type="checkbox" id="sm-hide" ${sem.hidden?'checked':''}> Skrýt v Indexu <span class="note">(data zůstanou, vrátíš ho v ozubeném kole nahoře)</span></label>`}
-    <div class="m-actions">${isNew?'':'<button type="button" class="btn danger lk-hide" id="sm-del">Smazat</button>'}<span class="sp"></span><button type="button" class="btn" data-close>Zrušit</button><button type="submit" class="btn pri">${then?'Přidat a pokračovat':isNew?'Přidat':'Uložit'}</button></div>
+    <p class="note">Podle počtu kreditů se ukazuje, kolik v semestru ještě chybí. Obvykle 30.</p>
+    ${isNew?'':`<label class="chk"><input type="checkbox" id="sm-hide" ${sem.hidden?'checked':''}> Skrýt v Indexu <span class="note">(data zůstanou, vrací se v ozubeném kole nahoře)</span></label>`}
+    <div class="m-actions">${isNew?'':'<button type="button" class="btn danger lk-hide" id="sm-del">Odstranit</button>'}<span class="sp"></span><button type="button" class="btn" data-close>Zavřít</button><button type="submit" class="btn pri">${then?'Přidat a pokračovat':isNew?'Přidat':'Uložit'}</button></div>
   </form>`);
   /* smazání: prázdný semestr hned, s předměty až po druhém kliknutí (smaže i předměty); obojí jde vrátit z oznámení */
   const del=$('#sm-del',m); if(del) del.addEventListener('click',()=>{ if(LOCK) return;
-    if(n&&!del.dataset.sure){ del.dataset.sure='1'; del.textContent=`Opravdu smazat i ${n} ${plural(n,'předmět','předměty','předmětů')}?`; return; }
+    if(n&&!del.dataset.sure){ del.dataset.sure='1'; del.textContent=`Opravdu odstranit i ${n} ${plural(n,'předmět','předměty','předmětů')}?`; return; }
     const o=S.semesters[sem.id], subs=subjsOf(sem.id); if(!o) return closeModal();
     delete S.semesters[sem.id]; subs.forEach(su=>{ delete S.subjects[su.id]; });
     Store.queue(); closeModal(); renderSidebar(); renderMain();
-    toast(`Semestr ${o.name||''} smazán${subs.length?` i s ${subs.length} ${plural(subs.length,'předmětem','předměty','předměty')}`:''}`,'Vrátit',()=>{ S.semesters[o.id]=o; subs.forEach(su=>{ S.subjects[su.id]=su; }); Store.queue(); renderSidebar(); renderMain(); }); });
+    toast(`Semestr ${o.name||''} odstraněn${subs.length?` i s ${subs.length} ${plural(subs.length,'předmětem','předměty','předměty')}`:''}`,'Vrátit',()=>{ S.semesters[o.id]=o; subs.forEach(su=>{ S.subjects[su.id]=su; }); Store.queue(); renderSidebar(); renderMain(); }); });
   $('#smf',m).addEventListener('submit',e=>{ e.preventDefault();
     S.semesters[sem.id]=Object.assign(sem,{name:$('#sm-name',m).value.trim()||semName(),target:num($('#sm-t',m).value)??''});
     const hb=$('#sm-hide',m); if(hb){ if(hb.checked) S.semesters[sem.id].hidden=true; else delete S.semesters[sem.id].hidden; }

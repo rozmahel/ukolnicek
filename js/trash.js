@@ -1,9 +1,10 @@
 /* Úkolníček – Koš: smazané stránky (i s podstránkami) a projekty tu zůstanou 7 dní
    S.trash = {ID kořenové stránky: {id, at: čas smazání, pages: [kořen, podstránky…]}}
    V datech je jako samostatný klíč trash (jen když není prázdný), takže ho starší verze neukáže ani nevrátí mezi stránky. */
-import { $, esc, plural } from './core.js';
+import { $, esc, IC, plural } from './core.js';
 import { S } from './state.js';
-import { LOCK } from './lock.js';
+import { modeBtn } from './theme.js';
+import { applyLock, LOCK } from './lock.js';
 import { savePage, Store } from './store.js';
 import { kids, pIcon, pTitle } from './pages.js';
 import { renderSidebar } from './sidebar.js';
@@ -29,7 +30,7 @@ function trashPage(id,ids){
   ids.forEach(i=>{ delete S.pages[i]; });
   Store.queue();
   if(S.view.kind==='page'&&ids.includes(S.view.pageId)) go({kind:'today'}); else { renderSidebar(); renderMain(); }
-  toast(`„${pTitle(root)}“ ${ids.length>1?`i s ${ids.length-1} ${plural(ids.length-1,'podstránkou','podstránkami','podstránkami')} `:''}přesunuto do koše`,'Zpět',()=>restoreTrash(id));
+  toast(`„${pTitle(root)}“ ${ids.length>1?`i s ${ids.length-1} ${plural(ids.length-1,'podstránkou','podstránkami','podstránkami')} `:''}přesunuto do koše`,'Vrátit',()=>restoreTrash(id));
 }
 /* obnovení na původní místo; když nadřazená stránka už neexistuje, na konec projektů */
 function restoreTrash(id,quiet){
@@ -68,11 +69,11 @@ function trashSidebar(){
   const list=trashItems();
   const row=t=>{ const p=t.pages[0], n=t.pages.length-1, on=S.view.kind==='trash'&&S.view.id===t.id;
     return `<div class="ti tr-it ${on?'on':''}" style="--d:0">
-      <button class="ti-main" data-act="trash-open" data-id="${esc(t.id)}" title="${n?`+ ${n} ${plural(n,'podstránka','podstránky','podstránek')}`:''}">${pIcon(p)}<span class="ti-t">${esc(pTitle(p))}</span><span class="tr-left" title="Smaže se za ${leftLong(t)}">${leftTxt(t)}</span></button>
-      <span class="tr-acts"><button class="icon-btn" data-act="trash-restore" data-id="${esc(t.id)}" title="Obnovit" aria-label="Obnovit">↺</button><button class="icon-btn tr-del" data-act="trash-del" data-id="${esc(t.id)}" title="Smazat trvale" aria-label="Smazat trvale">×</button></span>
+      <button class="ti-main" data-act="trash-open" data-id="${esc(t.id)}" title="${n?`+ ${n} ${plural(n,'podstránka','podstránky','podstránek')}`:''}">${pIcon(p)}<span class="ti-t">${esc(pTitle(p))}</span><span class="tr-left" title="Odstraní se za ${leftLong(t)}">${leftTxt(t)}</span></button>
+      <span class="tr-acts"><button class="icon-btn" data-act="trash-restore" data-id="${esc(t.id)}" title="Obnovit" aria-label="Obnovit">${IC.restore}</button><button class="icon-btn tr-del" data-act="trash-del" data-id="${esc(t.id)}" title="Odstranit trvale" aria-label="Odstranit trvale">${IC.x}</button></span>
     </div>`; };
   return `<div class="sec-h"><span>${TRASH_IC}Koš</span>${list.length?`<button class="linkbtn tr-empty" data-act="trash-empty" data-popanchor>Vysypat</button>`:''}</div>
-    <div class="tree trash-tree">${list.length?list.map(row).join(''):`<div class="tree-empty">Koš je prázdný.<br>Smazané stránky tu zůstanou 7 dní.</div>`}</div>`;
+    <div class="tree trash-tree">${list.length?list.map(row).join(''):`<div class="tree-empty">Koš je prázdný.</div>`}</div>`;
 }
 const TRASH_IC='<svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6 7l1 12.2a2 2 0 0 0 2 1.8h6a2 2 0 0 0 2-1.8L18 7"/><path d="M10 11v6M14 11v6"/></svg>';
 
@@ -82,15 +83,18 @@ function renderTrashView(id){
   const pg=t.pages[0], n=t.pages.length-1;
   const blocks=renderBlocks(pg).replace(/contenteditable="true"/g,'contenteditable="false"');
   $('#view').innerHTML=`<article class="doc ro-doc ${pg.wide?'wide':''}">
-    <div class="arch-note tr-note">V koši, smaže se za ${leftLong(t)}.${n?` Obsahuje ${n} ${plural(n,'podstránku','podstránky','podstránek')}.`:''} <button class="linkbtn" data-act="trash-restore" data-id="${esc(id)}">Obnovit</button></div>
+    <div class="pagebar"><div class="crumbs"><span>Koš</span><span>/</span><span>${esc(pg.icon||'')} ${esc(pTitle(pg))}</span></div>
+      <div class="pb-acts"><button class="ghost-btn" data-act="trash-restore" data-id="${esc(id)}">${IC.restore}Obnovit</button><span class="pb-sep"></span><button class="icon-btn lock-btn" data-act="lock"></button>${modeBtn()}</div></div>
+    <div class="arch-note tr-note">V koši, odstraní se za ${leftLong(t)}.${n?` Obsahuje ${n} ${plural(n,'podstránku','podstránky','podstránek')}.`:''}</div>
     <div class="doc-head"><div class="title-row">${pg.icon?`<span class="page-icon">${esc(pg.icon)}</span>`:''}<h1 class="page-title">${esc(pTitle(pg))}</h1></div></div>
     <div class="blocks ro-blocks" inert>${blocks}</div>
   </article>`;
+  applyLock();
   return true;
 }
 function askEmpty(anchor){
   const n=trashItems().length; if(!n||LOCK) return;
-  openPop(anchor,`<div class="pop-h">Vysypat koš?</div><p class="note" style="padding:0 10px 6px;max-width:240px">${n} ${plural(n,'položka se smaže','položky se smažou','položek se smaže')} natrvalo.</p><button class="pop-item danger" data-v="go"><span class="pi-ic">×</span>Vysypat koš</button>`,v=>{ if(v==='go') dropTrash(trashItems().map(t=>t.id)); });
+  openPop(anchor,`<div class="pop-h">Vysypat koš?</div><p class="note" style="padding:0 10px 6px;max-width:240px">${n} ${plural(n,'položka se odstraní','položky se odstraní','položek se odstraní')} natrvalo.</p><button class="pop-item danger" data-v="go"><span class="pi-ic">${IC.trash}</span>Vysypat koš</button>`,v=>{ if(v==='go') dropTrash(trashItems().map(t=>t.id)); });
 }
 function trashAct(act,a){
   const id=a.dataset.id;

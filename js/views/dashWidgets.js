@@ -1,7 +1,7 @@
 /* Úkolníček – Dnes: další widgety (Týden, Kalendář, Rychlý úkol, Studium, Stránka, Vzhled, Zálohy).
    Každý widget je funkce (velikost s/m/l, kontext ctxNow z today.js, id widgetu, nastavení o) → {title, sub, btn, body}.
    Stav, který se neukládá (vybraný den, posun měsíce/týdne), drží DW_UI podle id widgetu. */
-import { $, DAYS, DAYS_FULL, esc, lsGet, lsSet, plain, plural } from '../core.js';
+import { $, DAYS, DAYS_FULL, esc, IC, lsGet, lsSet, plain, plural } from '../core.js';
 import { S } from '../state.js';
 import { applySkin, fontOf, FONTS, isDarkNow, setFont, setSkin, skinOf, SKINS } from '../theme.js';
 import { DATA_REV, isDirty, META, savePage, saveSettings } from '../store.js';
@@ -16,7 +16,7 @@ import { toast } from '../ui.js';
 import { evColor, evTitle } from './schedule.js';
 import { fmtAvg, fmtNum, gradeChip, GRADES, partsOpen, subjCr, subjDone, subjMax, subjPoints, wavg } from './subjects.js';
 import { allTasks, taskRow } from './tasks.js';
-import { applyFontScale, applyTheme, exportData, FS_STEPS, importFile, openSettings } from './settings.js';
+import { applyFontScale, applyTheme, exportData, FS_STEPS, fsVal, importFile, openSettings } from './settings.js';
 import { Sync } from '../sync/sync.js';
 import { fmtSec, UpLog } from '../sync/uplog.js';
 
@@ -100,7 +100,7 @@ function wQuick(s,c,id,o){
   if(!pg) return {body:`<div class="qk-pick"><button class="btn" data-act="wg-opts" data-w="${esc(id)}">Vybrat stránku pro úkoly</button></div>`};
   /* řádek jako úkol ve stránce: čtvereček, pole, vpravo kam se úkol zapíše a ＋ */
   const where=`<button class="qk-pg" data-act="open" data-id="${pg.id}" title="Otevřít stránku">do: <span>${esc(pTitle(pg))}</span></button>`;
-  return {body:`<div class="qk"><span class="qk-box" aria-hidden="true"></span><input class="qk-in" data-w="${esc(id)}" data-p="${pg.id}" placeholder="Nový úkol…" aria-label="Nový úkol do stránky ${esc(pTitle(pg))}" enterkeyhint="done">${where}<button class="icon-btn qk-add" data-act="wg-qadd" data-w="${esc(id)}" aria-label="Přidat úkol" title="Přidat (Enter)">＋</button></div>`};
+  return {body:`<div class="qk"><span class="qk-box" aria-hidden="true"></span><input class="qk-in" data-w="${esc(id)}" data-p="${pg.id}" placeholder="Nový úkol…" aria-label="Nový úkol do stránky ${esc(pTitle(pg))}" enterkeyhint="done">${where}<button class="icon-btn qk-add" data-act="wg-qadd" data-w="${esc(id)}" aria-label="Přidat úkol" title="Přidat (Enter)">${IC.plus}</button></div>`};
 }
 function quickAdd(id){
   const inp=$(`.wg[data-wg="${id}"] .qk-in`); if(!inp) return;
@@ -129,7 +129,7 @@ function dwAgo(ts){
 const dwNum=v=>{ const n=parseFloat(String(v??'').replace(',','.')); return isFinite(n)?n:0; };
 function wStudy(s,c,id,o){
   const sems=semList(), sem=(o&&o.sem&&S.semesters[o.sem])||sems.find(x=>!x.hidden)||sems[0];
-  if(!sem) return {title:'Studium',body:`<div class="empty">V Indexu zatím není semestr. <button class="linkbtn" data-act="nav" data-v="index">Otevřít Index</button></div>`};
+  if(!sem) return {title:'Studium',body:`<div class="empty">Zatím žádný semestr. <button class="linkbtn" data-act="nav" data-v="index">Otevřít Index</button></div>`};
   const list=subjsOf(sem.id), got=list.filter(subjDone).reduce((a,su)=>a+subjCr(su),0), enr=list.reduce((a,su)=>a+subjCr(su),0), target=dwNum(sem.target)||enr, av=wavg(list);
   const pct=target?Math.min(100,Math.round(got/target*100)):0, eMin=GRADES.find(g=>g[0]==='E')[1];
   const left=list.filter(su=>!subjDone(su)).length;
@@ -146,7 +146,7 @@ function wStudy(s,c,id,o){
   }
   const rows=list.map(su=>{ const p=subjPoints(su), mx=subjMax(su);
     return `<tr data-act="wg-subj" data-id="${su.id}"><td><span class="ti-dot hl-${esc(su.color||'purple')}"></span>${esc(subjLabel(su))}</td><td class="num">${su.end==='z'?'':p==null?'–':`${fmtNum(p)}${mx?` / ${fmtNum(mx)}`:''}`}</td><td>${gradeChip(su)}</td><td class="num">${fmtNum(subjCr(su))} kr.</td><td class="num">${subjDone(su)?'✓':''}</td></tr>`; }).join('');
-  return {title,sub:esc(sem.name||''),btn:ibtn,body:head+(list.length?`<div class="st-tw"><table class="st-tab"><thead><tr><th>Předmět</th><th class="num">Body</th><th>Známka</th><th class="num">Kredity</th><th class="num">Splněno</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="empty">V semestru zatím nejsou předměty.</div>')};
+  return {title,sub:esc(sem.name||''),btn:ibtn,body:head+(list.length?`<div class="st-tw"><table class="st-tab"><thead><tr><th>Předmět</th><th class="num">Body</th><th>Známka</th><th class="num">Kredity</th><th class="num">Splněno</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="empty">Zatím žádné předměty.</div>')};
 }
 
 /* ================= Stránka (náhled) ================= */
@@ -175,11 +175,11 @@ function dwPreview(pg,max){
     if(n>=max) return out+`<button class="wg-more linkbtn" data-act="open" data-id="${pg.id}">Pokračovat na stránce…</button>`;
     out+=r; n++;
   }
-  return out||'<div class="empty">Stránka je prázdná.</div>';
+  return out||'<div class="empty">Prázdná stránka.</div>';
 }
 function wPage(s,c,id,o){
   const pg=dwPageOk(o&&o.page);
-  if(!pg) return {title:'Stránka',body:dwPickMsg(id,'Vyber stránku, kterou tu chceš mít.')};
+  if(!pg) return {title:'Stránka',body:dwPickMsg(id,'Žádná stránka.')};
   const ts=allTasks().filter(t=>t.pg.id===pg.id), dn=ts.filter(t=>t.done).length;
   const btn=`<button class="btn" data-act="open" data-id="${pg.id}">Otevřít</button>`;
   if(s==='s') return {title:`${pg.icon?pg.icon+' ':''}${pTitle(pg)}`,btn,body:`<button class="st-sum" data-act="open" data-id="${pg.id}">${ts.length?`<div class="wg-stat"><b>${dwCount(ts.length-dn,'úkol zbývá','úkoly zbývají','úkolů zbývá')}</b></div>`:''}<div class="wg-sub">upraveno ${esc(dwAgo(pg.updated)||'–')}</div></button>`};
@@ -187,16 +187,17 @@ function wPage(s,c,id,o){
 }
 
 /* ================= Vzhled: motiv, den/noc, velikost textu ================= */
+/* stejné názvy jako v Nastavení → Vzhled */
 const LK_MODES=[['auto','Auto'],['light','Světlý'],['dark','Tmavý']];
 const lkSeg=(k,list,cur)=>`<div class="seg lk-seg">${list.map(([v,l])=>`<button class="${String(v)===String(cur)?'on':''}" data-act="wg-do" data-v="${k}:${v}" aria-pressed="${String(v)===String(cur)}">${l}</button>`).join('')}</div>`;
 function wLook(s){
-  const skin=skinOf(), font=fontOf(), mode=lsGet('uk-theme','auto'), f=+lsGet('uk-fs',1), fs=FS_STEPS.includes(f)?f:1;
+  const skin=skinOf(), font=fontOf(), mode=lsGet('uk-theme','auto'), fs=fsVal();
   const skNm=SKINS.find(x=>x[0]===skin)[1], foNm=FONTS.find(x=>x[0]===font)[1];
   /* malý (poloviční): čtyři tlačítka, klik přepne na další možnost */
   if(s==='s'){
     const q=(k,l,v,t)=>`<button class="lk-q" data-act="wg-do" data-v="cyc:${k}" title="${esc(t)}" aria-label="${esc(t)}"><span>${l}</span><b>${esc(v)}</b></button>`;
     const dk=isDarkNow();
-    return {body:`<div class="lk-four">${q('skin','Motiv',skNm,`Motiv: ${skNm}, klikem další`)}${q('font','Písmo',font==='auto'?'podle motivu':foNm,`Písmo: ${foNm}, klikem další`)}${q('mode','Režim',dk?'Tmavý':'Světlý',dk?'Tmavý režim, přepnout na světlý':'Světlý režim, přepnout na tmavý')}${q('fs','Text',`${Math.round(fs*100)} %`,`Velikost textu ${Math.round(fs*100)} %, klikem další`)}</div>`};
+    return {body:`<div class="lk-four">${q('skin','Motiv',skNm,`Motiv: ${skNm}, klikem další`)}${q('font','Písmo',foNm,`Písmo: ${foNm}, klikem další`)}${q('mode','Režim',dk?'Tmavý':'Světlý',dk?'Tmavý režim, přepnout na světlý':'Světlý režim, přepnout na tmavý')}${q('fs','Text',`${Math.round(fs*100)} %`,`Velikost textu ${Math.round(fs*100)} %, klikem další`)}</div>`};
   }
   const skins=`<div class="lk-skins">${SKINS.map(([id,nm])=>`<button class="lk-skin ${id===skin?'on':''}" data-act="wg-do" data-v="skin:${id}" title="${nm}" aria-label="Motiv ${nm}" aria-pressed="${id===skin}"><span class="skin-sw" data-sk="${id}" aria-hidden="true"><b>Aa</b><i></i><i></i><i></i></span></button>`).join('')}</div>`;
   const fonts=`<div class="lk-fonts">${FONTS.map(([id,nm])=>`<button class="lk-fnt ${id===font?'on':''}" data-act="wg-do" data-v="font:${id}" title="${nm}" aria-label="Písmo ${nm}" aria-pressed="${id===font}">${id==='auto'?'<small>Auto</small>':`<b data-fnt="${id}">Aa</b>`}</button>`).join('')}</div>`;
@@ -230,7 +231,7 @@ function wData(s){
   let list='';
   if(ds==='ok'){
     if(!dzBusy&&(!dzAt||Date.now()-dzAt>6e5||(META.lastUpload||0)>dzAt)) dzLoad();
-    list=dzFiles==null?'<div class="empty">Načítám…</div>':dzFiles.length?dzFiles.slice(0,6).map(f=>`<button class="dz-v" data-act="wg-do" data-v="dl"><span>${esc(fmtTime(Date.parse(f.createdTime)))}</span><small>${UpLog.durOf(f)?`<span class="dz-dv">${fmtSec(UpLog.durOf(f))}</span>`:''}${f.size?Math.max(1,Math.round(f.size/1024))+' kB':''}</small></button>`).join(''):'<div class="empty">Na Disku nic není.</div>';
+    list=dzFiles==null?'<div class="empty">Načítání…</div>':dzFiles.length?dzFiles.slice(0,6).map(f=>`<button class="dz-v" data-act="wg-do" data-v="dl"><span>${esc(fmtTime(Date.parse(f.createdTime)))}</span><small>${UpLog.durOf(f)?`<span class="dz-dv">${fmtSec(UpLog.durOf(f))}</span>`:''}${f.size?Math.max(1,Math.round(f.size/1024))+' kB':''}</small></button>`).join(''):'<div class="empty">Na Disku nic.</div>';
   }
   return {title:'Zálohy',body:`<div class="dz-cols"><div>${main}${dur}</div><div class="dz-list"><div class="wg-grp">Na Disku</div>${list||'<div class="empty">Disk nepřipojen.</div>'}</div></div>`};
 }
@@ -245,7 +246,7 @@ document.addEventListener('scroll',e=>{ const el=e.target; if(!el||!el.classList
   upScroll=el.scrollLeft+el.clientWidth>=el.scrollWidth-4?null:el.scrollLeft; },true);
 function wUploads(s){
   const title='Nahrávání na Disk';
-  if(!upReady){ UpLog.load().then(()=>{ upReady=true; if(S.view.kind==='today') renderMain(); }); return {title,body:'<div class="empty">Načítám…</div>'}; }
+  if(!upReady){ UpLog.load().then(()=>{ upReady=true; if(S.view.kind==='today') renderMain(); }); return {title,body:'<div class="empty">Načítání…</div>'}; }
   const all=UpLog.all();
   if(!all.length) return {title,body:'<div class="empty">Zatím nic nenahráno.</div>'};
   const big=s==='l', list=all.slice(-(big?UP_MAX:UP_M)), n=list.length;
@@ -278,7 +279,7 @@ function wgDo(a){
     if(v==='skin'){ setSkin(nx(SKINS.map(x=>x[0]),skinOf())); saveSettings(); applySkin(); }
     else if(v==='font'){ setFont(nx(FONTS.map(x=>x[0]),fontOf())); saveSettings(); applySkin(); }
     else if(v==='mode'){ lsSet('uk-theme',isDarkNow()?'light':'dark'); applyTheme(); }
-    else if(v==='fs'){ const f=+lsGet('uk-fs',1); lsSet('uk-fs',nx(FS_STEPS,FS_STEPS.includes(f)?f:1)); applyFontScale(); }
+    else if(v==='fs'){ lsSet('uk-fs',nx(FS_STEPS,fsVal())); applyFontScale(); }
     renderMain();
   }
   else if(k==='mode'){ lsSet('uk-theme',v); applyTheme(); renderMain(); }

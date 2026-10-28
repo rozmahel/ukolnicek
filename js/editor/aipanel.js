@@ -7,7 +7,7 @@
    Konverzace se neukládá a na jiné stránce začne znovu. Otevření a šířka panelu jen v zařízení (uk-aip, uk-aip-w).
    AIQ = {pgId, msgs:[{role:'user'|'ai', text, raw, state, err, chg}], ctrl, sel:[ID]|null, last:ID|null, min}
    chg = {list:[{k, op:'set'|'add'|'del', id, b, old, txt, off, el}], cut, bad, state:'wait'|'done'|'drop'} */
-import { $, clamp, clone, esc, lsGet, lsSet, plain, plural, simpleUi, TEXT_TYPES } from '../core.js';
+import { $, clamp, clone, esc, IC, lsGet, lsSet, plain, plural, simpleUi, TEXT_TYPES } from '../core.js';
 import { S } from '../state.js';
 import { LOCK } from '../lock.js';
 import { savePage } from '../store.js';
@@ -127,7 +127,7 @@ const aipPending=()=>AIQ&&AIQ.msgs.map(m=>m.chg).find(c=>c&&c.state==='wait');
 function aipChgEl(c,pg){
   const d=document.createElement('div'); d.className='aip-chg op-'+c.op; d.contentEditable='false'; d.dataset.k=c.k;
   let inner='';
-  if(c.op==='del') inner='<span class="aip-lbl">Smaže se</span>';
+  if(c.op==='del') inner='<span class="aip-lbl">Odstraní se</span>';
   else { const i=c.op==='set'?pg.blocks.findIndex(b=>b.id===c.id):0, bl=c.op==='set'?pg.blocks.map(b=>b.id===c.id?c.b:b):[c.b];
     inner='<div class="aip-blk" inert>'+renderBlock(c.b,Math.max(0,i),bl).replace(/ contenteditable="true"/g,'').replace(/ draggable="true"/g,'')+'</div>'; }
   d.innerHTML=inner+`<button type="button" class="aip-x aip-ic" data-aipx="${c.k}" title="Odmítnout tuto změnu" aria-label="Odmítnout tuto změnu">${AIP_X}</button>`;
@@ -160,14 +160,14 @@ function aipPlace(){
 /* ---- panel ---- */
 function aipBuild(){
   el=document.createElement('aside'); el.className='aip'; el.id='aip'; el.setAttribute('aria-label','AI');
-  el.innerHTML=`<div class="aip-grip" title="Táhni pro změnu šířky"></div>
-    <div class="aip-head"><span class="aip-t"><span class="ai-ic" aria-hidden="true">✦</span><span class="aip-pt"></span></span><select class="aip-pm" aria-label="Model" hidden></select>
-      <button type="button" class="icon-btn aip-mx" data-aip="min" aria-label="Zobrazit stránku" title="Zobrazit stránku">▾</button><button type="button" class="icon-btn aip-ic" data-aip="close" aria-label="Zavřít" title="Zavřít">${AIP_X}</button></div>
+  el.innerHTML=`<div class="aip-grip" title="Tažením se mění šířka"></div>
+    <div class="aip-head"><span class="aip-t"><span class="ai-ic" aria-hidden="true">${IC.spark}</span><span class="aip-pt"></span></span><select class="aip-pm" aria-label="Model" hidden></select>
+      <button type="button" class="icon-btn aip-mx" data-aip="min" aria-label="Zobrazit stránku" title="Zobrazit stránku">${IC.chevD}</button><button type="button" class="icon-btn aip-ic" data-aip="close" aria-label="Zavřít" title="Zavřít">${AIP_X}</button></div>
     <div class="aip-ctx"><textarea class="aip-cta" rows="1" maxlength="${AI_CTX_MAX}" placeholder="Kontext, např. Jsi odborník na stavební materiály." aria-label="Kontext pro AI"></textarea><div class="aip-cn"></div></div>
     <div class="aip-sel" hidden></div>
     <div class="aip-log" aria-live="polite"></div>
     <div class="aip-ed" hidden></div>
-    <form class="aip-in"><div class="aip-qw"><textarea class="aip-q" rows="1" aria-label="Zpráva pro AI" enterkeyhint="send"></textarea><span class="aip-ph" aria-hidden="true">Zeptej se, nebo napiš, co změnit…</span></div><button type="submit" class="aip-send" aria-label="Odeslat" title="Odeslat (Enter)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5"/><path d="m6 11 6-6 6 6"/></svg></button></form>`;
+    <form class="aip-in"><div class="aip-qw"><textarea class="aip-q" rows="1" aria-label="Zpráva pro AI" enterkeyhint="send"></textarea><span class="aip-ph" aria-hidden="true">Otázka nebo co změnit…</span></div><button type="submit" class="aip-send" aria-label="Odeslat" title="Odeslat (Enter)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5"/><path d="m6 11 6-6 6 6"/></svg></button></form>`;
   $('#app').appendChild(el);
   const app=$('#app'); app.style.setProperty('--aip-w',clamp(+lsGet('uk-aip-w',360)||360,280,720)+'px');
   el.addEventListener('click',aipClick);
@@ -253,7 +253,7 @@ function aipLog(){
     else if(ch&&!ch.list.length) st='Žádná platná změna.';
     if(m.state==='done'&&m.text&&!ch) acts=`<div class="aip-acts"><button type="button" data-aip="ins" data-i="${i}" data-lock>Vložit pod</button><button type="button" data-aip="copy" data-i="${i}">Kopírovat</button></div>`;
     return `<div class="aip-m a">${m.text?`<div class="aip-md">${aipMd(m.text)}</div>`:''}${st?`<div class="aip-st">${st}</div>`:''}${acts}</div>`;
-  }).join(''):'<div class="aip-empty">Vidím celou stránku. Zeptej se na ni, nebo napiš, co v ní změnit.</div>';
+  }).join(''):'<div class="aip-empty">Vidím celou stránku. Stačí se zeptat nebo napsat, co v ní změnit.</div>';
   if(end) log.scrollTop=log.scrollHeight;
 }
 function aipEd(){
@@ -263,7 +263,7 @@ function aipEd(){
   const on=ch.list.filter(c=>!c.off).length;
   const row=c=>{ const t=plain((c.op==='del'?JSON.parse(c.old):c.b).html||'').trim()||'(prázdný řádek)';
     return `<div class="aip-r${c.off?' off':''}" data-aip="go" data-k="${c.k}"><span class="aip-op">${c.op==='add'?'+':c.op==='del'?'−':'✎'}</span><span class="aip-rt">${esc(t.slice(0,70))}</span>${c.txt?'<span class="aip-tag" title="Mění i text, ne jen formátování">text</span>':''}${c.hidden?'<span class="aip-tag">skryté</span>':''}<button type="button" class="aip-rx aip-ic" data-aipx="${c.k}" aria-label="${c.off?'Vrátit změnu':'Odmítnout změnu'}" title="${c.off?'Vrátit':'Odmítnout'}">${c.off?AIP_UNDO:AIP_X}</button></div>`; };
-  box.innerHTML=`<div class="aip-eh"><b>Změní ${on} ${aipBlk(on)}</b><span class="sp"></span><button type="button" class="pri" data-aip="apply" data-lock${on?'':' disabled'} title="⌘↵">Použít</button><button type="button" data-aip="drop">Zrušit</button><button type="button" class="aip-mx" data-aip="min">${AIQ.min?'Chat':'Stránka'}</button></div>`
+  box.innerHTML=`<div class="aip-eh"><b>Změní ${on} ${aipBlk(on)}</b><span class="sp"></span><button type="button" class="pri" data-aip="apply" data-lock${on?'':' disabled'} title="⌘↵">Použít</button><button type="button" data-aip="drop">Zavřít</button><button type="button" class="aip-mx" data-aip="min">${AIQ.min?'Chat':'Stránka'}</button></div>`
     +(ch.cut?'<div class="aip-note">Odpověď je useknutá, část změn chybí.</div>':'')+(ch.bad?`<div class="aip-note">${ch.bad} ${plural(ch.bad,'návrh nešel','návrhy nešly','návrhů nešlo')} použít.</div>`:'')
     +`<div class="aip-rs">${ch.list.map(row).join('')}</div>`;
 }
@@ -302,7 +302,7 @@ async function aipSend(again){
   if(again!=null) AIQ.msgs.splice(again-1);
   const ser=aipSerialize(pg), allow=AIQ.sel&&AIQ.sel.length?AIQ.sel.filter(id=>ser.vis.has(id)):null;
   const prov=PM&&aiConfigured().includes(PM.id)?PM.id:aiDefault(), max=aiMaxChars(prov);
-  if(ser.text.length>max-6000){ toast(allow?'Stránka je na AI moc dlouhá.':'Stránka je na AI moc dlouhá. Vyber jen část stránky.'); return; }
+  if(ser.text.length>max-6000){ toast(allow?'Stránka je na AI moc dlouhá.':'Stránka je na AI moc dlouhá, pomůže vybrat jen její část.'); return; }
   /* předchozí výměny (bez textu stránky, ten jde jen s posledním dotazem) */
   const hist=[]; AIQ.msgs.forEach((m,i)=>{ const a=AIQ.msgs[i+1];
     if(m.role==='user'&&a&&a.role==='ai'&&a.state==='done'){ const ch=a.chg, n=ch?ch.list.length:0;
@@ -343,7 +343,7 @@ function aipApply(){
   const on=ch.list.filter(c=>{ if(c.off) return false;
     if(c.op==='add') return c.id==='^'||!!now(c.id);
     const b=now(c.id); if(!b||JSON.stringify(b)!==c.old){ skip++; return false; } return true; });
-  if(!on.length){ if(skip) toast('Text se mezitím změnil. Zkus to znovu.'); return; }
+  if(!on.length){ if(skip) toast('Text se mezitím změnil. Stačí to zkusit znovu.'); return; }
   on.filter(c=>c.op==='set').forEach(c=>{ const i=pg.blocks.findIndex(b=>b.id===c.id); pg.blocks[i]=clone(c.b); });
   const adds=new Map(); on.filter(c=>c.op==='add').forEach(c=>{ if(!adds.has(c.id)) adds.set(c.id,[]); adds.get(c.id).push(clone(c.b)); });
   /* za sbalený nadpis se vkládá až za jeho skryté bloky */

@@ -15,9 +15,9 @@ import { aiLog } from './ai/stats.js';
 
 const AI_PROVIDERS={gemini:GEMINI,anthropic:ANTHROPIC};
 const AI_ORDER=['gemini','anthropic'];
-const AI_ERR={none:'AI není nastavená. Přidej klíč v Nastavení → AI.',key:'Neplatný API klíč. Zkontroluj ho v Nastavení → AI.',credit:'Došel kredit u poskytovatele.',
-  limit:'Limit na dnes vyčerpán.',model:'Model neexistuje. Vyber jiný v Nastavení → AI.',net:'Bez spojení s poskytovatelem. Zkus to znovu.',
-  busy:'Poskytovatel je přetížený. Zkus to za chvíli.',blocked:'Poskytovatel odpověď zablokoval.',long:'Text je na AI moc dlouhý.',empty:'AI nevrátila žádný text.',other:'Nepovedlo se.'};
+const AI_ERR={none:'AI není nastavená. Klíč se přidává v Nastavení → AI.',key:'Neplatný API klíč (Nastavení → AI).',credit:'Došel kredit u poskytovatele.',
+  limit:'Limit na dnes vyčerpán.',model:'Model neexistuje. Jiný se vybírá v Nastavení → AI.',net:'Bez spojení s poskytovatelem. Stačí to zkusit znovu.',
+  busy:'Poskytovatel je přetížený. Stačí to zkusit za chvíli.',blocked:'Poskytovatel odpověď zablokoval.',long:'Text je na AI moc dlouhý.',empty:'AI nevrátila žádný text.',other:'Nepovedlo se.'};
 const aiErrText=e=>AI_ERR[e&&e.code]||AI_ERR.other;
 
 const aiCfg=()=>S.settings.ai||{};

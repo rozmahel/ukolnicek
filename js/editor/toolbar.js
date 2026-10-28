@@ -1,5 +1,5 @@
 /* Úkolníček – Lišta formátování nad označeným textem a lišta typu řádku v buňce */
-import { $, $$, clamp, COLOR_CZ, COLORS } from '../core.js';
+import { $, $$, clamp, COLOR_CZ, COLORS, IC } from '../core.js';
 import { savePage } from '../store.js';
 import { unwrap } from '../sanitize.js';
 import { caretOffset, focusLine } from './caret.js';
@@ -11,6 +11,7 @@ import { hideImgSel, imgSel, pickImageInline, placeFrame } from './images.js';
 import { aiUsable } from '../ai.js';
 import { aiCapture, aiMenu } from './aiedit.js';
 import { eqFromSelection } from './math.js';
+import { fmtCrossBar } from './multisel.js';
 
 /* ---- format toolbar ---- */
 const fmt=$('#fmt');
@@ -35,10 +36,10 @@ function updateFmt(){
   const s=getSelection();
   if(!s.rangeCount||s.isCollapsed){ hideFmt(); return; }
   const n=s.anchorNode; const el=n&&(n.nodeType===1?n:n.parentElement); const host=el&&el.closest('.txt');
-  /* výběr přes víc bloků: jen ✦ (formátování jde jen v jednom bloku) */
+  /* výběr přes víc bloků: celá lišta kromě odkazu a rovnice (ty patří do jednoho bloku) */
   const multi=!!host&&document.body.classList.contains('xsel')&&!!host.closest('#blocks')&&!host.contains(s.focusNode);
-  if(!host||!host.closest('#doc')||(!multi&&(host.closest('.b-code')||!host.contains(s.focusNode)))||(multi&&!aiUsable())){ hideFmt(); return; }
-  fmt.classList.toggle('only-ai',multi); fmt.classList.toggle('no-ai',!aiUsable());
+  if(!host||!host.closest('#doc')||(!multi&&(host.closest('.b-code')||!host.contains(s.focusNode)))){ hideFmt(); return; }
+  fmt.classList.toggle('multi',multi); fmt.classList.toggle('no-ai',!aiUsable());
   const rc=s.getRangeAt(0).getBoundingClientRect(); if(!rc.width&&!rc.height){ hideFmt(); return; }
   fmt.hidden=false; hideCellbar();
   const w=fmt.offsetWidth,h=fmt.offsetHeight;
@@ -47,7 +48,7 @@ function updateFmt(){
     const back=selBack(s), fr=selEndRect(s,back)||rc;
     let top=back?fr.top-h-6:fr.bottom+6;
     if(top+h>innerHeight-8) top=fr.top-h-6; if(top<8) top=fr.bottom+6;
-    fmt.style.left=clamp(multi?fr.right+2:fr.left-14,8,innerWidth-w-8)+'px'; fmt.style.top=top+'px';
+    fmt.style.left=clamp(fr.left-14,8,innerWidth-w-8)+'px'; fmt.style.top=top+'px';
     return;
   }
   fmt.style.left=clamp(rc.left+rc.width/2-w/2,8,innerWidth-w-8)+'px';
@@ -95,7 +96,9 @@ function hideCellbar(){ cellbar.hidden=true; cellTarget=null; }
 
 /* posluchače a nastavení při startu (volá main.js ve stejném pořadí jako dřív) */
 export function initToolbar(){
-  fmt.innerHTML=`<button data-f="ai" class="fmt-ai" aria-label="AI" title="AI: opravit, přeformulovat, shrnout…">✦</button><span class="sep fmt-ai"></span><button data-f="bold" aria-label="Tučně"><b>B</b></button><button data-f="italic" aria-label="Kurzíva"><i>I</i></button><button data-f="underline" aria-label="Podtržení"><u>U</u></button><button data-f="strikeThrough" aria-label="Přeškrtnutí"><s>S</s></button><button data-f="link" aria-label="Odkaz" title="Udělat z textu odkaz">🔗</button><button data-f="eq" aria-label="Rovnice" title="Udělat z textu rovnici (LaTeX, ⌘⇧E)">∑</button><span class="sep"></span>${COLORS.map(c=>`<button class="sw hl-${c}" data-f="hl-${c}" aria-label="Zvýraznit: ${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}<span class="sep"></span><button data-f="clear" aria-label="Zrušit formátování" title="Zrušit formátování">⌫</button>`;
+  /* lišta buňky (od 4.20.0): jen ikony, název v bublině */
+  cellbar.innerHTML=[['p',IC.textT,'Text'],['bullet',IC.bullets,'Odrážka'],['todo',IC.todo,'Úkol'],['img',IC.image,'Obrázek'],['link',IC.link,'Odkaz']].map(([k,ic,t])=>`<button data-lt="${k}" title="${t}" aria-label="${t}">${ic}</button>`).join('');
+  fmt.innerHTML=`<button data-f="ai" class="fmt-ai" aria-label="AI" title="AI: opravit, přeformulovat, shrnout…">${IC.spark}</button><span class="sep fmt-ai"></span><button data-f="bold" aria-label="Tučně"><b>B</b></button><button data-f="italic" aria-label="Kurzíva"><i>I</i></button><button data-f="underline" aria-label="Podtržení"><u>U</u></button><button data-f="strikeThrough" aria-label="Přeškrtnutí"><s>S</s></button><button data-f="link" aria-label="Odkaz" title="Udělat z textu odkaz">${IC.link}</button><button data-f="eq" aria-label="Rovnice" title="Udělat z textu rovnici (LaTeX, ⌘⇧E)">∑</button><span class="sep"></span>${COLORS.map(c=>`<button class="sw hl-${c}" data-f="hl-${c}" aria-label="Zvýraznit: ${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}<span class="sep"></span><button data-f="clear" aria-label="Zrušit formátování" title="Zrušit formátování">⌫</button>`;
   fmt.addEventListener('mousedown',e=>e.preventDefault());
   fmt.addEventListener('click',e=>{
     const b=e.target.closest('[data-f]'); if(!b) return; const f=b.dataset.f;
@@ -106,6 +109,12 @@ export function initToolbar(){
     }
     if(f==='link'){ const s=getSelection(); if(!s.rangeCount) return; const r=s.getRangeAt(0); const n=r.commonAncestorContainer; const host=(n.nodeType===1?n:n.parentElement).closest('.txt'); if(host){ hideFmt(); openLinkDialog(host,r.cloneRange(),true); } return; }
     if(f==='eq'){ hideFmt(); eqFromSelection(); return; }
+    if(fmt.classList.contains('multi')){
+      if(f.startsWith('hl-')) fmtCrossBar(null,()=>applyMark(f));
+      else if(f==='clear') fmtCrossBar(null,()=>{ document.execCommand('removeFormat'); applyMark(null); });
+      else fmtCrossBar(f);
+      updateFmt(); return;
+    }
     if(f.startsWith('hl-')) applyMark(f);
     else if(f==='clear'){ document.execCommand('removeFormat'); applyMark(null); }
     else document.execCommand(f);

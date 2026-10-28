@@ -10,10 +10,9 @@ import { createPage, curPage, emptyCell, newBlock, pTitle, revealBlock, unarchiv
 import { gotoSubject, isSchool } from './school.js';
 import { isBlank } from './sanitize.js';
 import { focusBlock, focusEl, focusLine } from './editor/caret.js';
-import { closeSide, initSideMini, initTreeDrag, openProjPop, openSide, renderSidebar, toggleSideMini } from './sidebar.js';
+import { closeSide, initSideMini, initTreeDrag, openSide, renderSidebar, sideProjClick, toggleSideMini } from './sidebar.js';
 import { go, renderMain } from './router.js';
 import { ctxOf, hiddenMask, isHeading, keepVisible, renderPage, rerenderBlocks, rerenderProps, sectionEnd } from './editor/render.js';
-import { applyTemplate } from './editor/blocks.js';
 import { openSlash, slash } from './editor/slash.js';
 import { initEvents } from './editor/events.js';
 import { initToolbar } from './editor/toolbar.js';
@@ -51,8 +50,10 @@ initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings
 let lastPt='mouse';
 document.addEventListener('pointerdown',e=>{ lastPt=e.pointerType||'mouse'; },true);
 document.addEventListener('contextmenu',e=>{
-  const im=e.target.closest&&e.target.closest('#blocks > .blk .bimg'); if(!im) return;
   if((e.pointerType||lastPt)!=='mouse') return;
+  /* obrázek v textu nebo v buňce (od 4.20.0): nabídka u obrázku */
+  const ii=e.target.closest&&e.target.closest('#doc .txt img.im'); if(ii){ e.preventDefault(); selectImage(ii); return; }
+  const im=e.target.closest&&e.target.closest('#blocks > .blk .bimg'); if(!im) return;
   const x=ctxOf(im); if(!x||x.b.type!=='image') return;
   e.preventDefault(); hideImgSel();
   openBlockMenu(im,x.pg,x.b,{rect:{left:e.clientX,right:e.clientX,top:e.clientY,bottom:e.clientY},follow:im.closest('#blocks > .blk')});
@@ -81,7 +82,8 @@ document.addEventListener('click',e=>{
     if(e.metaKey||e.ctrlKey){ window.open(lk.href,'_blank','noopener'); return; }
     openLinkPop(lk); return;
   }
-  const im=e.target.closest&&e.target.closest('#doc .txt img.im, #doc .bimg'); if(im){ selectImage(im); return; }
+  /* klik myší = jen rámeček pro roztažení (nabídka je v ⋮⋮ a na pravém tlačítku, od 4.20.0); dotyk a pero nabídku otevřou rovnou */
+  const im=e.target.closest&&e.target.closest('#doc .txt img.im, #doc .bimg'); if(im){ selectImage(im,lastPt==='mouse'?'frame':false); return; }
   const eq=e.target.closest&&e.target.closest('#doc .eq, #doc .eqb'); if(eq){ openEqEditor(eq); return; }
   const col=e.target.classList&&e.target.classList.contains('sg-col')?e.target:null;
   if(col){
@@ -95,7 +97,7 @@ document.addEventListener('click',e=>{
   const a=e.target.closest('[data-act]'); if(!a) return;
   const act=a.dataset.act, pg=curPage();
   /* zamčeno: nic, co mění strukturu stránky */
-  if(LOCK&&['add-after','img-line','row-menu','col-menu','add-row','add-col','prop-add','prop-del','tpl'].includes(act)) return;
+  if(LOCK&&['add-after','img-line','row-menu','col-menu','add-row','add-col','prop-add','prop-del'].includes(act)) return;
   if(simpleUi()&&['row-menu','col-menu','add-row','add-col','source','mdexport','ai-ctx','subj','sem-edit'].includes(act)) return;   /* jednoduchý režim: tabulky jen psaní, bez zdroje, exportu, AI a nastavení předmětů */
   if(act.startsWith('trash')&&trashAct(act,a)) return;
   switch(act){
@@ -107,7 +109,7 @@ document.addEventListener('click',e=>{
     case 'mc-prev': S.calOffset--; renderSidebar(); break;
     case 'mc-next': S.calOffset++; renderSidebar(); break;
     case 'mc-now': S.calOffset=0; renderSidebar(); break;
-    case 'mc-day': { if(!isSchool()) break; const d=parseD(a.dataset.date); S.weekOffset=weeksBetween(new Date(),d); if(!S.settings.showWeekend&&(d.getDay()===0||d.getDay()===6)) toast('Víkend se v rozvrhu nezobrazuje. Zapneš ho v Nastavení.'); go({kind:'schedule'}); break; }
+    case 'mc-day': { if(!isSchool()) break; const d=parseD(a.dataset.date); S.weekOffset=weeksBetween(new Date(),d); if(!S.settings.showWeekend&&(d.getDay()===0||d.getDay()===6)) toast('Víkend se v rozvrhu nezobrazuje, zapíná se v Nastavení.'); go({kind:'schedule'}); break; }
     case 'ev-par': { const ev=S.events[a.dataset.id]; if(!ev) break; const d=parseD(a.dataset.date);
       openEventModal(null,{day:(d.getDay()+6)%7,date:ev.repeat==='count'?ev.date:a.dataset.date,start:ev.start,end:ev.end,repeat:ev.repeat,count:ev.count||4}); break; }
     case 'nav': go({kind:a.dataset.v}); break;
@@ -119,13 +121,12 @@ document.addEventListener('click',e=>{
     case 'settings': closeSide(); openSettings(); break;
     case 'open': go({kind:'page',pageId:a.dataset.id}); break;
     case 'side-mini': toggleSideMini(); break;
-    case 'side-proj': openProjPop(a); break;
+    case 'side-proj': sideProjClick(a); break;
     case 'tog': S.expanded[a.dataset.id]=S.expanded[a.dataset.id]===false; lsSet('uk-exp',S.expanded); renderSidebar(); break;
     case 'new-page': { const p=createPage(null); renderSidebar(); go({kind:'page',pageId:p.id}); setTimeout(()=>$('#page-title')&&$('#page-title').focus(),30); break; }
     case 'new-sub': { const p=createPage(a.dataset.id); renderSidebar(); go({kind:'page',pageId:p.id}); setTimeout(()=>$('#page-title')&&$('#page-title').focus(),30); break; }
     case 'page-menu': { const p=S.pages[a.dataset.id]; if(p) openPageMenu(a,p); break; }
     case 'icon': if(pg) openIconPop(a,pg); break;
-    case 'tpl': if(pg) applyTemplate(pg,a.dataset.v); break;
     case 'sync-menu': openSyncMenu(a); break;
     case 'sync-up': Sync.upload(); break;
     case 'sync-down': Sync.download(); break;
@@ -251,7 +252,7 @@ window.addEventListener('beforeunload',e=>{
   setTimeout(()=>{
     if(S.modal) return;
     const m=openModal('Neuložené změny',`<div class="m-body">
-      <p>V tomto zařízení máš změny, které nejsou na Disku${META.changedAt?' (poslední úprava '+esc(fmtTime(META.changedAt))+')':''}.</p>
+      <p>V tomto zařízení jsou změny, které nejsou na Disku${META.changedAt?' (poslední úprava '+esc(fmtTime(META.changedAt))+')':''}.</p>
       <div class="m-actions"><span class="sp"></span><button type="button" class="btn" data-close>Teď ne</button><button type="button" class="btn pri" id="lv-up">Nahrát na Disk</button></div></div>`);
     $('#lv-up',m).addEventListener('click',()=>{ closeModal(); Sync.upload(); });
   },300);

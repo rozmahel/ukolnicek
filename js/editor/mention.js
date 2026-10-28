@@ -1,7 +1,7 @@
 /* Úkolníček – Nabídka „@“ (datum, odkaz na stránku nebo předmět) a zpětné odkazy „Odkazuje sem“
    Odkaz v textu: <a class="mention" data-page="id"> nebo <a class="mention" data-subj="id">, text je kopie názvu
    (při vykreslení se obnoví podle aktuálního názvu). Datum se vloží jako text „12. 10.“, takže z úkolu hned je termín. */
-import { $, clamp, DAYS_FULL, esc, norm, plain } from '../core.js';
+import { $, clamp, DAYS_FULL, esc, IC, norm, plain } from '../core.js';
 import { S } from '../state.js';
 import { parseDue } from '../dates.js';
 import { flatPages, pIcon, pTitle } from '../pages.js';
@@ -59,10 +59,10 @@ function draw(){
   let h='', last='';
   men.list.forEach((it,i)=>{
     const g=HEAD[it.k]; if(g!==last){ h+=`<div class="pop-h">${g}</div>`; last=g; }
-    const ic=it.k==='page'?it.ic:it.k==='subj'?`<span class="ti-dot hl-${esc(it.color||'purple')}"></span>`:it.k==='pick'?'📅':'🗓';
+    const ic=it.k==='page'?it.ic:it.k==='subj'?`<span class="ti-dot hl-${esc(it.color||'purple')}"></span>`:IC.calendar;
     h+=`<button class="pop-item ${i===men.idx?'act':''}" data-i="${i}" role="option"><span class="pi-ic">${ic}</span><span>${esc(it.label)}<small>${esc(it.sub||'')}</small></span></button>`;
   });
-  p.innerHTML=h||'<div class="empty" style="padding:10px">Nic nenalezeno</div>';
+  p.innerHTML=h||'<div class="empty">Nic nenalezeno.</div>';
   const rc=caretRect()||men.el.getBoundingClientRect();
   placePop(p,{left:rc.left,right:rc.right,top:rc.top,bottom:rc.bottom});
   const act=p.querySelector('.act'); if(act) act.scrollIntoView({block:'nearest'});
@@ -90,7 +90,7 @@ function choose(it){
 function pickDate(el){
   const s=getSelection(), saved=s.rangeCount?s.getRangeAt(0).cloneRange():null;
   const m=openModal('Vybrat datum',`<form class="m-body" id="mdf"><div class="fld"><label for="md-d">Datum</label><input id="md-d" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
-    <div class="m-actions"><span class="sp"></span><button type="button" class="btn" data-close>Zrušit</button><button type="submit" class="btn pri">Vložit</button></div></form>`);
+    <div class="m-actions"><span class="sp"></span><button type="button" class="btn" data-close>Zavřít</button><button type="submit" class="btn pri">Vložit</button></div></form>`);
   setTimeout(()=>{ const i=$('#md-d',m); i.focus(); try{ i.showPicker(); }catch(_){} },30);
   $('#mdf',m).addEventListener('submit',e=>{
     e.preventDefault(); const v=$('#md-d',m).value; closeModal(); if(!v||!document.contains(el)) return;

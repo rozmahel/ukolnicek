@@ -2,7 +2,7 @@
    Každý blok je samostatné editovatelné pole a prohlížeč by výběr nepustil ven z bloku.
    Když myš při tažení přejede do jiného bloku, bloky se na chvíli přepnou na needitovatelné,
    výběr pak jde přes celou stránku. Při dalším kliknutí nebo psaní se vše vrátí. */
-import { $, $$, clamp, clone, esc, plain, rid, simpleUi, TEXT_TYPES, TYPE_ICON, TYPE_LABEL } from '../core.js';
+import { $, $$, clamp, clone, esc, IC, plain, rid, simpleUi, TEXT_TYPES, TYPE_ICON, TYPE_LABEL } from '../core.js';
 import { S } from '../state.js';
 import { LOCK } from '../lock.js';
 import { savePage } from '../store.js';
@@ -181,6 +181,20 @@ function fmtCross(range,cmd){
   });
   if(a&&z) try{ getSelection().setBaseAndExtent(a[0],a[1],z[0],z[1]); }catch(_){}
 }
+/* lišta formátu nad výběrem přes víc bloků: cmd = příkaz prohlížeče (přepíná jako ⌘B), jinak fn() nad každou vybranou částí */
+export function fmtCrossBar(cmd,fn){
+  const r=active&&curRange(); if(!r) return;
+  if(cmd){ fmtCross(r,cmd); return; }
+  const its=picked(r).filter(i=>i.part&&fmtOk(i.b)&&i.part.toString().trim()); if(!its.length) return;
+  const s=getSelection(); let a=null,z=null;
+  its.forEach(i=>{
+    i.t.setAttribute('contenteditable','true'); i.t.focus({preventScroll:true}); s.removeAllRanges(); s.addRange(i.part);
+    fn();
+    const q=s.rangeCount?s.getRangeAt(0):null; if(q){ if(!a) a=[q.startContainer,q.startOffset]; z=[q.endContainer,q.endOffset]; }
+    i.t.setAttribute('contenteditable','false');
+  });
+  if(a&&z) try{ s.setBaseAndExtent(a[0],a[1],z[0],z[1]); }catch(_){}
+}
 /* výběr celých bloků (i obsah sbalené sekce): formátuje se v pomocném poli mimo obrazovku, jedno uložení = jeden krok ⌘Z */
 function fmtBlocks(r,cmd){
   const bl=r.pg.blocks.slice(r.i0,r.i1+1).filter(b=>fmtOk(b)&&plain(b.html||'').trim()); if(!bl.length) return;
@@ -227,9 +241,11 @@ function clearBsel(){
 }
 function drawBar(r){
   const n=r.ids.length, cnt=n===1?'1 blok':n<5?`${n} bloky`:`${n} bloků`;
-  /* smazat vybrané bloky jde i se zámkem: výběr je záměrný a ⌘Z je vrátí */
-  bar.innerHTML=`<span class="bs-n">${cnt}</span>`+(aiUsable()?'<button data-b="ai" class="bs-ai" data-popanchor title="AI: opravit, přeformulovat, shrnout…">✦ AI</button>':'')+(LOCK?'':`<button data-b="type" data-popanchor>Převést na ▾</button><button data-b="dup" title="⌘D">Duplikovat</button>`)
-    +`<button data-b="copy" title="⌘C">Kopírovat</button><button data-b="del" class="danger" title="⌫">Smazat</button><button data-b="x" class="bs-x" aria-label="Zrušit výběr" title="Esc">×</button>`;
+  /* od 4.20.0: počet v kolečku a akce jen jako ikony (název v bublině); smazat vybrané bloky jde i se zámkem: výběr je záměrný a ⌘Z je vrátí */
+  const ib=(k,ic,t,x)=>`<button data-b="${k}"${x||''} title="${t}" aria-label="${t}">${ic}</button>`;
+  bar.innerHTML=`<span class="bs-n" title="Vybráno: ${cnt}" aria-label="Vybráno: ${cnt}"><i>${n}</i></span>`+(aiUsable()?ib('ai',IC.spark,'AI: opravit, přeformulovat, shrnout…',' class="bs-ai" data-popanchor'):'')
+    +(LOCK?'':ib('type',IC.textT,'Převést na',' data-popanchor')+ib('dup',IC.dup,'Duplikovat (⌘D)'))
+    +ib('copy',IC.clip,'Kopírovat (⌘C)')+ib('del',IC.trash,'Odstranit (⌫)',' class="danger"')+`<span class="bs-sep" aria-hidden="true"></span>`+ib('x',IC.x,'Zrušit výběr (Esc)',' class="bs-x"');
   bar.hidden=false; placeBar();
 }
 function placeBar(){
@@ -277,7 +293,7 @@ async function copyBlocks(r){ return copyItems(blockItems(r)); }
 async function copyItems(items){
   const c=toClipboard(items); rememberClip(items,c);
   try{ await navigator.clipboard.write([new ClipboardItem({'text/plain':new Blob([c.text],{type:'text/plain'}),'text/html':new Blob([c.html],{type:'text/html'})})]); }
-  catch(_){ try{ await navigator.clipboard.writeText(c.text); }catch(__){ return toast('Kopírování se nepovedlo. Zkus ⌘C.'); } }
+  catch(_){ try{ await navigator.clipboard.writeText(c.text); }catch(__){ return toast('Kopírování se nepovedlo, pomůže ⌘C.'); } }
   toast('Zkopírováno');
 }
 /* ⋮⋮ menu bloku: patří blok do výběru víc celých bloků? Pak se akce z menu použijí na všechny vybrané */

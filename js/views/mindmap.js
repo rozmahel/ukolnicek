@@ -4,7 +4,7 @@
    Čára {id, from, to, end: chybí = šipka | 'both' | 'none', color, label}; strany se volí samy podle polohy bloků.
    Posun a přiblížení (uk-mm-v) a otevřená mapa (uk-mm-cur) jsou jen v zařízení.
    Export/import: formát JSON Canvas (.canvas) z Obsidianu. */
-import { $, clamp, clone, downloadFile, EMOJI, esc, lsGet, lsSet, norm, plain, plural, rid, simpleUi } from '../core.js';
+import { $, clamp, clone, downloadFile, esc, IC, lsGet, lsSet, norm, plain, plural, rid, simpleUi } from '../core.js';
 import { S } from '../state.js';
 import { modeBtn } from '../theme.js';
 import { applyLock, LOCK } from '../lock.js';
@@ -186,7 +186,7 @@ function preview(li){
 function linkHead(li){
   if(!li) return '';
   if(li.gone) return `<span class="mm-ln gone">${li.pg?esc(pTitle(li.pg))+' › ':''}nenalezeno</span>`;
-  return `<span class="mm-ln" title="Otevřít">${pIcon(li.pg)}<span class="mm-lt">${esc(pTitle(li.pg))}${li.b?` <b>› ${esc(headText(li.b))}</b>`:''}</span><span class="mm-la" aria-hidden="true">↗</span></span>`;
+  return `<span class="mm-ln" title="Otevřít">${pIcon(li.pg)}<span class="mm-lt">${esc(pTitle(li.pg))}${li.b?` <b>› ${esc(headText(li.b))}</b>`:''}</span><span class="mm-la" aria-hidden="true">${IC.pageLink}</span></span>`;
 }
 function followLink(id){
   const n=node(id), li=n&&linkInfo(n);
@@ -209,9 +209,9 @@ function openLinkPicker(anchor,n){
     shown=(n.page?[{v:'none'}]:[]).concat(items.filter(it=>!nq||norm(it.t).includes(nq)||(it.b&&norm(pTitle(it.p)).includes(nq))));
     idx=clamp(idx,0,Math.max(0,shown.length-1));
     $('.sp-list',pop).innerHTML=shown.map((it,i)=>it.v==='none'
-      ?`<button class="pop-item sp-it danger${i===idx?' act':''}" data-v="none" role="option"><span class="pi-ic">×</span><span class="sp-t">Zrušit propojení</span></button>`
+      ?`<button class="pop-item sp-it danger${i===idx?' act':''}" data-v="none" role="option"><span class="pi-ic">${IC.x}</span><span class="sp-t">Zrušit propojení</span></button>`
       :`<button class="pop-item sp-it${i===idx?' act':''}${(it.b?n.hid===it.b.id:n.page===it.p.id&&!n.hid)?' cur':''}" data-v="${it.v}" role="option" style="padding-left:${8+(nq?0:it.depth*14)+(it.b&&!nq?18:0)}px">${it.b?'<span class="pi-ic mm-hash">#</span>':pIcon(it.p)}<span class="sp-t">${esc(it.t)}${it.b&&nq?` <small>${esc(pTitle(it.p))}</small>`:''}</span></button>`).join('')
-      ||'<div class="pop-h">Nic nenalezeno</div>';
+      ||'<div class="empty">Nic nenalezeno.</div>';
     const a=$('.sp-it.act',pop); if(a) a.scrollIntoView({block:'nearest'});
   };
   q.addEventListener('input',()=>{ idx=0; draw(); });
@@ -271,7 +271,7 @@ function buildBar(){
     if(ns.length===2) h+=`<button class="mm-bb" data-mb="join" title="Spojit čarou" aria-label="Spojit čarou">${MIC.line}</button>`;
     h+=`<button class="mm-bb" data-mb="dup" title="Duplikovat" aria-label="Duplikovat">${MIC.dup}</button>`;
   }
-  h+=`<button class="mm-bb del" data-mb="del" title="Smazat" aria-label="Smazat">${TRASH_IC}</button>`;
+  h+=`<button class="mm-bb del" data-mb="del" title="Odstranit" aria-label="Odstranit">${TRASH_IC}</button>`;
   bar.innerHTML=h; bar.hidden=false; mmPlaceBar();
 }
 function mmPlaceBar(){
@@ -328,7 +328,7 @@ function removeSel(){
   mmSnap();
   M.nodes=M.nodes.filter(n=>!ids.has(n.id)); M.edges=M.edges.filter(e=>e.id!==selE&&!ids.has(e.from)&&!ids.has(e.to));
   sel.clear(); selE=null; touch(); mmDraw();
-  toast('Smazáno.','Vrátit',()=>{ if(S.view.kind==='mindmap') mmUndo(); });
+  toast('Odstraněno.','Vrátit',()=>{ if(S.view.kind==='mindmap') mmUndo(); });
 }
 function cloneInto(ns,es,dx,dy){
   const map=new Map(), add=ns.map(n=>{ const c=clone(n); c.id=rid(); map.set(n.id,c.id); c.x+=dx; c.y+=dy; return c; });
@@ -359,7 +359,7 @@ function startEdit(id,created){
   editing={id,orig:n.text||'',pre:created?null:snapStr(),created:!!created};
   el.classList.add('edit'); buildBar();
   const tx=$('.mm-tx',el); tx.innerHTML='<textarea class="mm-ta" rows="1" aria-label="Text bloku"></textarea>';
-  const ta=tx.firstChild; ta.value=n.text||''; ta.placeholder=n.k==='text'?'Text':'Piš…';
+  const ta=tx.firstChild; ta.value=n.text||''; ta.placeholder=n.k==='text'?'Text':'Text…';
   const fit=()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; };
   fit(); ta.focus({preventScroll:true}); ta.setSelectionRange(ta.value.length,ta.value.length);
   ta.addEventListener('input',()=>{ n.text=ta.value; fit(); touch(); sizes.set(id,{w:el.offsetWidth,h:el.offsetHeight}); drawEdges(); });
@@ -429,7 +429,7 @@ function setToolUI(){
   if(!vp) return;
   const b=$('.mm-bar [data-mm="line"]'); if(b) b.classList.toggle('on',tool==='line');
   vp.classList.toggle('tool-line',tool==='line');
-  const h=$('.mm-hint'); if(h) h.textContent=tool==='line'?(lineFrom?'Klikni na druhý blok':'Klikni na první blok'):'';
+  const h=$('.mm-hint'); if(h) h.textContent=tool==='line'?(lineFrom?'Kliknout na druhý blok':'Kliknout na první blok'):'';
   stage.querySelectorAll('.mm-n.from').forEach(x=>x.classList.remove('from'));
   const el=lineFrom&&nodeEl(lineFrom); if(el) el.classList.add('from');
 }
@@ -599,28 +599,27 @@ function onWheel(e){
 function openMapMenu(anchor){
   const all=maps(), saved=!!S.maps[M.id];
   const h=(all.length?all.map(m=>`<button class="pop-item${m.id===M.id?' act':''}" data-v="m:${m.id}"><span class="pi-ic">${m.icon?esc(m.icon):'<span class="mm-nodot"></span>'}</span>${esc(m.title||'Bez názvu')}</button>`).join('')+'<div class="pop-sep"></div>':'')
-    +`<button class="pop-item" data-v="new"><span class="pi-ic">+</span>Nová mapa</button>`
-    +`<button class="pop-item" data-v="ren"><span class="pi-ic">✎</span>Přejmenovat</button>`
-    +`<button class="pop-item" data-v="ico"><span class="pi-ic">☺</span>Ikona</button>`
-    +(saved?`<div class="pop-sep"></div><button class="pop-item danger" data-v="del"><span class="pi-ic">×</span>Smazat mapu</button>`:'');
+    +`<button class="pop-item" data-v="new"><span class="pi-ic">${IC.plus}</span>Nová mapa</button>`
+    +`<button class="pop-item" data-v="ren"><span class="pi-ic">${IC.edit}</span>Přejmenovat</button>`
+    +`<button class="pop-item" data-v="ico"><span class="pi-ic">${IC.smile}</span>Ikona</button>`
+    +(saved&&!LOCK?`<div class="pop-sep"></div><button class="pop-item danger" data-v="del"><span class="pi-ic">${IC.trash}</span>Odstranit mapu</button>`:'');
   const focusTitle=()=>setTimeout(()=>{ const ti=$('#mm-title'); if(ti){ ti.focus(); ti.select(); } },0);
   openPop(anchor,h,v=>{
     if(v.startsWith('m:')){ lsSet(CKEY,v.slice(2)); renderMindmap(); return; }
     if(v==='new'){ const m={id:rid(),title:'Nová mapa',order:Math.max(0,...maps().map(x=>x.order||0))+1,nodes:[],edges:[]}; S.maps[m.id]=m; lsSet(CKEY,m.id); Store.queue(); renderMindmap(); focusTitle(); return; }
     if(v==='ren'){ focusTitle(); return; }
     if(v==='ico'){ setTimeout(()=>openMapIcon($('.mm-maps')),0); return; }
-    if(v==='del'){
+    if(v==='del'&&!LOCK){
       const back=clone(M), nm=M.title||'Bez názvu'; delete S.maps[M.id]; Store.queue(); renderMindmap();
-      toast(`Mapa „${nm}“ je smazaná.`,'Vrátit',()=>{ S.maps[back.id]=back; lsSet(CKEY,back.id); Store.queue(); if(S.view.kind==='mindmap') renderMindmap(); });
+      toast(`Mapa „${nm}“ je odstraněná.`,'Vrátit',()=>{ S.maps[back.id]=back; lsSet(CKEY,back.id); Store.queue(); if(S.view.kind==='mindmap') renderMindmap(); });
     }
   });
 }
 /* smajlík mapy: ukazuje se před názvem a v seznamu map */
 function openMapIcon(anchor){
   if(!anchor) return;
-  const h=`<div class="pop-h">Ikona mapy</div><div class="emoji-grid">${EMOJI.map(e=>`<button data-v="e:${e}" aria-label="${e}">${e}</button>`).join('')}</div>
-    <div class="emoji-in"><input class="inp" id="mm-emoji" placeholder="Vlastní emoji" maxlength="8" aria-label="Vlastní emoji"><button class="btn" data-v="custom">Použít</button></div>
-    ${M.icon?'<div class="pop-sep"></div><button class="pop-item" data-v="none"><span class="pi-ic">∅</span>Odebrat ikonu</button>':''}`;
+  /* od 4.20.0: jedno pole pro emoji místo mřížky (jako u ikony stránky) */
+  const h=`<div class="pop-h">Ikona mapy</div><div class="pop-acts"><input class="emoji-one" id="mm-emoji" maxlength="8" aria-label="Emoji" value="${esc(M.icon||'')}"><button class="pop-act" data-v="custom"><span>Použít</span></button><span class="sp"></span>${M.icon?'<button class="pop-act danger" data-v="none"><span>Odebrat</span></button>':''}</div>`;
   openPop(anchor,h,(v,b,p)=>{
     let ic;
     if(v.startsWith('e:')) ic=v.slice(2);
@@ -706,11 +705,11 @@ function renderMindmap(){
         <button class="mm-tb mm-add" data-mm="group" title="Skupina (obalí vybrané bloky)">${MIC.group}<span>Skupina</span></button>
         <button class="mm-tb mm-add" data-mm="line" title="Čára mezi dvěma bloky">${MIC.line}<span>Čára</span></button>
         <span class="mm-hint" aria-live="polite"></span><span class="sp"></span>
-        <button class="mm-tb mm-z" data-mm="zout" title="Oddálit" aria-label="Oddálit">−</button><button class="mm-tb mm-zv" data-mm="z100" title="Zpět na 100 %">100 %</button><button class="mm-tb mm-z" data-mm="zin" title="Přiblížit" aria-label="Přiblížit">+</button><button class="mm-tb" data-mm="fit" title="Celá mapa" aria-label="Celá mapa">${MIC.fit}</button>
+        <button class="mm-tb mm-z" data-mm="zout" title="Oddálit" aria-label="Oddálit">${IC.minus}</button><button class="mm-tb mm-zv" data-mm="z100" title="Zpět na 100 %">100 %</button><button class="mm-tb mm-z" data-mm="zin" title="Přiblížit" aria-label="Přiblížit">${IC.plus}</button><button class="mm-tb" data-mm="fit" title="Celá mapa" aria-label="Celá mapa">${MIC.fit}</button>
       </div>
       <div class="mm-vp">
         <div class="mm-stage"><div class="mm-groups"></div><svg class="mm-edges" aria-hidden="true"><g class="mm-eg"></g><path class="mm-tmp" d=""/></svg><div class="mm-nodes"></div><div class="mm-labels"></div></div>
-        <div class="mm-empty">Dvojklikem přidáš blok</div>
+        <div class="mm-empty">Dvojklik přidá blok</div>
         <div class="mm-selbar" hidden></div>
       </div>
     </div></div>`;

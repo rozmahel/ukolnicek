@@ -1,5 +1,5 @@
 /* Úkolníček – Bubliny (popovery), dialogová okna a oznámení (toast) */
-import { $, clamp, esc } from './core.js';
+import { $, clamp, esc, IC } from './core.js';
 import { S } from './state.js';
 import { closeSlash, slash } from './editor/slash.js';
 import { Sync } from './sync/sync.js';
@@ -26,7 +26,7 @@ function closePop(){ if(S.pop){ S.pop.remove(); S.pop=null; S.popAnchor=null; } 
 function openModal(title,body,cls){
   closeModal(); closePop();
   const ov=document.createElement('div'); ov.className='ov';
-  ov.innerHTML=`<div class="modal ${cls||''}" role="dialog" aria-modal="true" aria-label="${esc(title)}">${title?`<div class="m-head"><h2>${esc(title)}</h2><button class="icon-btn" data-close aria-label="Zavřít">×</button></div>`:''}${body}</div>`;
+  ov.innerHTML=`<div class="modal ${cls||''}" role="dialog" aria-modal="true" aria-label="${esc(title)}">${title?`<div class="m-head"><h2>${esc(title)}</h2><button class="icon-btn" data-close aria-label="Zavřít">${IC.x}</button></div>`:''}${body}</div>`;
   document.body.appendChild(ov);
   ov.addEventListener('mousedown',e=>{ if(e.target===ov) closeModal(); });
   ov.addEventListener('click',e=>{ if(e.target.closest('[data-close]')) closeModal(); });
@@ -37,7 +37,7 @@ let toastT=null;
 function toast(msg,actLabel,act){
   let t=$('.toast'); if(t) t.remove(); clearTimeout(toastT);
   t=document.createElement('div'); t.className='toast'; t.setAttribute('role','status');
-  t.innerHTML=`<span>${esc(msg)}</span>${actLabel?`<button class="t-act">${esc(actLabel)}</button>`:''}<button class="x" aria-label="Zavřít oznámení">×</button>`;
+  t.innerHTML=`<span>${esc(msg)}</span>${actLabel?`<button class="t-act">${esc(actLabel)}</button>`:''}<button class="x" aria-label="Zavřít oznámení">${IC.x}</button>`;
   document.body.appendChild(t);
   const hide=()=>{ clearTimeout(toastT); t.classList.add('gone'); setTimeout(()=>t.remove(),180); };
   if(act) t.querySelector('.t-act').addEventListener('click',()=>{ act(); t.remove(); });
@@ -51,7 +51,42 @@ function toast(msg,actLabel,act){
 }
 
 /* posluchače a nastavení při startu (volá main.js ve stejném pořadí jako dřív) */
+
+/* ---------- bubliny po najetí myší (od 4.19.0) ----------
+   Jedna bublina pro celou aplikaci místo nativního title: atribut title se při prvním najetí přesune do data-tt
+   (a do aria-label, když chybí). Stejné zpoždění TIP_MS všude, jen myš; schovaný panel ji volá přes showTip(…,'right'). */
+const TIP_MS=450;
+const tipEl=document.createElement('div'); tipEl.className='tip'; tipEl.hidden=true; tipEl.setAttribute('role','tooltip');
+let tipT=0, tipFor=null;
+function hideTip(){ clearTimeout(tipT); tipT=0; tipFor=null; tipEl.hidden=true; }
+function placeTip(el,side){
+  const rc=el.getBoundingClientRect(), w=tipEl.offsetWidth, h=tipEl.offsetHeight, m=8;
+  let x,y;
+  if(side==='right'){ const sd=el.closest('.side'); x=Math.min(rc.right,sd?sd.getBoundingClientRect().right:rc.right)+8; y=rc.top+rc.height/2-h/2; }
+  else { x=rc.left+rc.width/2-w/2; y=rc.bottom+6; if(y+h>innerHeight-m) y=rc.top-h-6; }
+  tipEl.style.left=Math.max(m,Math.min(innerWidth-w-m,x))+'px'; tipEl.style.top=Math.max(m,y)+'px';
+}
+function showTip(el,text,side){
+  if(!text){ hideTip(); return; }
+  if(tipFor===el) return;
+  clearTimeout(tipT); tipFor=el; tipEl.hidden=true;
+  tipT=setTimeout(()=>{ if(!el.isConnected||tipFor!==el) return; tipEl.textContent=text; tipEl.hidden=false; placeTip(el,side); },TIP_MS);
+}
+function initTips(){
+  document.body.appendChild(tipEl);
+  document.addEventListener('pointerover',e=>{
+    if(e.pointerType&&e.pointerType!=='mouse') return;
+    const el=e.target.closest&&e.target.closest('[title],[data-tt]');
+    if(!el){ if(!(e.target.closest&&e.target.closest('[data-tip]'))) hideTip(); return; }
+    if(el.hasAttribute('title')){ const t=el.getAttribute('title'); el.removeAttribute('title'); if(t){ el.dataset.tt=t; if(!el.hasAttribute('aria-label')&&!el.textContent.trim()) el.setAttribute('aria-label',t); } }
+    showTip(el,el.dataset.tt);
+  },true);
+  document.addEventListener('pointerout',e=>{ if(tipFor&&(!e.relatedTarget||!tipFor.contains(e.relatedTarget))) hideTip(); },true);
+  ['pointerdown','keydown','wheel'].forEach(t=>document.addEventListener(t,hideTip,true));
+  addEventListener('scroll',hideTip,true); addEventListener('blur',hideTip);
+}
 export function initUi(){
+  initTips();
   document.addEventListener('mousedown',e=>{
     const inFrame=e.target.closest&&e.target.closest('#imgframe');
     if(S.pop&&!inFrame&&!S.pop.contains(e.target)&&!(S.popAnchor&&S.popAnchor.contains(e.target))) closePop();
@@ -66,4 +101,4 @@ export function initUi(){
   },true);
 }
 
-export { closeModal, closePop, openModal, openPop, placePop, toast };
+export { closeModal, closePop, hideTip, openModal, openPop, placePop, showTip, toast };

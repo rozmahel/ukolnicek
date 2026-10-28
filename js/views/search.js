@@ -28,7 +28,7 @@ function openSearch(){
       return {p,score,snip,bid,q,arch:isArchived(p)};
     }).filter(r=>r.score).sort((a,b)=>b.score-a.score).slice(0,12);
     idx=clamp(idx,0,Math.max(0,res.length-1));
-    $('#qres',m).innerHTML=res.length?res.map((r,i)=>`<button class="q-item ${i===idx?'act':''}" data-i="${i}">${pIcon(r.p)}<span>${esc(pTitle(r.p))}${r.arch?' <em class="q-arch">archiv</em>':''}${r.snip?`<small>…${esc(r.snip)}…</small>`:''}</span></button>`).join(''):`<div class="empty" style="padding:14px">Nic nenalezeno.</div>`;
+    $('#qres',m).innerHTML=res.length?res.map((r,i)=>`<button class="q-item ${i===idx?'act':''}" data-i="${i}">${pIcon(r.p)}<span>${esc(pTitle(r.p))}${r.arch?' <em class="q-arch">archiv</em>':''}${r.snip?`<small>…${esc(r.snip)}…</small>`:''}</span></button>`).join(''):`<div class="empty">Nic nenalezeno.</div>`;
   };
   draw();
   $('#q',m).addEventListener('input',()=>{ idx=0; draw(); });

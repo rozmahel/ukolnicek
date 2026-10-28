@@ -90,7 +90,7 @@ function openSubjPicker(anchor,onPick,cur){
       h+=`<div class="pop-h">${esc(sm?sm.name||'Semestr':'Bez semestru')}</div>`+l.map(su=>{ const i=items.push(su)-1;
         return `<button class="pop-item sp-it hl-${esc(su.color||'purple')} ${i===idx?'act':''}" data-v="${su.id}" role="option"><span class="ti-dot"></span><span class="sp-t"><b>${esc(su.code||'')}</b>${su.code&&su.name?' ':''}${esc(su.name||'')}</span>${su.id===cur?'<span class="sp-cur">✓</span>':''}</button>`; }).join('');
     });
-    $('.sp-list',p).innerHTML=h||'<div class="empty" style="padding:10px">Nic nenalezeno</div>';
+    $('.sp-list',p).innerHTML=h||'<div class="empty">Nic nenalezeno.</div>';
     const act=$('.sp-it.act',p); if(act) act.scrollIntoView({block:'nearest'});
   };
   q.addEventListener('input',()=>{ idx=0; draw(); });
@@ -110,7 +110,7 @@ function schoolCounts(){
 }
 async function clearSchoolData(){
   const back={subjects:clone(S.subjects),semesters:clone(S.semesters),events:clone(S.events),pages:[]};
-  try{ await Local.addBackup(stateForStorage(),'Před smazáním školních dat'); }catch(_){}
+  try{ await Local.addBackup(stateForStorage(),'Před odstraněním školních dat'); }catch(_){}
   Object.values(S.pages).forEach(pg=>{
     if(!(pg.blocks||[]).some(b=>b.type==='subj')) return;
     back.pages.push(clone(pg));

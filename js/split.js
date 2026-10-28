@@ -5,7 +5,7 @@
    Druhá polovina .split-ghost je náhled stejné šablony (pageHtml) bez id a bez úprav. Klik do ní = go() na její stránku:
    spSync() pak prohodí aktivní stranu (#main se přesune přes CSS order) a předchozí stránku vykreslí jako náhled.
    V rozdělení jsou jen stránky; jiný pohled (Dnes, Úkoly…) rozdělení zavře. */
-import { $, clamp, lsGet, lsSet } from './core.js';
+import { $, clamp, IC, lsGet, lsSet } from './core.js';
 import { S } from './state.js';
 import { go, noteScroll, renderMain, scrollOf } from './router.js';
 import { blockList, onBlocksRendered, pageHtml } from './editor/render.js';
@@ -14,13 +14,12 @@ import { mathPass } from './editor/math.js';
 
 const SP_WIDE=matchMedia('(min-width:861px)');
 const SP_MIN=320, SP_HW=7;   /* nejmenší šířka poloviny a šířka táhla (px) */
-const SP_X='<span class="pb-sep split-sep"></span><button class="icon-btn split-x" title="Zavřít aktivní polovinu" aria-label="Zavřít aktivní polovinu">×</button>';
+const SP_X='<button class="icon-btn split-x" title="Zavřít aktivní polovinu" aria-label="Zavřít aktivní polovinu">'+IC.x+'</button>';
 let SP=lsGet('uk-split',null); if(!SP||typeof SP!=='object') SP={on:false};
 let spGhost=null, spHandle=null, spBarEl=null, spHtml='', spGid=null, spT=null;
 const spOth=s=>s==='L'?'R':'L';
 const spSave=()=>lsSet('uk-split',SP);
 const spRatio=()=>{ const r=+SP.r; return r>=.05&&r<=.95?r:.5; };
-function spOn(){ return !!SP.on; }
 
 /* naposledy otevřená stránka v projektu (kořenové stránce), jen v zařízení */
 function spRoot(id){ let p=S.pages[id]; while(p&&p.parent&&S.pages[p.parent]) p=S.pages[p.parent]; return p?p.id:null; }
@@ -82,7 +81,7 @@ function spBar(){
   if(!SP.on||!spBarEl) return;
   if(!SP_WIDE.matches){ spBarEl.replaceChildren(); return; }   /* úzké okno: lišta zůstane ve stránce */
   const doc=$('#doc'), pb=doc&&doc.querySelector(':scope > .pagebar');
-  if(pb){ pb.dataset.page=doc.dataset.page; pb.querySelector('.pb-acts').insertAdjacentHTML('beforeend',SP_X); spBarEl.replaceChildren(pb); }
+  if(pb){ pb.dataset.page=doc.dataset.page; { const lk=pb.querySelector('.lock-btn'), sep=lk&&lk.previousElementSibling&&lk.previousElementSibling.classList.contains('pb-sep')?lk.previousElementSibling:lk; if(sep) sep.insertAdjacentHTML('beforebegin',SP_X); else pb.querySelector('.pb-acts').insertAdjacentHTML('beforeend',SP_X); }   /* × patří k akcím karty: před oddělovač u zámku */ spBarEl.replaceChildren(pb); }
 }
 /* náhled druhé stránky; znovu jen když se jeho HTML změnilo (přejmenování, odkazy @, zpětné odkazy, data z jiného okna…) */
 function spRender(){
@@ -103,8 +102,8 @@ function spRender(){
 function spMake(){
   const panes=$('#panes');
   spHandle=document.createElement('div'); spHandle.className='split-h'; spHandle.setAttribute('role','separator'); spHandle.setAttribute('aria-orientation','vertical');
-  spHandle.title='Táhni pro změnu poměru, dvojklik = 50 : 50';
-  spGhost=document.createElement('section'); spGhost.className='split-ghost'; spGhost.setAttribute('aria-label','Druhá polovina, klikni pro úpravy');
+  spHandle.title='Tažením se mění poměr, dvojklik = 50 : 50';
+  spGhost=document.createElement('section'); spGhost.className='split-ghost'; spGhost.setAttribute('aria-label','Druhá polovina, úpravy po kliknutí');
   spGhost.innerHTML='<div class="sg-view"></div>';
   spBarEl=document.createElement('div'); spBarEl.id='split-bar';
   panes.append(spHandle,spGhost,spBarEl);   /* lišta v DOM až za #main: $('#undo-btn') apod. najdou při vykreslení nejdřív novou lištu */   /* v DOM za #main: dotazy na třídy najdou nejdřív živou stránku */

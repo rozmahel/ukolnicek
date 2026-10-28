@@ -1,104 +1,120 @@
 /* Úkolníček – Společné ovládací prvky: bubliny, dialogová okna, formuláře, tlačítka, oznámení, zámek */
 
 /* ---------- bubliny, lišta formátování, dialogová okna, formuláře, oznámení ---------- */
-.pop{position:fixed;z-index:70;background:var(--panel);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow);padding:6px;min-width:230px;max-width:min(320px,calc(100vw - 16px));max-height:min(380px,65vh);overflow:auto}
-.pop-h{font-size:calc(12.5px*var(--fs));font-weight:600;color:var(--muted);padding:8px 8px 4px}
-.pop-item{display:flex;align-items:center;gap:10px;width:100%;padding:5px 8px;border-radius:7px;font-size:calc(14px*var(--fs))}
+.pop{position:fixed;z-index:70;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:var(--sp2);min-width:200px;max-width:min(280px,calc(100vw - 16px));max-height:min(380px,65vh);overflow:auto}
+.pop-h{font-size:calc(12.5px*var(--fs));font-weight:600;color:var(--muted);padding:var(--sp3) var(--sp4) var(--sp1)}
+/* nadpis s odkazem vpravo (Úkoly → Projekty: Vše; Google Disk: stav) */
+.pop-hr{display:flex;align-items:baseline;justify-content:space-between;gap:var(--sp4);white-space:nowrap}
+.pop-hr>:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis;font-weight:400}
+.pop-item{display:flex;align-items:center;gap:var(--sp4);width:100%;padding:var(--sp2) var(--sp4);line-height:1.6;border-radius:var(--r);font-size:calc(14px*var(--fs))}
 .pop-item:hover,.pop-item.act{background:var(--hover)}
 .pop-item small{display:block;color:var(--muted);font-size:calc(12px*var(--fs));line-height:1.3}
 .pop-item.danger{color:var(--danger)}
 .pop-item:disabled{opacity:.4;cursor:default;background:none}
-.pi-ic{width:30px;height:30px;flex:none;border:1px solid var(--line);border-radius:7px;display:grid;place-items:center;font:600 calc(12.5px*var(--fs)) var(--f-body);background:var(--bg);color:var(--fg2)}
-.pop-sep{height:1px;background:var(--line);margin:5px 4px}
-.swatches{display:flex;flex-wrap:wrap;gap:6px;padding:4px 6px 6px}
-.sw{width:24px;height:24px;border-radius:7px;background:var(--c-bg);border:1.5px solid color-mix(in srgb,var(--c-fg) 35%,transparent)}
-.sw.on{outline:2px solid var(--c-fg);outline-offset:2px}
-.emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;padding:4px}
-.emoji-grid button{font-size:calc(20px*var(--fs));height:34px;border-radius:7px}
-.emoji-grid button:hover{background:var(--hover)}
-.emoji-in{display:flex;gap:6px;padding:6px}
-.emoji-in input{flex:1;min-width:0}
-.fmt{position:fixed;z-index:65;display:flex;align-items:center;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:4px}
-.fmt button{min-width:28px;height:28px;border-radius:6px;display:grid;place-items:center;font-size:calc(14px*var(--fs));color:var(--fg2)}
+/* ikona položky bez čtverečku (od 4.20.0) */
+.pi-ic{width:20px;height:20px;flex:none;display:grid;place-items:center;font:600 calc(12.5px*var(--fs)) var(--f-body);color:var(--fg2)}
+.pi-ic .ic{width:16px;height:16px}
+.pop-item.danger .pi-ic{color:var(--danger)}
+.pop-sep{height:1px;background:var(--line);margin:var(--sp2) var(--sp2)}
+.swatches{display:flex;flex-wrap:wrap;gap:var(--sp3);padding:var(--sp2) var(--sp3) var(--sp3)}
+.sw{width:24px;height:24px;border-radius:var(--r);background:var(--c-bg);border:1.5px solid color-mix(in srgb,var(--c-fg) 35%,transparent)}
+.sw.on{outline:2px solid var(--accent);outline-offset:2px}
+.fmt{position:fixed;z-index:65;display:flex;align-items:center;gap:var(--sp1);background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:var(--sp2)}
+.fmt button{min-width:28px;height:28px;border-radius:var(--r);display:grid;place-items:center;font-size:calc(14px*var(--fs));color:var(--fg2)}
 .fmt button:hover{background:var(--hover);color:var(--fg)}
-.fmt .sw{width:18px;height:18px;min-width:18px;border-radius:5px;margin:0 2px}
-.fmt .sep{width:1px;height:20px;background:var(--line);margin:0 4px}
-.cellbar{position:fixed;z-index:64;display:flex;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:3px}
-.cellbar button{font-size:calc(12px*var(--fs));padding:2px 8px;border-radius:5px;color:var(--fg2)}
+.fmt .sw{width:18px;height:18px;min-width:18px;border-radius:var(--r-sm);margin:0 var(--sp1)}
+.fmt .sep{width:1px;height:20px;background:var(--line);margin:0 var(--sp2)}
+.cellbar{position:fixed;z-index:64;display:flex;gap:var(--sp1);background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--shadow);padding:var(--sp2)}
+.cellbar button{width:30px;height:30px;display:grid;place-items:center;border-radius:var(--r);color:var(--fg2)}
+.cellbar button .ic{width:17px;height:17px}
 .cellbar button.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
 .cellbar button:hover{background:var(--hover)}
-.ov{position:fixed;inset:0;z-index:80;background:var(--scrim);display:grid;justify-items:center;align-items:start;padding:9vh 16px 16px;overflow:auto}
-.modal{background:var(--panel);width:min(540px,100%);border-radius:12px;box-shadow:var(--shadow);border:1px solid var(--line)}
-.m-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 4px}
+.ov{position:fixed;inset:0;z-index:80;background:var(--scrim);display:grid;justify-items:center;align-items:start;padding:9vh var(--sp8) var(--sp8);overflow:auto}
+.modal{background:var(--panel);width:min(540px,100%);border-radius:var(--r-lg);box-shadow:var(--shadow);border:1px solid var(--line)}
+.m-head{display:flex;align-items:center;justify-content:space-between;padding:var(--sp8) 18px var(--sp2)}
 .m-head h2{font:700 1.2rem/1.3 var(--f-display);margin:0}
-.m-body{padding:10px 18px 18px;display:grid;gap:14px}
-.fld{display:grid;gap:5px;min-width:0}
+.m-body{padding:var(--sp5) 18px var(--sp8);display:grid;gap:var(--sp7)}
+.fld{display:grid;gap:var(--sp3);min-width:0}
 .fld>label,.lbl{font-size:calc(13px*var(--fs));font-weight:600;color:var(--fg2)}
-.inp,.fld input:not([type=checkbox]):not([type=file]),.fld select,.fld textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;outline:none;min-width:0}
+.inp,.fld input:not([type=checkbox]):not([type=file]),.fld select,.fld textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-md);padding:var(--sp4) var(--sp5);outline:none;min-width:0}
 .fld input:focus,.fld select:focus,.fld textarea:focus,.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp6)}
 /* přepínač z několika voleb: jeden rámeček, vybraná volba je „vystouplá“ */
-.seg{display:inline-flex;flex-wrap:wrap;gap:2px;padding:2px;border:1px solid var(--line);border-radius:9px;background:var(--side);justify-self:start;max-width:100%}
-.seg button{border:1px solid transparent;border-radius:7px;padding:3px 11px;font-size:calc(13.5px*var(--fs));color:var(--fg2)}
+.seg{display:inline-flex;flex-wrap:wrap;gap:var(--sp1);padding:var(--sp1);border:1px solid var(--line);border-radius:var(--r-md);background:var(--side);justify-self:start;max-width:100%}
+.seg button{border:1px solid transparent;border-radius:var(--r);padding:var(--sp2) 11px;font-size:calc(13.5px*var(--fs));color:var(--fg2)}
 .seg button:hover{color:var(--fg)}
 .seg button.on{background:var(--panel);border-color:var(--line);color:var(--fg);font-weight:600;box-shadow:var(--shadow-sm)}
-.m-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-top:4px}
+.m-actions{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp4);padding-top:var(--sp2)}
 .m-actions .sp{flex:1}
-.btn{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:7px 13px;font-size:calc(14px*var(--fs));font-weight:500}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:var(--r);padding:var(--sp3) 13px;font-size:calc(14px*var(--fs));font-weight:500}
 .btn:hover{border-color:var(--faint)}
 .btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .btn.pri:hover{filter:brightness(1.07)}
 .btn.danger{color:var(--danger)}
 .err{color:var(--danger);font-size:calc(13.5px*var(--fs));margin:0}
-.chk{display:flex;align-items:center;gap:8px;font-size:calc(14px*var(--fs))}
+.chk{display:flex;align-items:center;gap:var(--sp4);font-size:calc(14px*var(--fs))}
 .note{font-size:calc(13px*var(--fs));color:var(--muted);margin:0}
-.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:90;background:var(--fg);color:var(--bg);border-radius:10px;padding:9px 10px 9px 14px;display:flex;gap:12px;align-items:center;font-size:calc(14px*var(--fs));box-shadow:var(--shadow);max-width:calc(100vw - 32px)}
-.toast button{color:var(--bg);font-weight:600;padding:3px 8px;border-radius:6px;background:color-mix(in srgb,var(--bg) 16%,transparent)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:90;background:var(--fg);color:var(--bg);border-radius:var(--r-lg);padding:var(--sp4) var(--sp5) var(--sp4) var(--sp7);display:flex;gap:var(--sp6);align-items:center;font-size:calc(14px*var(--fs));box-shadow:var(--shadow);max-width:calc(100vw - 32px)}
+.toast button{color:var(--bg);font-weight:600;padding:var(--sp2) var(--sp4);border-radius:var(--r);background:color-mix(in srgb,var(--bg) 16%,transparent)}
 .toast{cursor:pointer;transition:opacity .18s,translate .18s}
 .toast.gone{opacity:0;translate:0 12px}
-.toast button.x,.upd button.x{background:none;font-size:1.25em;line-height:1;padding:2px 6px;opacity:.75}
+.toast button.x,.upd button.x{background:none;font-size:1.25em;line-height:1;padding:var(--sp1) var(--sp3);opacity:.75;display:grid;place-items:center}
 .toast button.x:hover,.upd button.x:hover{opacity:1}
-.upd button.x{color:var(--on-accent);margin-left:-6px}
-@media (max-width:860px){ .toast,.upd{font-size:calc(13px*var(--fs));padding:7px 6px 7px 12px;gap:8px;width:max-content} }
+@media (max-width:860px){ .toast,.upd{font-size:calc(13px*var(--fs));padding:var(--sp3) var(--sp3) var(--sp3) var(--sp6);gap:var(--sp4);width:max-content} }
 
 /* ---------- tlačítko zámku ---------- */
 .lock-btn.on{color:var(--accent);background:var(--accent-soft)}
 .lock-btn.on:hover{background:var(--accent-soft);color:var(--accent)}
 
 /* ---------- velká tlačítka s ikonou (Nastavení → Návod, volby při kolizi) ---------- */
-.guide-link{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;width:100%;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
+.guide-link{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:var(--sp6);width:100%;text-align:left;padding:var(--sp5) var(--sp6);border:1px solid var(--line);border-radius:var(--r-md);background:var(--panel)}
 .guide-link:hover{border-color:var(--faint);background:var(--hover)}
 .guide-link b{display:block;font-weight:650}
 .guide-link small{color:var(--muted);font-size:calc(13px*var(--fs))}
 .gl-ic{font-size:calc(20px*var(--fs));color:var(--muted);display:grid;place-items:center}
-.gl-ic svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.gl-ic svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:var(--ic-w);stroke-linecap:round;stroke-linejoin:round}
 .gl-arr{font-size:calc(20px*var(--fs));color:var(--muted)}
 .chk.sub{padding-left:26px;font-size:calc(13.5px*var(--fs));color:var(--fg2)}
 .chk.sub:has(input:disabled){opacity:.5}
-.fld>label.note{text-transform:none;letter-spacing:0;font-weight:400;font-size:calc(13px*var(--fs));color:var(--muted);margin-top:4px}
+.fld>label.note{text-transform:none;letter-spacing:0;font-weight:400;font-size:calc(13px*var(--fs));color:var(--muted);margin-top:var(--sp2)}
 /* zaškrtávátka uvnitř pole (Nastavení → Synchronizace) nemají styl nadpisu pole */
 .fld>label.chk{text-transform:none;letter-spacing:0;font-weight:400;font-size:calc(14px*var(--fs));color:var(--fg)}
 
 /* ---------- výběr předmětu z Indexu (/předmět) ---------- */
 .pop.subj-pick{display:flex;flex-direction:column;overflow:hidden;width:min(330px,calc(100vw - 16px));max-width:none}
-.subj-pick .sp-q{flex:none;width:auto;margin:2px 2px 4px}
+.subj-pick .sp-q{flex:none;width:auto;margin:var(--sp1) var(--sp1) var(--sp2)}
 .subj-pick .sp-list{min-height:0;overflow:auto}
 .sp-it .ti-dot{flex:none}
 .sp-it .sp-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
 .sp-it b{color:var(--c-fg);font-weight:650}
 .sp-cur{color:var(--accent);font-weight:700}
-.sp-empty{display:grid;gap:6px;justify-items:start;padding:8px 8px 6px;max-width:290px}
-.sp-empty p{margin:0 0 4px;color:var(--muted);font-size:calc(13px*var(--fs))}
+.sp-empty{display:grid;gap:var(--sp3);justify-items:start;padding:var(--sp4) var(--sp4) var(--sp3);max-width:290px}
+.sp-empty p{margin:0 0 var(--sp2);color:var(--muted);font-size:calc(13px*var(--fs))}
 /* tlačítko pro nevratné akce (smazání školních dat) */
 .btn.pri.danger-pri{background:var(--danger);border-color:var(--danger);color:var(--on-danger)}
 .btn:disabled{opacity:.5;cursor:default}
 /* ⋮⋮ menu bloku: řada čtverečků nahoře */
-.pop.bm-pop{min-width:264px}
-.bm-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(30px,1fr));gap:4px;padding:2px 2px 4px}
-.bm-ic{height:34px;display:grid;place-items:center;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg2);font:600 calc(15px*var(--fs)) var(--f-body)}
+.pop.bm-pop{min-width:212px}
+.bm-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(26px,1fr));gap:var(--sp1);padding:0 var(--sp1) var(--sp1)}
+/* řada ikon bez rámečku (od 4.20.0) */
+.bm-ic{height:28px;display:grid;place-items:center;border-radius:var(--r);color:var(--fg2);font:600 calc(13px*var(--fs)) var(--f-body)}
+.bm-ic.on{background:var(--accent-soft);color:var(--accent)}
 .bm-ic:hover{background:var(--hover);color:var(--fg)}
 .bm-ic.danger{color:var(--danger)}
-.bm-ic:disabled{opacity:.35;cursor:default;background:var(--bg)}
-.bm-ic svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bm-ic:disabled{opacity:.35;cursor:default;background:none}
+.bm-ic svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:var(--ic-w);stroke-linecap:round;stroke-linejoin:round}
 .src-btn.on{color:var(--accent);background:var(--accent-soft)}
 .src-btn.on:hover{background:var(--accent-soft);color:var(--accent)}
+
+/* ---------- textová tlačítka v nabídkách (od 4.20.0): bez rámečku, jen barva ---------- */
+.pop-act{display:inline-flex;align-items:center;height:30px;padding:0 var(--sp4);border-radius:var(--r);font-size:calc(13px*var(--fs));font-weight:600;color:var(--accent)}
+.pop-act>span{display:block;text-box:trim-both cap alphabetic}
+.pop-act:hover{background:var(--hover)}
+.pop-act.danger{color:var(--danger)}
+.pop-acts{display:flex;align-items:center;gap:var(--sp2);padding:var(--sp1) var(--sp2) var(--sp2)}
+.pop-acts .sp{flex:1}
+/* ikona: jedno pole pro emoji (od 4.20.0, místo mřížky) */
+.emoji-one{width:44px;height:30px;flex:none;text-align:center;font-size:calc(18px*var(--fs));padding:0;background:var(--bg);border:1px solid var(--line);border-radius:var(--r);outline:none}
+.emoji-one:focus{border-color:var(--accent)}
+.pop-hr .pop-hl{font-weight:600;color:var(--accent);padding:0 var(--sp2);border-radius:var(--r-sm)}
+.pop-hr .pop-hl:hover{background:var(--hover)}

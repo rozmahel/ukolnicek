@@ -8,9 +8,9 @@ import { S } from './state.js';
 
 const SKINS=[['default','Výchozí'],['paper','Papír'],['forest','Les'],['mist','Mlha'],['rose','Šípek'],['lavender','Levandule']];
 const skinOf=(st=S.settings)=>{ const t=st&&st.theme; return SKINS.some(s=>s[0]===t&&t!=='default')?t:'default'; };
-/* písmo zvlášť od motivu (od 4.8.0): settings.font, chybí = „Podle vzhledu“ (písmo motivu). Neznámá hodnota = Podle vzhledu.
+/* písmo zvlášť od motivu (od 4.8.0): settings.font, chybí = „Podle motivu“ (písmo motivu). Neznámá hodnota = Podle motivu.
    Na <html> atribut data-font, písma v css/themes.css; kopie 'uk-font' v localStorage jen kvůli startu (index.html). */
-const FONTS=[['auto','Podle vzhledu'],['onest','Onest'],['plex','IBM Plex Sans'],['system','Systémové'],['newsreader','Newsreader'],['literata','Literata'],['sserif','Source Serif']];
+const FONTS=[['auto','Podle motivu'],['onest','Onest'],['plex','IBM Plex Sans'],['system','Systémové'],['newsreader','Newsreader'],['literata','Literata'],['sserif','Source Serif']];
 const fontOf=(st=S.settings)=>{ const t=st&&st.font; return FONTS.some(f=>f[0]===t&&t!=='auto')?t:'auto'; };
 function setFont(v){ if(fontOf()===v) return false; if(v==='auto') delete S.settings.font; else S.settings.font=v; return true; }
 function setSkin(v){ if(skinOf()===v) return false; if(v==='default') delete S.settings.theme; else S.settings.theme=v; return true; }

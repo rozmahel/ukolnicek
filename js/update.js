@@ -33,16 +33,16 @@ async function serverVersion(){
 }
 async function checkUpdate(quiet){
   if(!REG){ if(!quiet) toast(`Úkolníček ${APP_VERSION}. Aktualizace se tady nekontrolují (vývoj na localhostu nebo bez offline režimu).`); return; }
-  if(!navigator.onLine){ if(!quiet) toast('Jsi offline, aktualizace zkontroluj po připojení.'); return; }
+  if(!navigator.onLine){ if(!quiet) toast('Bez připojení. Aktualizace jde zkontrolovat až online.'); return; }
   let srv=''; try{ srv=await serverVersion(); }catch(_){}
   if(!srv){ if(!quiet) toast('Verzi na serveru se nepodařilo zjistit.'); return; }
   const c=vcmp(srv,APP_VERSION);
-  if(c<=0){ noteVersion(APP_VERSION); if(!quiet) toast(c===0?`Máš nejnovější verzi ${APP_VERSION}.`:`Na serveru je zatím starší kopie (${srv}), zůstává ${APP_VERSION}.`); return; }
+  if(c<=0){ noteVersion(APP_VERSION); if(!quiet) toast(c===0?`Toto je nejnovější verze ${APP_VERSION}.`:`Na serveru je zatím starší kopie (${srv}), zůstává ${APP_VERSION}.`); return; }
   noteVersion(srv); force=true;
   if(!quiet) toast(`Stahuji verzi ${srv}…`);
   /* server (CDN) může pár minut posílat starý sw.js: zkusit několikrát */
   for(let i=0;i<6&&force;i++){ try{ await REG.update(); }catch(_){} if(REG.installing||REG.waiting) return; await new Promise(r=>setTimeout(r,4000)); }
-  if(force){ force=false; if(!quiet) toast(`Verze ${srv} se ještě nenačetla, server ji teprve rozesílá. Zkus to za pár minut.`); }
+  if(force){ force=false; if(!quiet) toast(`Verze ${srv} se ještě nenačetla, server ji teprve rozesílá. Stačí to zkusit za pár minut.`); }
 }
 /* volá main.js po registraci workeru */
 function initUpdates(reg){

@@ -1,5 +1,5 @@
 /* Úkolníček – Vykreslení stránky a bloků (včetně tabulek a sbalování nadpisů) */
-import { $, esc, PH, plain, spellOn, TEXT_TYPES } from '../core.js';
+import { $, esc, IC, PH, plain, spellOn } from '../core.js';
 import { S } from '../state.js';
 import { modeBtn } from '../theme.js';
 import { applyLock } from '../lock.js';
@@ -39,12 +39,11 @@ function renderPage(pg){
 function pageHtml(pg,src,items){
   const crumbs=[]; let p=S.pages[pg.parent];
   while(p){ crumbs.unshift(p); p=S.pages[p.parent]; }
-  const isEmpty=(pg.blocks||[]).length<=1&&isBlank((pg.blocks[0]||{}).html)&&!(pg.props||[]).length&&(!pg.blocks[0]||TEXT_TYPES.includes(pg.blocks[0].type));
   return `
   <article class="doc ${pg.wide?'wide':''}" id="doc" data-page="${pg.id}" spellcheck="${spellOn()}"${spellOn()?'':' autocorrect="off"'}>
     <div class="pagebar">
       <div class="crumbs ${crumbs.length?'':'solo'}">${crumbs.map(c=>`<button data-act="open" data-id="${c.id}">${esc(c.icon||'')} ${esc(pTitle(c))}</button><span>/</span>`).join('')}<span>${esc(pg.icon||'')} ${esc(pTitle(pg))}</span></div>
-      <div class="pb-acts">${pg.icon?'':`<button class="ghost-btn" data-act="icon" data-popanchor>☺ Ikona</button>`}<button class="ghost-btn" data-act="wide">${pg.wide?'↤ Užší':'↔ Celá šířka'}</button>
+      <div class="pb-acts">${isArchived(pg)?`<button class="ghost-btn" data-act="unarchive" data-id="${pg.id}">${IC.restore}Obnovit z archivu</button>`:''}${pg.icon?'':`<button class="ghost-btn" data-act="icon" data-popanchor>${IC.smile}Ikona</button>`}<button class="ghost-btn" data-act="wide">${pg.wide?IC.narrow+'Užší':IC.wide+'Celá šířka'}</button>
         <span class="pb-sep"></span>
         <button class="icon-btn" id="undo-btn" data-act="undo" title="Zpět (⌘Z)" aria-label="Zpět"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
         <button class="icon-btn" id="redo-btn" data-act="redo" title="Znovu (⇧⌘Z)" aria-label="Znovu"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
@@ -53,12 +52,11 @@ function pageHtml(pg,src,items){
         <span class="pb-sep"></span><button class="icon-btn lock-btn" id="lock-btn" data-act="lock"></button>${modeBtn()}
       </div>
     </div>
-    ${isArchived(pg)?`<div class="arch-note">Stránka je v archivu. Nezobrazuje se v projektech, Úkolech ani Dnes. <button class="linkbtn" data-act="unarchive" data-id="${pg.id}">Obnovit z archivu</button></div>`:''}
+    ${isArchived(pg)?`<div class="arch-note">Stránka je v archivu.</div>`:''}
     <div class="doc-head">
       <div class="title-row">${pg.icon?`<button class="page-icon" data-act="icon" data-popanchor aria-label="Změnit ikonu">${esc(pg.icon)}</button>`:''}<h1 class="page-title" id="page-title" contenteditable="true" spellcheck="false" data-ph="Bez názvu">${esc(pg.title)}</h1></div>
       <div class="props" id="props">${renderProps(pg)}</div>
     </div>
-    ${isEmpty&&src==null?`<div class="tpl"><span>Začít šablonou:</span><button data-act="tpl" data-v="subject">Předmět</button><button data-act="tpl" data-v="weeks">Přehled týdnů</button><button data-act="tpl" data-v="info">Obecné informace</button></div>`:''}
     ${src!=null?src+'<div class="blocks" id="blocks" hidden></div>':`<div class="blocks" id="blocks">${items.map(x=>x.h).join('')}</div>`}
     ${backlinksHtml(pg)}
     <div class="doc-tail" data-act="tail"></div>
@@ -67,7 +65,7 @@ function pageHtml(pg,src,items){
 function renderProps(pg){
   const props=pg.props||[];
   if(!props.length) return '';
-  return props.map((pr,i)=>`<div class="prop" data-i="${i}"><div class="pk" contenteditable="true" data-ph="Vlastnost" spellcheck="false">${esc(pr.k)}</div><div class="pv" contenteditable="true" data-ph="Prázdné">${esc(pr.v)}</div><button class="icon-btn" data-act="prop-del" data-i="${i}" aria-label="Odebrat vlastnost">×</button></div>`).join('')+`<div><button class="add-prop" data-act="prop-add">＋ Přidat vlastnost</button></div>`;
+  return props.map((pr,i)=>`<div class="prop" data-i="${i}"><div class="pk" contenteditable="true" data-ph="Vlastnost" spellcheck="false">${esc(pr.k)}</div><div class="pv" contenteditable="true" data-ph="Prázdné">${esc(pr.v)}</div><button class="icon-btn" data-act="prop-del" data-i="${i}" aria-label="Odebrat vlastnost">${IC.x}</button></div>`).join('')+`<div><button class="add-prop" data-act="prop-add">${IC.plus}Přidat vlastnost</button></div>`;
 }
 function defaultEnd(bl,i){ const hl=hLevel(bl[i].type); for(let j=i+1;j<bl.length;j++){ const l=hLevel(bl[j].type); if(l&&l<=hl) return j; } return bl.length; }
 function sectionEnd(bl,i){
@@ -136,10 +134,10 @@ function renderBlock(b,i,bl){
   const lv=b.level||0; let inner;
   if(b.type==='divider') inner='<div class="divider"><hr></div>';
   else if(b.type==='table') inner=renderTable(b);
-  else if(b.type==='image') inner=`<figure class="imgfig"><img class="bimg${b.draw?' bdraw':''} ${IMGURL.has(b.img)?'':'missing'}" data-bimg="${esc(b.img||'')}" src="${esc(imgSrc(b.img,b.name))}" alt="${esc(b.caption||'')}" draggable="false"><button class="ta ta-up" data-act="img-line" data-dir="up" title="Nový řádek nad" aria-label="Nový řádek nad obrázkem">↵</button><button class="ta ta-dn" data-act="img-line" title="Nový řádek pod" aria-label="Nový řádek pod obrázkem">↵</button>${(b.caption||b.capOn)?`<figcaption class="cap" contenteditable="true" data-ph="Popisek obrázku">${esc(b.caption||'')}</figcaption>`:''}</figure>`;
+  else if(b.type==='image') inner=`<figure class="imgfig"><img class="bimg${b.draw?' bdraw':''} ${IMGURL.has(b.img)?'':'missing'}" data-bimg="${esc(b.img||'')}" src="${esc(imgSrc(b.img,b.name))}" alt="${esc(b.caption||'')}" draggable="false"><button class="ta ta-up" data-act="img-line" data-dir="up" title="Nový řádek nad" aria-label="Nový řádek nad obrázkem">${IC.newline}</button><button class="ta ta-dn" data-act="img-line" title="Nový řádek pod" aria-label="Nový řádek pod obrázkem">${IC.newline}</button>${(b.caption||b.capOn)?`<figcaption class="cap" contenteditable="true" data-ph="Popisek obrázku">${esc(b.caption||'')}</figcaption>`:''}</figure>`;
   else if(b.type==='subj') inner=renderSubjHead(b);
-  else if(b.type==='eq'){ const tex=plain(b.html); inner=`<div class="eqb" data-tex="${esc(tex)}" role="button" tabindex="0" aria-label="Rovnice, klikni pro úpravu">${esc(tex)}</div>`; }
-  else if(b.type==='page'){ const p=S.pages[b.pageId]; inner=`<button class="pagelink" data-act="open" data-id="${esc(b.pageId)}">${p?pIcon(p):'<span class="pl-ic">↗</span>'}<span class="pl-t">${esc(pTitle(p))}</span></button>`; }
+  else if(b.type==='eq'){ const tex=plain(b.html); inner=`<div class="eqb" data-tex="${esc(tex)}" role="button" tabindex="0" aria-label="Rovnice, úprava kliknutím">${esc(tex)}</div>`; }
+  else if(b.type==='page'){ const p=S.pages[b.pageId]; inner=`<button class="pagelink" data-act="open" data-id="${esc(b.pageId)}">${p?pIcon(p):`<span class="pl-ic">${IC.pageLink}</span>`}<span class="pl-t">${esc(pTitle(p))}</span></button>`; }
   else{
     let mk='';
     if(b.type==='bullet') mk=`<span class="mk bullet" aria-hidden="true">${['•','◦','▪'][lv%3]}</span>`;
@@ -151,7 +149,7 @@ function renderBlock(b,i,bl){
   }
   const extra=b.type==='image'?` al-${b.align||'center'}${b.nw?' nw':''}${b.draw?' is-draw':''}`:b.type==='subj'?` hl-${esc((S.subjects[b.subj]||{}).color||'gray')}`:'';
   return `<div class="blk b-${b.type} ${b.type==='callout'?'hl-'+(b.color||'purple'):''}${extra}${b.clr?' clr':''}" data-id="${b.id}" style="--lv:${b.type==='image'?0:lv}${b.type==='image'?`;--w:${+b.w||480}px`:''}">
-    <div class="gut"><button class="g-add" data-act="add-after" aria-label="Přidat blok pod">+</button><button class="g-drag" data-act="blk-menu" data-popanchor draggable="true" aria-label="Přetáhni, nebo klikni pro menu">⋮⋮</button></div>${inner}</div>`;
+    <div class="gut"><button class="g-add" data-act="add-after" aria-label="Přidat blok pod">${IC.plus}</button><button class="g-drag" data-act="blk-menu" data-popanchor draggable="true" aria-label="Přesunout tažením, menu kliknutím">${IC.grip}</button></div>${inner}</div>`;
 }
 /* nadpis s předmětem z Indexu: text se nepíše ručně, bere se živě z Indexu */
 function renderSubjHead(b){
@@ -173,7 +171,7 @@ function renderTable(b){
     const rhv=Math.round(+rh[r]);
     h+=rhv>0?`<tr style="height:${Math.min(2000,rhv)}px">`:'<tr>';
     row.cells.forEach((cell,c)=>{
-      h+=`<td data-r="${r}" data-c="${c}">${c===0?`<button class="rh" data-act="row-menu" data-popanchor aria-label="Možnosti řádku">⋮</button>`:''}${r===0?`<button class="ch" data-act="col-menu" data-popanchor aria-label="Možnosti sloupce">⋯</button>`:''}${cell.lines.map((ln,l)=>{
+      h+=`<td data-r="${r}" data-c="${c}">${c===0?`<button class="rh" data-act="row-menu" data-popanchor aria-label="Možnosti řádku">${IC.moreV}</button>`:''}${r===0?`<button class="ch" data-act="col-menu" data-popanchor aria-label="Možnosti sloupce">${IC.more}</button>`:''}${cell.lines.map((ln,l)=>{
         const mk=ln.t==='bullet'?'<span class="mk bullet" aria-hidden="true">•</span>':ln.t==='todo'?`<button class="mk check ${ln.done?'on':''}" data-act="lcheck" role="checkbox" aria-checked="${!!ln.done}" aria-label="Hotovo"></button>`:'';
         return `<div class="ln l-${ln.t} ${ln.t==='todo'&&ln.done?'done':''}" data-l="${l}">${mk}<div class="txt cell-txt" contenteditable="true">${sanitize(ln.html)}</div></div>`;
       }).join('')}</td>`;

@@ -6,7 +6,7 @@
    - každá uložená úprava = nový soubor s novým ID, starý zůstane bez odkazu (z Disku ho smaže ↑ jako smazaný obrázek)
    - kreslí se ve „světových“ souřadnicích; plátno je ukazuje přes posun a měřítko (view), aby se starší kresba vešla
    - v tmavém režimu se papír i barvy převrací filtrem (css/draw.css), uložený soubor je vždy denní */
-import { $, $$, clamp, lsGet, lsSet, TEXT_TYPES } from '../core.js';
+import { $, $$, clamp, IC, lsGet, lsSet, TEXT_TYPES } from '../core.js';
 import { S } from '../state.js';
 import { IMGURL, savePage } from '../store.js';
 import { curPage, newBlock } from '../pages.js';
@@ -34,7 +34,7 @@ const PIC={
 };
 const pic=k=>`<svg viewBox="0 0 24 24">${PIC[k]}</svg>`;
 const GAP={lines:28,dots:24,grid:24};
-const IC={
+const DRW_IC={
   p:'<svg viewBox="0 0 24 24"><path d="M4 20l1.2-4.2L16 5a2 2 0 0 1 2.9 0l.1.1a2 2 0 0 1 0 2.9L8.2 18.8z"/><path d="M14.5 6.5l3 3"/></svg>',
   f:'<svg viewBox="0 0 24 24"><path d="M7 21l-2-2 1.5-4.5L15 6l3 3-8.5 8.5z"/><path d="M15 6l1.8-1.8a1.5 1.5 0 0 1 2.1 0l.9.9a1.5 1.5 0 0 1 0 2.1L18 9"/></svg>',
   h:'<svg viewBox="0 0 24 24"><path d="M9 15l-3 3v2h4l2-3"/><path d="M9 15l3 3 8-8-3-3z"/><path d="M4 21h16" opacity=".5"/></svg>',
@@ -151,7 +151,7 @@ async function openDraw(target){
   let data=null, oldVw=0;
   if(target.edit){
     const pg=S.pages[target.pgId], b=pg&&pg.blocks.find(x=>x.id===target.blockId); if(!b) return;
-    if(!IMGURL.has(b.img)) return toast('Kresba v tomhle zařízení ještě není. Stáhni ji z Disku (↓).');
+    if(!IMGURL.has(b.img)) return toast('Kresba v tomhle zařízení ještě není. Stáhne se z Disku (↓).');
     data=await readDrawing(b.img);
     if(!data) return toast('Kresbu se nepodařilo načíst pro úpravy.');
     const bb=data.crop?bbox(data.s):null; oldVw=data.box?data.box[2]:data.crop?(bb?bb.w+2*PAD:0):(data.view?data.view[2]:0);
@@ -165,11 +165,11 @@ async function openDraw(target){
   const ov=document.createElement('div'); ov.className='drw-ov';
   ov.innerHTML=`<div class="drw" role="dialog" aria-modal="true" aria-label="Kreslení">
     <div class="drw-bar">
-      <div class="drw-grp">${['p','f','h'].map(t=>`<button class="drw-b" data-d="tool" data-t="${t}" title="${TOOLS[t].n}" aria-label="${TOOLS[t].n}">${IC[t]}</button>`).join('')}<button class="drw-b" data-d="tool" data-t="e" title="Guma (maže celé tahy)" aria-label="Guma">${IC.e}</button><button class="drw-b" data-d="tool" data-t="crop" title="Vlastní ořez (táhni rámeček)" aria-label="Vlastní ořez">${IC.crop}</button></div>
+      <div class="drw-grp">${['p','f','h'].map(t=>`<button class="drw-b" data-d="tool" data-t="${t}" title="${TOOLS[t].n}" aria-label="${TOOLS[t].n}">${DRW_IC[t]}</button>`).join('')}<button class="drw-b" data-d="tool" data-t="e" title="Guma (maže celé tahy)" aria-label="Guma">${DRW_IC.e}</button><button class="drw-b" data-d="tool" data-t="crop" title="Vlastní ořez (tažením rámečku)" aria-label="Vlastní ořez">${DRW_IC.crop}</button></div>
       <div class="drw-grp"><button class="drw-b drw-col" data-d="col" title="Barva" aria-label="Barva"><span class="drw-sw"></span></button><button class="drw-b drw-wid" data-d="wid" title="Tloušťka" aria-label="Tloušťka"><span class="drw-dot"></span></button></div>
-      <div class="drw-grp"><button class="drw-b" data-d="undo" title="Zpět (⌘Z)" aria-label="Zpět">${IC.undo}</button><button class="drw-b" data-d="redo" title="Znovu (⇧⌘Z)" aria-label="Znovu">${IC.redo}</button><button class="drw-b drw-more" data-d="more" title="Pozadí, vyhlazení, ořez" aria-label="Další volby">⋯</button></div>
+      <div class="drw-grp"><button class="drw-b" data-d="undo" title="Zpět (⌘Z)" aria-label="Zpět">${DRW_IC.undo}</button><button class="drw-b" data-d="redo" title="Znovu (⇧⌘Z)" aria-label="Znovu">${DRW_IC.redo}</button><button class="drw-b drw-more" data-d="more" title="Pozadí, vyhlazení, ořez" aria-label="Další volby">${IC.more}</button></div>
       <span class="drw-sp"></span>
-      <div class="drw-grp drw-end"><button class="btn" data-d="cancel">Zrušit</button><button class="btn pri" data-d="done" title="Enter">Hotovo</button></div>
+      <div class="drw-grp drw-end"><button class="btn" data-d="cancel">Zavřít</button><button class="btn pri" data-d="done" title="Enter">Uložit</button></div>
     </div>
     <div class="drw-wrap"><div class="drw-stage"><canvas class="cv-bg"></canvas><canvas class="cv-hl"></canvas><canvas class="cv-live"></canvas><canvas class="cv-ink"></canvas></div><div class="drw-crop" hidden><i data-h="nw"></i><i data-h="ne"></i><i data-h="sw"></i><i data-h="se"></i></div></div>
     <div class="drw-pop" hidden></div>

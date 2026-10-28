@@ -1,6 +1,7 @@
 /* Úkolníček – Nastavení → AI: poskytovatelé (klíč, model, Ověřit, Smazat klíč), výchozí poskytovatel, styl a jazyk, útrata.
    Vše kromě útraty jde do settings.ai (přes aiUpdate v js/ai.js); útrata je ze statistik v zařízení (js/ai/stats.js). */
 import { $, $$, esc } from '../core.js';
+import { LOCK } from '../lock.js';
 import { renderMain } from '../router.js';
 import { toast } from '../ui.js';
 import { aiCfg, aiConfigured, aiDefault, aiErrText, aiKey, aiModel, aiProviders, aiUpdate, aiVerify } from '../ai.js';
@@ -18,7 +19,7 @@ function aiPaneHtml(){
       <div class="ai-key"><input class="inp" type="password" data-ai-key value="${esc(key)}" placeholder="API klíč" autocomplete="off" spellcheck="false" aria-label="API klíč ${esc(P.name)}"><button type="button" class="btn" data-ai-eye>Zobrazit</button></div>
       <div class="ai-model"><select class="inp" data-ai-model aria-label="Model">${P.models.map(([v,l])=>`<option value="${esc(v)}" ${v===m?'selected':''}>${esc(l)}</option>`).join('')}<option value="${AI_OWN}" ${preset?'':'selected'}>Vlastní název…</option></select>
         <input class="inp" data-ai-own value="${preset?'':esc(m)}" placeholder="název modelu" spellcheck="false" aria-label="Vlastní název modelu" ${preset?'hidden':''}></div>
-      <div class="m-actions"><button type="button" class="btn" data-ai-verify ${key?'':'disabled'}>Ověřit</button><button type="button" class="btn danger" data-ai-del ${key?'':'disabled'}>Smazat klíč</button><span class="note ai-vs" role="status"></span></div>
+      <div class="m-actions"><button type="button" class="btn" data-ai-verify ${key?'':'disabled'}>Ověřit</button><button type="button" class="btn danger lk-hide" data-ai-del ${key?'':'disabled'}>Odstranit klíč</button><span class="note ai-vs" role="status"></span></div>
       <p class="note">${esc(P.info)} <a href="${P.keyUrl}" target="_blank" rel="noopener">Získat klíč</a></p>
     </div>`;
   };
@@ -39,11 +40,11 @@ function aiPaneBind(pane){
     const eye=t.closest('[data-ai-eye]');
     if(eye){ const k=$('[data-ai-key]',pvOf(eye)); k.type=k.type==='password'?'text':'password'; eye.textContent=k.type==='password'?'Zobrazit':'Skrýt'; return; }
     const del=t.closest('[data-ai-del]');
-    if(del){
-      if(!del.classList.contains('arm')){ del.classList.add('arm'); del.textContent='Smazat ze všech zařízení?'; return; }
+    if(del&&!LOCK){
+      if(!del.classList.contains('arm')){ del.classList.add('arm'); del.textContent='Odstranit ze všech zařízení?'; return; }
       const id=pvOf(del).dataset.pv;
       aiUpdate(a=>{ if(a.keys) delete a.keys[id]; if(a.models) delete a.models[id]; if(a.provider===id) delete a.provider; });
-      draw(); toast('Klíč smazán. Po synchronizaci zmizí i z ostatních zařízení.'); return;
+      draw(); toast('Klíč odstraněn. Po synchronizaci zmizí i z ostatních zařízení.'); return;
     }
     const ver=t.closest('[data-ai-verify]');
     if(ver){

@@ -115,7 +115,7 @@ const Store={
         lastWid=META.wid; lastSeen=d;
         if(TAB_CH) try{ TAB_CH.postMessage({t:'saved',wid:lastWid}); }catch(_){}
       }
-      catch(e){ SAVE_ERR=true; toast(e&&e.name==='QuotaExceededError'?'Úložiště v zařízení je plné. Smaž nějaké obrázky nebo stránky.':'Uložení do zařízení selhalo. Zkus obnovit stránku.'); }
+      catch(e){ SAVE_ERR=true; toast(e&&e.name==='QuotaExceededError'?'Úložiště v zařízení je plné. Pomůže odstranit některé obrázky nebo stránky.':'Uložení do zařízení selhalo. Pomůže obnovit stránku.'); }
     });
     updateSaving(); updateSyncUI();
   },
