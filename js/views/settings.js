@@ -12,7 +12,7 @@ import { renderMain } from '../router.js';
 import { closeModal, openModal, toast } from '../ui.js';
 import { CALLOUT_KINDS } from '../editor/menus.js';
 import { HOUR_SCALES } from './schedule.js';
-import { autoPull, autoPush, cloudSvg, IDLE_MAX, IDLE_MIN, idleSec, Sync, updateSyncUI } from '../sync/sync.js';
+import { autoPull, autoPush, backPull, blurPush, cloudSvg, hidePush, IDLE_MAX, IDLE_MIN, idleSec, LEAVE, leaveNum, Sync, updateSyncUI } from '../sync/sync.js';
 import { ImgSync, withImgs } from '../sync/images.js';
 import { placeFrame } from '../editor/images.js';
 import { capsOff } from '../editor/caps.js';
@@ -20,7 +20,9 @@ import { checkUpdate } from '../update.js';
 import { aiPaneBind } from './aiset.js';
 
 /* ================= settings ================= */
-const APP_VERSION='4.24.1';
+const APP_VERSION='4.25.0';
+/* řádek „Po [3] s“ pro doby kolem odchodu z okna (LEAVE v sync.js) */
+const lvRow=(n,pre,post)=>{ const o=LEAVE[n]; return `<div class="au-row"><span>${pre}</span><input type="number" class="inp" data-lv="${n}" min="${o.lo}" max="${o.hi}" step="1" value="${leaveNum(n)}" aria-label="${pre} (s)"><span>${post}</span></div>`; };
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
 const FS_STEPS=[1,1.1,1.2,1.3,1.4];
 /* uložená velikost textu přichycená na nejbližší krok (starší kroky 1,15 … 1,6 se převedou) */
@@ -136,9 +138,17 @@ async function openSettings(focus){
         <label class="chk"><input type="checkbox" id="st-autoup" ${autoPush()?'checked':''}> Po nečinnosti nahrát neuložené změny</label>
         <div class="au-row"><span>Po</span>${(()=>{ const s=idleSec(), u=s%3600===0?3600:s%60===0?60:1; return `<input type="number" class="inp" id="st-au-n" min="1" step="1" value="${s/u}" aria-label="Doba nečinnosti"><select class="inp" id="st-au-u" aria-label="Jednotka">${[[1,'s'],[60,'min'],[3600,'h']].map(([v,l])=>`<option value="${v}" ${v===u?'selected':''}>${l}</option>`).join('')}</select>`; })()}<span class="note">5 s až 2 h</span></div>
         <p class="note" style="margin-top:-8px;padding-left:26px">Jen s platným přihlášením a když na Disku není novější verze. Jen pro toto zařízení.</p>
+        <label class="chk"><input type="checkbox" id="st-hideup" ${hidePush()?'checked':''}> Při skrytí okna nahrát hned</label>
+        <p class="note" style="margin-top:-8px;padding-left:26px">Minimalizace, přepnutí karty nebo zakrytí celého okna. Jen pro toto zařízení.</p>
+        <label class="chk"><input type="checkbox" id="st-blurup" ${blurPush()?'checked':''}> Při přepnutí do jiné aplikace nahrát</label>
+        ${lvRow('blur','Po','s')}${lvRow('gap','Nejvýš jednou za','s')}
+        <p class="note" style="margin-top:-8px;padding-left:26px">Okno zůstane vidět (např. ⌘Tab). Návrat před uplynutím doby nahrání zruší, 0 = hned. Jen pro toto zařízení.</p>
         <h3 class="set-h">Stahování z Disku</h3>
         <label class="chk"><input type="checkbox" id="st-auto" ${autoPull()?'checked':''}> Po otevření aplikace stáhnout novější verzi z Disku</label>
         <p class="note" style="margin-top:-8px;padding-left:26px">Jen když tu nejsou změny, které na Disku chybí; když se změnilo obojí, zeptá se. Před stažením se uloží místní záloha. Jen pro toto zařízení.</p>
+        <label class="chk"><input type="checkbox" id="st-backpull" ${backPull()?'checked':''}> Po návratu do okna zkontrolovat Disk</label>
+        ${lvRow('back','Nejvýš jednou za','s')}
+        <p class="note" style="margin-top:-8px;padding-left:26px">Novější verze se stáhne podle volby výše, jinak se jen ukáže u mráčku. Jen pro toto zařízení.</p>
         <label class="chk"><input type="checkbox" id="st-dll" ${lsGet('uk-dl-latest',false)?'checked':''}> Šipka ↓ stáhne rovnou nejnovější verzi (bez výběru z 10)</label>
         <p class="note" style="margin-top:-8px;padding-left:26px">Starší verze se vybírá v menu mráčku. Jen pro toto zařízení.</p>
       </div>
@@ -214,6 +224,16 @@ async function openSettings(focus){
   const iu=$('#st-img-up',m); if(iu) iu.addEventListener('click',()=>{ closeModal(); Sync.uploadImgs(); });
   const idn=$('#st-img-down',m); if(idn) idn.addEventListener('click',()=>{ closeModal(); Sync.downloadImgs(); });
   $('#st-autoup',m).addEventListener('change',e=>lsSet('uk-auto-push',e.target.checked));
+  /* odchod z okna a návrat: zaškrtávátka a doby v sekundách (výchozí hodnota se neukládá, mimo rozsah se srovná) */
+  [['#st-hideup','uk-hide-push'],['#st-blurup','uk-blur-push'],['#st-backpull','uk-back-pull']].forEach(([id,k])=>
+    $(id,m).addEventListener('change',e=>{ if(e.target.checked){ try{ localStorage.removeItem(k); }catch(_){} } else lsSet(k,false); }));
+  $$('[data-lv]',m).forEach(n=>n.addEventListener('change',()=>{
+    const o=LEAVE[n.dataset.lv], v=+n.value;
+    if(n.value.trim()===''||!Number.isFinite(v)){ n.value=leaveNum(n.dataset.lv); return; }
+    const sec=Math.min(o.hi,Math.max(o.lo,Math.round(v)));
+    if(sec===o.d){ try{ localStorage.removeItem(o.k); }catch(_){} } else lsSet(o.k,sec);
+    n.value=sec;
+  }));
   $('#st-mm',m).addEventListener('change',e=>{ if(e.target.checked) S.settings.mindmap=true; else delete S.settings.mindmap; saveSettings(); renderSidebar(); renderMain(); });
   /* Formát: výchozí zvýrazněný blok (v datech jen odlišné hodnoty) a kontrola pravopisu (jen v zařízení) */
   const coPaint=()=>{

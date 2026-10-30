@@ -17,6 +17,15 @@ const autoPush=()=>lsGet('uk-auto-push',true)!==false;
 /* doba nečinnosti před automatickým nahráním: 5 s až 2 h, výchozí 5 min (jen v zařízení, 'uk-auto-sec', neukládá se do dat) */
 const IDLE_MIN=5, IDLE_MAX=7200, IDLE_DEF=300;
 const idleSec=()=>{ const v=Math.round(+lsGet('uk-auto-sec',IDLE_DEF)); return Number.isFinite(v)?Math.min(IDLE_MAX,Math.max(IDLE_MIN,v)):IDLE_DEF; };
+/* odchod z okna a návrat (od 4.25.0, vše jen v zařízení):
+   skrytí okna (minimalizace, jiná karta, zakryté okno) = nahrát hned; přepnutí do jiné aplikace (blur) = po prodlevě
+   'uk-blur-sec' a nejvýš jednou za 'uk-blur-gap'; návrat = lehká kontrola Disku nejvýš jednou za 'uk-back-gap' */
+const lsNum=(k,d,lo,hi)=>{ const v=Math.round(+lsGet(k,d)); return Number.isFinite(v)?Math.min(hi,Math.max(lo,v)):d; };
+const hidePush=()=>lsGet('uk-hide-push',true)!==false;
+const blurPush=()=>lsGet('uk-blur-push',true)!==false;
+const backPull=()=>lsGet('uk-back-pull',true)!==false;
+const LEAVE={ blur:{k:'uk-blur-sec',d:3,lo:0,hi:600}, gap:{k:'uk-blur-gap',d:30,lo:0,hi:3600}, back:{k:'uk-back-gap',d:30,lo:5,hi:3600} };
+const leaveNum=n=>{ const o=LEAVE[n]; return lsNum(o.k,o.d,o.lo,o.hi); };
 /* je nejnovější soubor na Disku jiný a novější než ten, se kterým bylo toto zařízení naposledy synchronizované?
    (porovnává se čas vytvoření na serveru Googlu, ne hodiny zařízení) */
 function newerOnDrive(top){ return !!(top&&top.name!==META.remoteName&&(!META.remoteAt||top.createdTime>META.remoteAt)); }
@@ -29,6 +38,7 @@ const Sync={
   armed:false,       /* token vypršel: kontrola proběhne po prvním klepnutí do aplikace */
   connecting:null,checking:false,lastCheck:0,hiddenAt:0,snoozed:'',
   lastAct:Date.now(),lastAuto:0,
+  leftAt:0,lastLeave:0,blurT:0,picker:false,
   init(){
     DriveSync.preload(); updateSyncUI();
     /* zapomenuté změny: po nastavené době bez psaní a klikání se tiše nahrají (jen s platným přihlášením) */
@@ -36,14 +46,13 @@ const Sync={
     setInterval(()=>this.idlePush(),1000);
     this.check('start');
     document.addEventListener('visibilitychange',()=>{
-      if(document.visibilityState==='hidden'){ this.hiddenAt=Date.now(); return; }
-      updateSyncUI();
-      const away=this.hiddenAt?Date.now()-this.hiddenAt:0;
-      /* návrat do aplikace = nové otevření (na telefonu se aplikace většinou jen probouzí);
-         s platným tokenem stačí lehký dotaz, okno přihlášení až po delší pauze */
-      if(DriveSync.state()==='expired'){ if(away>=5*60000) this.check('resume'); }
-      else if(Date.now()-this.lastCheck>30000) this.check('resume');
+      if(document.visibilityState==='hidden'){ this.hiddenAt=this.leftAt=Date.now(); clearTimeout(this.blurT); if(hidePush()) this.leavePush('hide'); return; }
+      this.back();
     });
+    window.addEventListener('blur',()=>this.onBlur());
+    window.addEventListener('focus',()=>{ clearTimeout(this.blurT); this.picker=false; this.back(); });
+    /* výběr souboru (obrázek, import) taky vezme oknu fokus: to není odchod z aplikace */
+    document.addEventListener('click',e=>{ const t=e.target; if(t&&t.matches&&t.matches('input[type=file]')) this.picker=true; },true);
     window.addEventListener('online',()=>{ updateSyncUI(); if(DriveSync.state()==='ok'&&Date.now()-this.lastCheck>30000) this.check('online'); });
     window.addEventListener('offline',updateSyncUI);
     document.addEventListener('click',e=>this.firstClick(e),true);
@@ -281,6 +290,31 @@ const Sync={
     }catch(e){ if(!auto||!(e&&e.code==='expired')) toast(DriveSync.errText(e)); }
     finally{ this.progress(''); this.setBusy(false); }
   },
+  /* návrat do okna = nové otevření (na telefonu se aplikace většinou jen probouzí);
+     s platným tokenem stačí lehký dotaz, s prošlým se jen připraví přihlášení na první klepnutí po delší pauze */
+  back(){
+    updateSyncUI();
+    if(!backPull()||document.visibilityState==='hidden') return;
+    const away=this.leftAt?Date.now()-this.leftAt:0;
+    if(DriveSync.state()==='expired'){ if(away>=5*60000) this.check('resume'); }
+    else if(Date.now()-this.lastCheck>leaveNum('back')*1000) this.check('resume');
+  },
+  /* přepnutí do jiné aplikace: nahrát až po prodlevě, rychlý návrat (třeba do PDF a zpět) nahrání zruší */
+  onBlur(){
+    this.leftAt=Date.now(); clearTimeout(this.blurT);
+    if(!blurPush()||this.picker||this.connecting) return;
+    const a=document.activeElement; if(a&&a.tagName==='IFRAME') return;   /* fokus jen přešel do vloženého rámu */
+    this.blurT=setTimeout(()=>{ if(!document.hasFocus()) this.leavePush('blur'); },leaveNum('blur')*1000);
+  },
+  /* stejné podmínky jako idlePush, jen bez čekání na nečinnost; prošlé přihlášení se přeskočí potichu (okno přihlášení jde jen po klepnutí) */
+  leavePush(why){
+    const now=Date.now();
+    if(why==='blur'&&now-this.lastLeave<leaveNum('gap')*1000) return;
+    if(document.querySelector('#blocks .ai-prev,#blocks .aip-chg')) return;
+    if(this.busy||this.connecting||this.checking||this.pending||Store.broken||!navigator.onLine) return;
+    if(!DriveSync.clientId()||DriveSync.state()!=='ok'||!isDirty()) return;
+    this.lastLeave=this.lastAuto=now; this.upload(false,true);
+  },
   idlePush(){
     const now=Date.now();
     /* otevřený návrh AI (✦ u výběru .ai-prev, změny z panelu .aip-chg) = jako by se pořád psalo: odpočet čeká,
@@ -391,4 +425,4 @@ function openSyncMenu(anchor){
   openPop(anchor,h,v=>{ if(v==='up') Sync.upload(); else if(v==='down') Sync.download(); else if(v==='pick') Sync.openDownload(); else if(v==='merge'){ Sync.snoozed=''; Sync.check('menu',true); } else openSettings('drive'); });
 }
 
-export { autoPull, autoPush, cloudSvg, deviceName, IDLE_MAX, IDLE_MIN, idleSec, openSyncMenu, Sync, updateSyncUI };
+export { autoPull, autoPush, backPull, blurPush, cloudSvg, deviceName, hidePush, IDLE_MAX, IDLE_MIN, idleSec, LEAVE, leaveNum, openSyncMenu, Sync, updateSyncUI };
