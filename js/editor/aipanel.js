@@ -163,7 +163,8 @@ function aipBuild(){
   el.innerHTML=`<div class="aip-grip" title="Tažením se mění šířka"></div>
     <div class="aip-head"><span class="aip-t"><span class="ai-ic" aria-hidden="true">${IC.spark}</span><span class="aip-pt"></span></span><select class="aip-pm" aria-label="Model" hidden></select>
       <button type="button" class="icon-btn aip-mx" data-aip="min" aria-label="Zobrazit stránku" title="Zobrazit stránku">${IC.chevD}</button><button type="button" class="icon-btn aip-ic" data-aip="close" aria-label="Zavřít" title="Zavřít">${AIP_X}</button></div>
-    <div class="aip-ctx"><textarea class="aip-cta" rows="1" maxlength="${AI_CTX_MAX}" placeholder="Kontext, např. Jsi odborník na stavební materiály." aria-label="Kontext pro AI"></textarea><div class="aip-cn"></div></div>
+    <div class="aip-ctx"><button type="button" class="aip-ct" data-aip="ctx" aria-expanded="false"><span class="aip-cs">Bez kontextu</span><span class="aip-cv" aria-hidden="true">${IC.chevD}</span></button>
+      <div class="aip-cb" hidden><textarea class="aip-cta" rows="1" maxlength="${AI_CTX_MAX}" placeholder="Kontext pro odpovědi" aria-label="Kontext pro AI"></textarea><div class="aip-cn"></div></div></div>
     <div class="aip-sel" hidden></div>
     <div class="aip-log" aria-live="polite"></div>
     <div class="aip-ed" hidden></div>
@@ -221,10 +222,16 @@ function aipHead(){
   const cur=PM?PM.id+'|'+PM.model:aiDefault()+'|'+aiModel(aiDefault());
   s.innerHTML=opts.map(([v,n])=>`<option value="${esc(v)}"${v===cur?' selected':''}>${esc(n)}</option>`).join('');
 }
+/* kontext je sbalený do jednoho řádku se stavem (od 4.22.0); šipka ho rozbalí a zase sbalí */
 function aipCtxNote(){
   const pg=AIQ&&S.pages[AIQ.pgId], n=el&&$('.aip-cn',el); if(!pg||!n) return;
-  const par=aiCtxOf(S.pages[pg.parent]);
-  n.textContent=par.text&&!(pg.aiCtx||'').trim()?`Platí kontext ze stránky „${pTitle(par.from)}“: ${par.text.slice(0,120)}${par.text.length>120?'…':''}`:'';
+  const par=aiCtxOf(S.pages[pg.parent]), own=!!(pg.aiCtx||'').trim();
+  n.textContent=par.text&&!own?`Platí kontext ze stránky „${pTitle(par.from)}“: ${par.text.slice(0,120)}${par.text.length>120?'…':''}`:'';
+  $('.aip-cs',el).textContent=own?'Kontext je zadán':par.text?`Kontext z „${pTitle(par.from)||'Bez názvu'}“`:'Bez kontextu';
+}
+function aipCtxOpen(on){
+  const b=$('.aip-cb',el), t=$('.aip-ct',el); b.hidden=!on; t.setAttribute('aria-expanded',on); el.classList.toggle('ctx-open',on);
+  if(on){ const cta=$('.aip-cta',el); aipGrow(cta,120); if(!LOCK) cta.focus(); }
 }
 function aipDraw(){ if(!el||!AIQ) return; aipHead(); aipSelDraw(); aipLog(); aipEd(); aipPlace(); }
 
@@ -376,6 +383,7 @@ function aipClick(e){
   const b=e.target.closest('[data-aip]'); if(!b) return;
   const v=b.dataset.aip, i=+b.dataset.i;
   if(v==='close') aipOpen(false);
+  else if(v==='ctx') aipCtxOpen($('.aip-cb',el).hidden);
   else if(v==='min'){ AIQ.min=!AIQ.min; el.classList.toggle('min',AIQ.min&&aipNarrow()); aipEd(); }
   else if(v==='unsel'){ AIQ.sel=null; AIQ.rng=null; clearBsel(); aipSelDraw(); }
   else if(v==='apply') aipApply();

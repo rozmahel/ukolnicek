@@ -205,6 +205,11 @@
   .view .sheet>.tk-sec,.view .sheet>.tk-proj,.view .sheet>.ix-sem{padding:var(--sp6) var(--sp7) var(--sp4)}
 }
 
+/* 4.22.0: v Úkolech a Indexu je souhrn, S termínem, každý projekt a každý semestr samostatný list s malou mezerou
+   (dřív splývaly v jednom). Dnes zůstává jeden list. :not(#_) jen přebije starší pravidla s +, :first-child apod. */
+.view .sheet:is(.tk-sheet,.ix-sheet){border:0;border-radius:0;background:none;overflow:visible;display:flex;flex-direction:column;gap:var(--sp4)}
+.view .sheet:is(.tk-sheet,.ix-sheet)>:not(#_){margin:0;border:1px solid var(--rule);border-radius:var(--r-sm);background:var(--panel);overflow:hidden}
+
 /* ================= pořadí v hlavičce (4.12.0): vlevo věci dané karty, oddělovač, pak zámek, režim a nastavení ⚙ úplně vpravo =================
    textová tlačítka (＋ Semestr, ＋ Přidat…) ve stylu „＋ Přidat widget“ na Dnes, bez rámečku */
 :is(.ix-view,.sch-view,.mm-view) .v-tools .btn.btn-text{border:0;background:none;padding:var(--sp3) var(--sp4);font-size:calc(13.5px*var(--fs));font-weight:500;color:var(--fg2)}

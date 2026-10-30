@@ -14,14 +14,23 @@ function placePop(p,rc,follow){
   p._fol={x:rc.left,y:rc.top,pl:x,pt:y};   /* při posunu stránky jede bublina s tlačítkem, ze kterého se otevřela */
   if(follow){ const fr=follow.getBoundingClientRect(); p._fol.x=fr.left; p._fol.y=fr.top; p._folEl=follow; }   /* nebo s blokem, když tlačítko zmizí */
 }
+/* at.parent = bublina, ze které se menu otevírá (⋯ v bublině schovaného panelu): zůstane otevřená vedle něj,
+   Esc nebo klik do ní zavře jen menu, výběr v menu nebo klik jinam zavře obě */
 function openPop(anchor,html,handler,at){
+  const par=at&&at.parent&&at.parent===S.pop?{el:S.pop,a:S.popAnchor}:null;
+  if(par){ S.pop=null; S.popAnchor=null; }
   closePop();
   const p=document.createElement('div'); p.className='pop'; p.innerHTML=html; document.body.appendChild(p);
   placePop(p,at&&at.rect||anchor.getBoundingClientRect(),at&&at.follow);
   p.addEventListener('click',e=>{ const b=e.target.closest('[data-v]'); if(b){ const keep=handler(b.dataset.v,b,p); if(keep!==true) closePop(); } });
-  S.pop=p; S.popAnchor=anchor; return p;
+  S.pop=p; S.popAnchor=anchor; S.popParent=par; return p;
 }
-function closePop(){ if(S.pop){ S.pop.remove(); S.pop=null; S.popAnchor=null; } }
+function closePop(back){
+  if(S.pop){ S.pop.remove(); S.pop=null; S.popAnchor=null; }
+  const pp=S.popParent; S.popParent=null; if(!pp) return;
+  pp.el.querySelectorAll('.mon').forEach(x=>x.classList.remove('mon'));
+  if(back&&pp.el.isConnected){ S.pop=pp.el; S.popAnchor=pp.a; } else pp.el.remove();
+}
 
 function openModal(title,body,cls){
   closeModal(); closePop();
@@ -89,7 +98,7 @@ export function initUi(){
   initTips();
   document.addEventListener('mousedown',e=>{
     const inFrame=e.target.closest&&e.target.closest('#imgframe');
-    if(S.pop&&!inFrame&&!S.pop.contains(e.target)&&!(S.popAnchor&&S.popAnchor.contains(e.target))) closePop();
+    if(S.pop&&!inFrame&&!S.pop.contains(e.target)&&!(S.popAnchor&&S.popAnchor.contains(e.target))) closePop(!!(S.popParent&&S.popParent.el.contains(e.target)));
     if(imgSel&&!inFrame&&e.target!==imgSel.img&&!(S.pop&&S.pop.contains(e.target))) hideImgSel();
     if(slash.open&&!e.target.closest('#slash')&&e.target!==slash.el) closeSlash();
   },true);

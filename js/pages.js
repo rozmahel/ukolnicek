@@ -1,7 +1,7 @@
 /* Úkolníček – Stránky (projekty a podstránky): strom, vytvoření, smazání, skok na blok */
-import { $, COLORS, esc, lsSet, norm, rid } from './core.js';
+import { $, COLORS, esc, lsSet, rid } from './core.js';
 import { S } from './state.js';
-import { savePage } from './store.js';
+import { noteFold, savePage } from './store.js';
 import { renderSidebar } from './sidebar.js';
 import { go, renderMain } from './router.js';
 import { isHeading, rerenderBlocks, sectionEnd } from './editor/render.js';
@@ -54,37 +54,16 @@ function createPage(parent,opts){
 function deletePage(id){ if(S.pages[id]) trashPage(id,[id,...descendants(id)]); }
 
 /* otevře stránku, rozbalí sekce nad blokem (a u nadpisu i jeho sekci) a doskroluje k němu */
-/* hledaný text v bloku: rozsah v DOMu (porovnává se bez diakritiky a velikosti písmen, stejně jako hledání) */
-function findRange(blk,q){
-  if(!q) return null;
-  for(const host of blk.querySelectorAll('.txt')){
-    const map=[]; let n='';
-    const w=document.createTreeWalker(host,NodeFilter.SHOW_TEXT,{acceptNode:t=>t.parentElement.closest('.eq')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
-    for(let t=w.nextNode();t;t=w.nextNode()){ const s=t.nodeValue; for(let i=0;i<s.length;i++){ const c=norm(s[i]); for(let k=0;k<c.length;k++){ n+=c[k]; map.push([t,i]); } } }
-    const i=n.indexOf(q); if(i<0) continue;
-    const a=map[i], b=map[i+q.length-1], r=document.createRange(); r.setStart(a[0],a[1]); r.setEnd(b[0],b[1]+1); return r;
-  }
-  return null;
-}
-let findT=null;
-function markFound(el,q){
-  const r=findRange(el,q);
-  if(!r||!window.CSS||!CSS.highlights||typeof Highlight!=='function'){ el.classList.add('flash'); return; }
-  const rc=r.getBoundingClientRect(), main=$('#main');
-  if(main&&rc.height){ const mr=main.getBoundingClientRect(); main.scrollTop+=rc.top-mr.top-mr.height/2+rc.height/2; }
-  CSS.highlights.set('uk-find',new Highlight(r));
-  clearTimeout(findT); findT=setTimeout(()=>CSS.highlights.delete('uk-find'),2600);
-}
-function revealBlock(pageId,blockId,openSelf,query){
+function revealBlock(pageId,blockId,openSelf,quiet){   /* quiet: bez bliknutí bloku (hledání ho zvýrazní samo) */
   const pg=S.pages[pageId]; if(!pg) return toast('Stránka už neexistuje.');
   const bl=pg.blocks, idx=bl.findIndex(b=>b.id===blockId); if(idx<0) return toast('Blok už na stránce není.');
   go({kind:'page',pageId});
   let opened=false;
-  for(let i=idx-1;i>=0;i--){ if(isHeading(bl[i].type)&&bl[i].collapsed&&sectionEnd(bl,i)>idx){ bl[i].collapsed=false; opened=true; } }
-  if(openSelf&&bl[idx].collapsed){ bl[idx].collapsed=false; opened=true; }
+  for(let i=idx-1;i>=0;i--){ if(isHeading(bl[i].type)&&bl[i].collapsed&&sectionEnd(bl,i)>idx){ bl[i].collapsed=false; noteFold(bl[i]); opened=true; } }
+  if(openSelf&&bl[idx].collapsed){ bl[idx].collapsed=false; noteFold(bl[idx]); opened=true; }
   if(opened) savePage(pg);
   rerenderBlocks();
-  setTimeout(()=>{ const el=$(`#blocks .blk[data-id="${blockId}"]`); if(el){ el.scrollIntoView({block:openSelf?'start':'center'}); if(query) markFound(el,query); else el.classList.add('flash'); } },30);
+  setTimeout(()=>{ const el=$(`#blocks .blk[data-id="${blockId}"]`); if(el){ el.scrollIntoView({block:openSelf?'start':'center'}); if(!quiet) el.classList.add('flash'); } },30);
 }
 
 export { archivePage, archRoots, createPage, curPage, deletePage, emptyCell, flatPages, isArchived, kids, kidsAll, newBlock, newTable, pIcon, pTitle, revealBlock, unarchivePage };

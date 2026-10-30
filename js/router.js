@@ -45,9 +45,18 @@ function restoreScroll(){
 }
 
 /* ================= routing ================= */
+/* karty (Dnes, Index, Rozvrh, Úkoly, mapa) jsou vrstva nad stránkami (od 4.22.0): při odskoku ze stránky se zapamatuje,
+   kde se bylo (uk-under, jen v zařízení; rozdělení si drží split.js), a druhý klik na stejnou kartu v levém panelu tam vrátí */
+const CARDS=['today','index','schedule','tasks','mindmap'];
+function navCard(k){
+  if(S.view.kind!==k){ go({kind:k}); return; }
+  const u=lsGet('uk-under',null), id=u&&S.pages[u]?u:Object.values(S.pages).filter(p=>!p.parent&&!isArchived(p)).sort((a,b)=>(a.order||0)-(b.order||0)).map(p=>p.id)[0];
+  if(id) go({kind:'page',pageId:id});
+}
 function go(view){
   Store.flushAll();
   rememberScroll(true);
+  if(S.view.kind==='page'&&CARDS.includes(view.kind)&&S.pages[S.view.pageId]) lsSet('uk-under',S.view.pageId);
   S.view=view; lsSet('uk-view',view);
   if(view.kind==='page'&&isArchived(S.pages[view.pageId])) S.archMode=true;   /* archivovaná stránka (třeba z hledání): panel ukáže archiv */
   if(view.kind==='trash'){ S.trashMode=true; S.archMode=false; } else S.trashMode=false;
@@ -75,4 +84,4 @@ function renderMain(){
   document.dispatchEvent(new Event('uk-view'));   /* panel AI se schová mimo stránky a na jiné stránce začne znovu */
 }
 
-export { go, noteScroll, renderMain, restoreScroll, scrollOf };
+export { go, navCard, noteScroll, renderMain, restoreScroll, scrollOf };

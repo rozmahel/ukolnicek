@@ -3,7 +3,7 @@
 
 const AI_SUM='Shrň text velmi stručně do odrážek "- ". Shrnutí musí být výrazně kratší než původní text. Každá odrážka je jedno heslo nebo krátká věta s tím nejdůležitějším (pojmy, vzorce, termíny, čísla). Žádný nadpis, úvod, závěr, vnořené odrážky ani souvislý text.';
 const AI_ACTIONS={
-  fix:{label:'Opravit',task:'Oprav pravopis, gramatiku, interpunkci a překlepy. Neměň význam, slova ani styl víc, než je nutné. Zachovej stejné bloky a značky. Když není co opravit, vrať text beze změny.',keep:true},
+  fix:{label:'Opravit',task:'Oprav pravopis, gramatiku, interpunkci a překlepy a doplň chybějící diakritiku (háčky a čárky). Neměň význam, slova ani styl víc, než je nutné. Zachovej stejné bloky a značky. Když není co opravit, vrať text beze změny.',keep:true},
   check:{label:'Ověřit',task:'Zkontroluj věcnou správnost textu: fakta, čísla, jednotky, vzorce, definice a odborné pojmy. Text nepřepisuj. Vypiš jen chybná nebo sporná místa, každé jako odrážku ve tvaru: - „krátká citace z textu“ – co je špatně a jak to má správně být. Pravopis a styl neřeš. Když si nejsi jistý, napiš, že je to sporné, a proč. Když je vše v pořádku, vrať jen: Bez připomínek.',insert:true,check:true},
   rephrase:{label:'Přeformulovat',task:'Přeformuluj text srozumitelněji a plynuleji. Zachovej význam, všechna fakta, čísla a strukturu bloků.',vary:true,keep:true},
   shorten:{label:'Zkrátit',task:'Zkrať text zhruba na polovinu. Zachovej podstatné informace, čísla a strukturu.',vary:true,keep:true},
@@ -15,7 +15,8 @@ const AI_ACTIONS={
   verify:{label:'Ověření',task:'Odpověz jen slovem OK.'},
   chat:{label:'Chat'}
 };
-const AI_MENU=['fix','check','rephrase','shorten','expand','summary','translate'];
+/* menu ✦ u výběru (od 4.22.0) jen akce s jednoznačným výsledkem; přeformulování, zkrácení apod. jde přes panel s chatem */
+const AI_MENU=['fix','translate'];
 const AI_STYLES=[['study','Studijní'],['formal','Formální'],['brief','Stručný']];
 const AI_LANGS=[['cs','Čeština'],['en','Angličtina']];
 const AI_STYLE_TXT={study:'Piš věcně a srozumitelně jako dobré studijní poznámky.',formal:'Piš spisovně a formálně.',brief:'Piš co nejstručněji, bez zbytečných slov.'};

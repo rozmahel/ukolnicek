@@ -3,7 +3,7 @@ import { $, $$, clamp, esc, lsGet, lsSet, simpleUi } from './core.js';
 import { S } from './state.js';
 import { isDarkNow } from './theme.js';
 import { applyLock, LOCK, toggleLock } from './lock.js';
-import { initStore, isDirty, META, savePage, saveSettings, Store } from './store.js';
+import { initStore, isDirty, META, noteFold, savePage, saveSettings, Store } from './store.js';
 import { redo, undo } from './editor/history.js';
 import { fmtTime, fromMin, parseD, weeksBetween, ymd } from './dates.js';
 import { createPage, curPage, emptyCell, newBlock, pTitle, revealBlock, unarchivePage } from './pages.js';
@@ -11,7 +11,7 @@ import { gotoSubject, isSchool } from './school.js';
 import { isBlank } from './sanitize.js';
 import { focusBlock, focusEl, focusLine } from './editor/caret.js';
 import { closeSide, initSideMini, initTreeDrag, openSide, renderSidebar, sideProjClick, toggleSideMini } from './sidebar.js';
-import { go, renderMain } from './router.js';
+import { go, navCard, renderMain } from './router.js';
 import { ctxOf, hiddenMask, isHeading, keepVisible, renderPage, rerenderBlocks, rerenderProps, sectionEnd } from './editor/render.js';
 import { openSlash, slash } from './editor/slash.js';
 import { initEvents } from './editor/events.js';
@@ -32,6 +32,7 @@ import { initAi } from './editor/aiedit.js';
 import { aipOpen, initAiPanel } from './editor/aipanel.js';
 import { initCaps } from './editor/caps.js';
 import { editDrawing } from './editor/draw.js';
+import { findOpen, initFind } from './editor/find.js';
 import { initMath, openEqEditor } from './editor/math.js';
 import { initSource, srcOn, toggleSource } from './editor/source.js';
 import { initTableSize } from './editor/tblsize.js';
@@ -40,9 +41,10 @@ import { trashAct } from './trash.js';
 import { initUpdates, workerOk } from './update.js';
 import { quickAdd, wgDo, wgUi } from './views/dashWidgets.js';
 import { initMindmap } from './views/mindmap.js';
+import { initSchDrag, sdUndo } from './views/schdrag.js';
 
 /* posluchače ostatních modulů; pořadí je stejné jako dřív v jednom souboru app.js (na pořadí registrace záleží) */
-initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings(); initImages(); initIndex(); initTreeDrag(); initSideMini(); initMath(); initSource(); initTableSize(); initSplit(); initCaps(); initMindmap(); initAi(); initAiPanel();
+initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings(); initImages(); initIndex(); initTreeDrag(); initSideMini(); initMath(); initSource(); initTableSize(); initSplit(); initCaps(); initMindmap(); initAi(); initAiPanel(); initFind(); initSchDrag();
 
 /* ================= global actions ================= */
 /* pravé tlačítko (i Ctrl+klik) na obrázku nebo kresbě: menu ⋮⋮ u kurzoru; na textu zůstává menu prohlížeče.
@@ -112,7 +114,7 @@ document.addEventListener('click',e=>{
     case 'mc-day': { if(!isSchool()) break; const d=parseD(a.dataset.date); S.weekOffset=weeksBetween(new Date(),d); if(!S.settings.showWeekend&&(d.getDay()===0||d.getDay()===6)) toast('Víkend se v rozvrhu nezobrazuje, zapíná se v Nastavení.'); go({kind:'schedule'}); break; }
     case 'ev-par': { const ev=S.events[a.dataset.id]; if(!ev) break; const d=parseD(a.dataset.date);
       openEventModal(null,{day:(d.getDay()+6)%7,date:ev.repeat==='count'?ev.date:a.dataset.date,start:ev.start,end:ev.end,repeat:ev.repeat,count:ev.count||4}); break; }
-    case 'nav': go({kind:a.dataset.v}); break;
+    case 'nav': if(a.closest('#side')) navCard(a.dataset.v); else go({kind:a.dataset.v}); break;   /* v levém panelu druhý klik vrátí na stránku */
     case 'menu': $('#side').classList.contains('open')?closeSide():openSide(); break;
     case 'search': closeSide(); openSearch(); break;
     case 'arch': S.archMode=true; S.trashMode=false; renderSidebar(); break;
@@ -138,7 +140,7 @@ document.addEventListener('click',e=>{
     case 'prop-del': if(pg){ pg.props.splice(+a.dataset.i,1); savePage(pg); rerenderProps(); } break;
     case 'check': { const x=ctxOf(a); if(!x) break; x.b.done=!x.b.done; a.classList.toggle('on',x.b.done); a.setAttribute('aria-checked',x.b.done); a.parentElement.querySelector('.txt').classList.toggle('done',x.b.done); savePage(x.pg,300); renderSidebar(); break; }
     case 'lcheck': { const x=ctxOf(a); if(!x||!x.line) break; x.line.done=!x.line.done; a.classList.toggle('on',x.line.done); a.closest('.ln').classList.toggle('done',x.line.done); savePage(x.pg,300); renderSidebar(); break; }
-    case 'collapse': { const x=ctxOf(a); if(!x) break; x.b.collapsed=!x.b.collapsed; savePage(x.pg); rerenderBlocks(); renderSidebar(); break; }
+    case 'collapse': { const x=ctxOf(a); if(!x) break; x.b.collapsed=!x.b.collapsed; noteFold(x.b); savePage(x.pg); rerenderBlocks(); renderSidebar(); break; }
     case 'img-line': { const x=ctxOf(a); if(x) lineAround(x.b.id,a.dataset.dir==='up'); break; }
     case 'add-after': { const x=ctxOf(a); if(!x) break; const nb=newBlock('p',{level:x.b.level||0}); const at=isHeading(x.b.type)&&x.b.collapsed?sectionEnd(x.pg.blocks,x.bi):x.bi+1; keepVisible(x.pg.blocks,at); x.pg.blocks.splice(at,0,nb); savePage(x.pg); rerenderBlocks(); const el=$(`#blocks .blk[data-id="${nb.id}"] .txt`); focusEl(el,0); openSlash(el,nb.id,0,'plus'); break; }
     case 'blk-menu': { const x=ctxOf(a); if(x) openBlockMenu(a,x.pg,x.b); break; }
@@ -182,6 +184,8 @@ document.addEventListener('keydown',e=>{
   if(!(e.metaKey||e.ctrlKey)||e.altKey) return;
   if(e.shiftKey&&e.code==='KeyL'){ e.preventDefault(); e.stopPropagation(); if(!S.modal) toggleLock(); return; }
   const k=e.key.toLowerCase(); if(k!=='z'&&k!=='y') return;
+  /* rozvrh: ⌘Z vrátí poslední přesun, kopii nebo odstranění hodiny */
+  if(S.view.kind==='schedule'&&!S.modal&&k==='z'&&!e.shiftKey&&!(e.target.closest&&e.target.closest('input,textarea,select'))){ e.preventDefault(); e.stopPropagation(); if(!sdUndo()) toast('Není co vracet.'); return; }
   if(S.view.kind!=='page'||S.modal) return;
   if(e.target.closest&&e.target.closest('input,textarea,select,.pop')) return;
   e.preventDefault(); e.stopPropagation();
@@ -189,6 +193,8 @@ document.addEventListener('keydown',e=>{
 },true);
 document.addEventListener('keydown',e=>{
   if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); openSearch(); return; }
+  /* ⌘F / Ctrl+F: hledat na stránce (lišta nahoře), jinde celé hledání */
+  if((e.metaKey||e.ctrlKey)&&!e.altKey&&!e.shiftKey&&e.key.toLowerCase()==='f'){ if(S.modal) return; e.preventDefault(); if(!findOpen()) openSearch(); return; }
   /* ⌘\ / Ctrl+\: schovat a rozbalit levý panel */
   if((e.metaKey||e.ctrlKey)&&!e.altKey&&(e.code==='Backslash'||e.key==='\\')){ e.preventDefault(); if(!S.modal) toggleSideMini(); return; }
   /* ⌘S / Ctrl+S: nahrát na Disk (v zařízení se ukládá samo), místo ukládacího dialogu prohlížeče */
@@ -196,7 +202,7 @@ document.addEventListener('keydown',e=>{
     if(!DriveSync.clientId()){ toast('V zařízení se ukládá samo. Google Disk nastavíš v Nastavení.'); return; }
     Sync.upload(); return; }
   if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('eqb')){ e.preventDefault(); openEqEditor(e.target); return; }
-  if(e.key==='Escape'){ if(slash.open) return; if(S.pop){ closePop(); return; } if(S.modal){ closeModal(); return; } closeSide(); }
+  if(e.key==='Escape'){ if(slash.open) return; if(S.pop){ closePop(true); return; } if(S.modal){ closeModal(); return; } closeSide(); }
 });
 setInterval(()=>{ if(S.ready&&!S.modal&&(S.view.kind==='schedule'||S.view.kind==='today')&&!document.body.classList.contains('dash-dragging')&&!document.activeElement.closest?.('#view input')) { const st=$('#main').scrollTop; renderMain(); $('#main').scrollTop=st; } },60000);
 

@@ -1,5 +1,5 @@
 /* Úkolníček – Klávesy v blocích a v buňkách tabulky (Enter, Backspace, Tab, šipky) */
-import { $, $$, clamp, esc, LIST_TYPES, plain, TEXT_TYPES } from '../core.js';
+import { $$, clamp, esc, LIST_TYPES, plain, TEXT_TYPES } from '../core.js';
 import { LOCK } from '../lock.js';
 import { savePage } from '../store.js';
 import { emptyCell, newBlock } from '../pages.js';
@@ -7,7 +7,7 @@ import { isBlank, isBlankEl, sanitize } from '../sanitize.js';
 import { caretAtEnd, caretAtStart, caretOffset, focusBlock, focusEl, focusLine, onFirstLine, onLastLine, splitAtCaret } from './caret.js';
 import { isHeading, keepVisible, rerenderBlocks, sectionEnd } from './render.js';
 import { setType, takeShortcut } from './blocks.js';
-import { lineAround, navFrom, selectImage } from './images.js';
+import { lineAround, navFrom } from './images.js';
 import { caretPos, codeHtml, dedent, domText, insertCode, newLine } from './code.js';
 
 /* ---- key handling ---- */
@@ -31,6 +31,18 @@ function codeKeys(e,x,t){
   return false;
 }
 const hasMod=e=>e.metaKey||e.ctrlKey||e.altKey;
+/* bloky, které Backspace ani Delete z vedlejšího řádku nesmažou */
+const SOLID=['divider','page','subj','eq','image'];
+/* smaže prázdný řádek vedle pevného bloku a kurzor dá do nejbližšího textu nad (up) nebo pod pevnými bloky */
+function dropBlank(pg,bi,el,up){
+  for(let n=up?el.previousElementSibling:el.nextElementSibling;n;n=up?n.previousElementSibling:n.nextElementSibling){
+    if(!n.classList.contains('blk')) continue;
+    const q=pg.blocks.find(z=>z.id===n.dataset.id); if(!q||SOLID.includes(q.type)) continue;
+    if(!n.querySelector('.txt')) return;
+    pg.blocks.splice(bi,1); savePage(pg); rerenderBlocks();
+    const ts=$$(`#blocks .blk[data-id="${q.id}"] .txt`); focusEl(up?ts.pop():ts[0],up?'end':0); return;
+  }
+}
 function blockKeys(e,x,t){
   const {pg,b,bi,blkEl}=x;
   if(b.type==='code'&&codeKeys(e,x,t)) return;
@@ -68,10 +80,9 @@ function blockKeys(e,x,t){
     if(!prevEl||!prevEl.classList||!prevEl.classList.contains('blk')) return;
     const pi=pg.blocks.findIndex(q=>q.id===prevEl.dataset.id); const prev=pg.blocks[pi]; if(!prev) return;
     e.preventDefault();
-    /* oddělovač, odkaz na podstránku a blok předmětu se Backspacem smažou celé (jde vrátit ⌘Z) */
-    if(['divider','page','subj','eq'].includes(prev.type)&&LOCK) return;
-    if(['divider','page','subj','eq'].includes(prev.type)){ pg.blocks.splice(pi,1); savePage(pg); rerenderBlocks(); focusBlock(b.id,0); return; }
-    if(prev.type==='image'){ const im=$(`#blocks .blk[data-id="${prev.id}"] .bimg`); if(im) selectImage(im,true,b.id); return; }   /* obrázek se vybere, další Backspace ho smaže */
+    /* oddělovač, podstránka, předmět, rovnice, obrázek a kresba Backspacem nezmizí (jen přes ⋮⋮ → Odstranit nebo výběr);
+       prázdný řádek pod nimi se smaže a kurzor skočí na konec textu nad nimi */
+    if(SOLID.includes(prev.type)){ if(isBlankEl(t)) dropBlank(pg,bi,blkEl,true); return; }
     if(prev.type==='table'||prev.type==='code'){ if(isBlankEl(t)){ pg.blocks.splice(bi,1); savePage(pg); rerenderBlocks(); const last=$$(`#blocks .blk[data-id="${prev.id}"] .txt`).pop(); focusEl(last,'end'); } return; }
     const len=plain(prev.html).length; prev.html=(prev.html||'')+(b.html||''); pg.blocks.splice(bi,1);
     savePage(pg); rerenderBlocks(); focusBlock(prev.id,len); return;
@@ -79,7 +90,7 @@ function blockKeys(e,x,t){
   if(e.key==='Delete'&&b.type!=='code'&&caretAtEnd(t)){
     const nextEl=blkEl.nextElementSibling; if(!nextEl||!nextEl.classList.contains('blk')) return;
     const ni=pg.blocks.findIndex(q=>q.id===nextEl.dataset.id); const nx=pg.blocks[ni];
-    if(nx&&nx.type==='image'){ e.preventDefault(); const im=nextEl.querySelector('.bimg'); if(im) selectImage(im,true,b.id); return; }
+    if(nx&&SOLID.includes(nx.type)){ e.preventDefault(); if(isBlankEl(t)) dropBlank(pg,bi,blkEl,false); return; }
     if(!nx||!TEXT_TYPES.includes(nx.type)||nx.type==='code') return;
     e.preventDefault(); const len=t.textContent.length; b.html=sanitize(t.innerHTML)+(nx.html||''); pg.blocks.splice(ni,1); savePage(pg); rerenderBlocks(); focusBlock(b.id,len); return;
   }

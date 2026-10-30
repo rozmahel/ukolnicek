@@ -1,5 +1,5 @@
 /* Úkolníček – Ukládání do zařízení (IndexedDB přes storage.js), otisk dat pro „neuloženo na Disk“, převod importovaných dat */
-import { $, clamp, clone, COLORS, rid, TEXT_TYPES } from './core.js';
+import { $, clamp, clone, COLORS, lsGet, lsSet, rid, TEXT_TYPES } from './core.js';
 import { defaultSettings, S } from './state.js';
 import { applySkin } from './theme.js';
 import { HIST, recordHistory } from './editor/history.js';
@@ -91,7 +91,7 @@ const Store={
     try{
       await Local.open();
       const st=await Local.loadState();
-      if(st){ const d=normalizeImport(st); S.pages=d.pages||{}; S.events=d.events||{}; S.subjects=d.subjects||{}; S.semesters=d.semesters||{}; S.trash=d.trash||{}; S.maps=d.maps||{}; S.settings=Object.assign(defaultSettings(),d.settings||{}); Object.assign(META,st.meta||{}); lastWid=META.wid||''; }
+      if(st){ const d=normalizeImport(st); applyFolds(d.pages); S.pages=d.pages||{}; S.events=d.events||{}; S.subjects=d.subjects||{}; S.semesters=d.semesters||{}; S.trash=d.trash||{}; S.maps=d.maps||{}; S.settings=Object.assign(defaultSettings(),d.settings||{}); Object.assign(META,st.meta||{}); lastWid=META.wid||''; }
       lastSeen=dataForSave();
       const imgs=await Local.allImages(); imgs.forEach(r=>{ try{ IMGURL.set(r.id,URL.createObjectURL(r.blob)); }catch(_){} });
       Local.persist();
@@ -255,8 +255,19 @@ function onDataReady(){
   renderSidebar(); renderMain(); restoreScroll();
 }
 function applyData(d){ applyNormalized(normalizeImport(d)); }
+/* sbalení nadpisů je jen v zařízení (od 4.23.0): uk-fold = {ID bloku: 1 sbaleno | 0 rozbaleno}.
+   V datech `collapsed` zůstává (starší verze ho čtou), do otisku ani spojení verzí se nepočítá a data zvenku
+   (Disk, jiné okno) ho tady přepíšou stavem z tohoto zařízení. */
+const FOLD_KEY='uk-fold';
+function noteFold(b){ if(!b||!b.id) return; const m=lsGet(FOLD_KEY,{})||{}; m[b.id]=b.collapsed?1:0; lsSet(FOLD_KEY,m); }
+function applyFolds(pages){
+  const m=lsGet(FOLD_KEY,null); if(!m||typeof m!=='object') return;
+  const seen={};
+  Object.values(pages||{}).forEach(p=>(p.blocks||[]).forEach(b=>{ if(!(b.id in m)) return; seen[b.id]=m[b.id]; if(m[b.id]) b.collapsed=true; else delete b.collapsed; }));
+  if(Object.keys(seen).length!==Object.keys(m).length) lsSet(FOLD_KEY,seen);   /* bloky, které už neexistují, se zapomenou */
+}
 function applyNormalized(n){
-  n=clone(n); bumpRev();
+  n=clone(n); bumpRev(); applyFolds(n.pages);
   S.pages=n.pages||{}; S.events=n.events||{}; S.subjects=n.subjects||{}; S.semesters=n.semesters||{}; S.trash=n.trash||{}; S.maps=n.maps||{}; S.settings=Object.assign(defaultSettings(),n.settings);
   applySkin();
   if((S.view.kind==='schedule'&&!isSchool())||(S.view.kind==='index'&&!isIndex())||(S.view.kind==='mindmap'&&!S.settings.mindmap)) S.view={kind:'today'};
@@ -274,4 +285,4 @@ export function initStore(){
   if(TAB_CH) TAB_CH.onmessage=e=>{ if(e.data&&e.data.t==='saved'&&e.data.wid!==lastWid&&S.ready) refreshFromOther(); };
 }
 
-export { applyData, applyNormalized, canon, DATA_REV, dataForSave, dataHash, hashData, hashOf, IMGURL, isDirty, META, normalizeImport, packData, saveEvent, savePage, saveSettings, stateForStorage, Store, updateSaving };
+export { applyData, applyNormalized, canon, DATA_REV, dataForSave, dataHash, hashData, hashOf, IMGURL, isDirty, META, normalizeImport, noteFold, packData, saveEvent, savePage, saveSettings, stateForStorage, Store, updateSaving };

@@ -4,7 +4,7 @@
    Aktivní polovina je vždy živý editor #main (všechny zkratky, zámek, AI panel a Zpět/Znovu fungují beze změny).
    Druhá polovina .split-ghost je náhled stejné šablony (pageHtml) bez id a bez úprav. Klik do ní = go() na její stránku:
    spSync() pak prohodí aktivní stranu (#main se přesune přes CSS order) a předchozí stránku vykreslí jako náhled.
-   V rozdělení jsou jen stránky; jiný pohled (Dnes, Úkoly…) rozdělení zavře. */
+   V rozdělení jsou jen stránky; jiný pohled (Dnes, Úkoly…) rozdělení jen překryje (SP.park), druhý klik na kartu v panelu ho vrátí (navCard v router.js). */
 import { $, clamp, IC, lsGet, lsSet } from './core.js';
 import { S } from './state.js';
 import { go, noteScroll, renderMain, scrollOf } from './router.js';

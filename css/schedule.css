@@ -121,3 +121,23 @@ body.locked .ev-add,body.locked .ag-dh [data-act="day-add"],body.locked .lk-hide
 
 /* kód předmětu v barvě předmětu před názvem (náhled hodiny i menu hodiny, od 4.20.0) */
 .et-t .et-c{color:var(--c-fg);margin-right:.3em}
+
+/* ================= 4.23.0: tažení, natažení, kopie s duchem, nová hodina tažením (js/views/schdrag.js) ================= */
+.ev-rs{position:absolute;left:0;right:0;height:6px;z-index:3;cursor:ns-resize}
+.ev-rs.t{top:-2px}
+.ev-rs.b{bottom:-2px}
+body.locked .ev-rs{display:none}
+.ev-w.drag{z-index:5;opacity:.9}
+.ev-w.drag>.ev{box-shadow:var(--shadow);cursor:grabbing}
+.ev-w.drag::after{content:attr(data-time);position:absolute;left:0;bottom:100%;margin-bottom:var(--sp1);padding:var(--sp1) var(--sp3);border-radius:var(--r-sm);background:var(--fg);color:var(--bg);font-size:calc(11.5px*var(--fs));font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none}
+.ev-w.drag:not([data-time])::after{display:none}
+body.sch-drag,body.sch-drag *{cursor:grabbing!important;user-select:none}
+.sd-new{position:absolute;left:3px;right:3px;z-index:4;border:1.5px dashed var(--fg2);border-radius:var(--r-sm);background:color-mix(in srgb,var(--panel) 70%,transparent);color:var(--fg2);font-size:calc(12px*var(--fs));font-weight:600;padding:var(--sp1) var(--sp3);font-variant-numeric:tabular-nums;pointer-events:none}
+.sd-ghost{position:absolute;left:3px;right:3px;z-index:4;background:var(--c-bg);color:var(--fg);border:1.5px dashed color-mix(in srgb,var(--c-fg) 60%,transparent);border-radius:var(--r-sm);padding:var(--sp1) var(--sp3);font-size:calc(12px*var(--fs));font-variant-numeric:tabular-nums;opacity:.6;pointer-events:none}
+body.sch-copy .sg-col,body.sch-copy .ev{cursor:copy}
+body.sch-copy .sg .ghost{display:none}
+@media (max-width:860px){ .ev-rs{display:none} }
+/* okno hodiny: Kopírovat v hlavičce vedle ×, Otevřít v Indexu jako odkaz pod předmětem (4.23.0) */
+.ev-m .m-head{gap:var(--sp2)}
+.ev-m .m-head h2{flex:1;min-width:0}
+.ev-m .ev-ix{justify-self:start}

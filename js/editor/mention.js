@@ -142,6 +142,7 @@ function snippet(b){
   const t=htmlsOf(b).map(h=>plain(h).trim()).filter(Boolean).join(' · ')||'…'; return t.length>110?t.slice(0,110)+'…':t;
 }
 function backlinksHtml(pg){
+  if(!S.settings.backlinks) return '';   /* zapíná se v Nastavení → Formát (od 4.22.0, výchozí vypnuto) */
   const list=mentionsOf('page',pg.id); if(!list.length) return '';
   const by=new Map(); list.forEach(x=>{ if(!by.has(x.pg.id)) by.set(x.pg.id,[]); by.get(x.pg.id).push(x); });
   return `<section class="backlinks" aria-label="Odkazuje sem"><div class="bl-h">Odkazuje sem <span>${list.length}</span></div>`

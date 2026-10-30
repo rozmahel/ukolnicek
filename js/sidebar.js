@@ -24,7 +24,7 @@ function toggleSideMini(){
   if(!WIDE.matches) return;
   const on=!sideMini();
   if(on){ lsSet('uk-side-mini',true); S.archMode=false; S.trashMode=false; } else { try{ localStorage.removeItem('uk-side-mini'); }catch(_){} }
-  if(S.pop&&S.pop.classList.contains('side-pop')) closePop();
+  if(S.pop&&(S.pop.classList.contains('side-pop')||S.popParent)) closePop();
   renderSidebar();
 }
 const wsTop=mini=>`<div class="ws-top"><button class="icon-btn side-tog" data-act="side-mini" ${mini?`data-tip="Rozbalit panel (${togKey})"`:`title="Schovat panel (${togKey})"`} aria-label="${mini?'Rozbalit':'Schovat'} panel">${IC.menu}</button><div class="ws-name">${esc(S.settings.name||'Úkolníček')}</div></div>`;
@@ -104,7 +104,16 @@ function openProjPop(a){
   const h=`<div class="sp-row"><button class="pop-item sp-h ${on(id)}" data-v="p:${id}">${pIcon(root)}<span class="sp-t">${esc(pTitle(root))}</span></button>${add}${more(id)}</div>${rows(id,1)}`;
   const p=openPop(a,h,val=>{
     if(val==='new'){ const np=createPage(id); renderSidebar(); go({kind:'page',pageId:np.id}); setTimeout(()=>$('#page-title')&&$('#page-title').focus(),30); return; }
-    if(val.startsWith('m:')){ const pg=S.pages[val.slice(2)], b=p.querySelector(`[data-v="${val}"]`); if(pg&&b) openPageMenu(a,pg,{rect:b.getBoundingClientRect()}); return true; }   /* true: bublinu zavře až nové menu */
+    if(val.startsWith('m:')){   /* menu stránky vedle bubliny, bublina zůstane otevřená (true = handler ji nezavře) */
+      const pg=S.pages[val.slice(2)], b=p.querySelector(`[data-v="${val}"]`); if(!pg||!b) return true;
+      openPageMenu(a,pg,{rect:b.getBoundingClientRect(),parent:p});
+      const m=S.pop; if(m&&m!==p){
+        const pr=p.getBoundingClientRect(), br=b.getBoundingClientRect(); m._fol=null;
+        m.style.left=Math.max(8,Math.min(pr.right+6,innerWidth-m.offsetWidth-8))+'px'; m.style.top=Math.max(8,Math.min(br.top-8,innerHeight-m.offsetHeight-8))+'px';
+        b.closest('.sp-row').classList.add('mon');
+      }
+      return true;
+    }
     go({kind:'page',pageId:val.slice(2)});
   });
   p.classList.add('side-pop'); p._fol=null;

@@ -3,7 +3,7 @@ import { $, esc, IC, PH, plain, spellOn } from '../core.js';
 import { S } from '../state.js';
 import { modeBtn } from '../theme.js';
 import { applyLock } from '../lock.js';
-import { IMGURL } from '../store.js';
+import { IMGURL, noteFold } from '../store.js';
 import { hist, updateUndoBtns } from './history.js';
 import { curPage, isArchived, pIcon, pTitle } from '../pages.js';
 import { isSchool, subjBlockText, subjLabel } from '../school.js';
@@ -80,7 +80,7 @@ function keepVisible(bl,at){
   for(let h=0;h<at;h++){
     const b=bl[h]; if(!isHeading(b.type)||!b.collapsed) continue;
     if(sectionEnd(bl,h)!==at||(b.until&&!b.untilVis)) continue;
-    if(at>h+1){ b.until=bl[at-1].id; delete b.untilVis; } else delete b.collapsed;
+    if(at>h+1){ b.until=bl[at-1].id; delete b.untilVis; } else { delete b.collapsed; noteFold(b); }
   }
 }
 /* které bloky jsou schované ve sbalených sekcích (používají to i Úkoly a Dnes) */

@@ -2,11 +2,11 @@
 
 /* ---------- stránka: hlavička, vlastnosti, bloky ---------- */
 /* horní lišta je vždy přes celou šířku, Celá šířka / Užší mění jen šířku textu stránky (od 4.21.0) */
-.doc{--doc-in:calc(820px*var(--fs) - 152px);margin:0 auto;padding:var(--sp3) 76px 30vh}
+/* lišta je pevně nahoře hned od začátku (nad ní žádné odsazení, které by se při posunu odrolovalo) a čára pod ní je vidět vždy (od 4.22.0) */
+.doc{--doc-in:calc(820px*var(--fs) - 152px);margin:0 auto;padding:0 76px 30vh}
 .doc.wide{--doc-in:calc(1320px*var(--fs) - 152px)}
 .doc>:not(.pagebar){max-width:var(--doc-in);margin-inline:auto}
-.pagebar{position:sticky;top:0;z-index:15;background:var(--bg);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--sp3) var(--sp6);padding:var(--sp5) var(--sp9);margin:0 -76px var(--sp8);border-bottom:1px solid transparent}
-#main.scrolled .pagebar{border-bottom-color:var(--line)}
+.pagebar{position:sticky;top:0;z-index:15;background:var(--bg);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--sp3) var(--sp6);padding:var(--sp8) var(--sp9) var(--sp5);margin:0 -76px var(--sp8);border-bottom:1px solid var(--line)}
 .crumbs{display:flex;flex-wrap:wrap;gap:var(--sp2);align-items:center;font-size:calc(13px*var(--fs));color:var(--muted);min-height:20px;min-width:0}
 .pb-acts{display:flex;align-items:center;gap:var(--sp1);flex-wrap:wrap;margin-left:auto}
 .pb-sep{width:1px;height:18px;background:var(--line);margin:0 var(--sp3)}
@@ -105,6 +105,15 @@
 @keyframes flash{0%{background:var(--sel)}100%{background:transparent}}
 /* nalezený text z hledání (CSS Highlight API, do obsahu bloku nesahá) */
 ::highlight(uk-find){background-color:var(--hl-yellow-bg);color:var(--hl-yellow-fg)}
+/* hledání na stránce ⌘F (od 4.23.0, js/editor/find.js): aktuální shoda výrazněji, sbalený nadpis se shodou uvnitř podbarvený */
+::highlight(uk-find-cur){background-color:var(--hl-orange-bg);color:var(--hl-orange-fg)}
+.blk.find-fold{background:var(--hl-yellow-bg);border-radius:var(--r-sm)}
+.findbar{position:fixed;z-index:60;display:flex;align-items:center;gap:var(--sp1);padding:var(--sp1) var(--sp1) var(--sp1) var(--sp5);background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-sm)}
+.findbar[hidden]{display:none}
+.findbar .fb-q{width:200px;border:0;outline:none;background:transparent;color:var(--fg);font:inherit;font-size:calc(14px*var(--fs));padding:var(--sp2) 0}
+.findbar .fb-n{min-width:44px;text-align:right;font-size:calc(12.5px*var(--fs));color:var(--muted);font-variant-numeric:tabular-nums;margin-right:var(--sp2)}
+.findbar.none .fb-n{color:var(--danger)}
+@media (max-width:860px){ .findbar{left:var(--sp4);right:var(--sp4)!important}.findbar .fb-q{flex:1;width:auto} }
 /* text psaný se zapnutým Caps Lockem (js/editor/caps.js): vlnovka jen nad textem, bublina u kurzoru */
 ::highlight(uk-caps){text-decoration:underline wavy var(--accent);text-decoration-thickness:1.5px;text-underline-offset:3px;text-decoration-skip-ink:none}
 .pop.caps-pop{display:flex;gap:var(--sp2);min-width:0;padding:var(--sp2);border-radius:var(--r-md);overflow:visible}

@@ -19,7 +19,8 @@ import { noteRatio } from './images.js';
 const INK=['#111111','#1f5fd1','#d23b3b','#2b8a3e','#e8740c','#7b3fc4','#8a5a2b','#868e96'];
 const HLC=['#ffd43b','#8ce99a','#faa2c1','#74c0fc','#ffa94d'];
 const TOOLS={p:{n:'Pero',min:1,max:10,w:2.5},f:{n:'Fix',min:2,max:18,w:5},h:{n:'Zvýrazňovač',min:8,max:44,w:20}};
-const HL_A=.38, PAD=14, ER=11, MAX_PTS=20000;
+const HL_A=.38, PAD=14, MAX_PTS=20000;
+const ERW={min:6,max:80,w:22};   /* průměr gumy v bodech obrazovky */
 const BGS=[['none','Bez pozadí'],['lines','Linky'],['dots','Tečky'],['grid','Čtverečky']];
 const CMS=[['auto','Oříznout na kresbu'],['full','Celé plátno'],['custom','Vlastní ořez']];
 /* piktogramy v ⋯ (text je jen v bublině po najetí myši) */
@@ -60,6 +61,7 @@ function validData(d){
     if(st.p.length<2||st.p.length%2||!st.p.every(num)) return null;
     total+=st.p.length; if(total>MAX_PTS*4) return null;
     const o={t:st.t,c:st.c.toLowerCase(),w:st.w,p:st.p.slice()};
+    if(st.l===1) o.l=1;   /* lomená čára (kousek po gumě), kreslí se bez vyhlazení */
     if(st.r!=null){ if(!Array.isArray(st.r)||st.r.length!==st.p.length/2||!st.r.every(v=>num(v)&&v>=0&&v<=1)) return null; o.r=st.r.slice(); }
     out.s.push(o);
   }
@@ -74,9 +76,10 @@ async function readDrawing(id){
   }catch(_){ return null; }
 }
 /* cesta tahu: body vyhlazené kvadratickými křivkami přes středy úseků */
-function pathD(p,a,b){
+function pathD(p,a,b,lin){
   const X=i=>r1(p[2*i]), Y=i=>r1(p[2*i+1]);
   if(a===b) return `M${X(a)} ${Y(a)}l0.01 0`;
+  if(lin){ let d=`M${X(a)} ${Y(a)}`; for(let i=a+1;i<=b;i++) d+=`L${X(i)} ${Y(i)}`; return d; }
   if(b===a+1) return `M${X(a)} ${Y(a)}L${X(b)} ${Y(b)}`;
   let d=`M${X(a)} ${Y(a)}`;
   for(let i=a+1;i<b;i++) d+=`Q${X(i)} ${Y(i)} ${r1((p[2*i]+p[2*i+2])/2)} ${r1((p[2*i+1]+p[2*i+3])/2)}`;
@@ -86,12 +89,13 @@ function pathD(p,a,b){
 function runs(st){
   if(st._r) return st._r;
   const n=st.p.length/2;
-  if(!st.r) return (st._r=[[pathD(st.p,0,n-1),st.w]]);
+  if(!st.r) return (st._r=[[pathD(st.p,0,n-1,st.l),st.w]]);
   const q=v=>Math.max(.4,Math.round(st.w*(.35+.95*v)*4)/4);
   if(n<2) return (st._r=[[pathD(st.p,0,0),q(st.r[0])]]);
+  const L=st.l;
   const out=[]; let start=0, cur=q((st.r[0]+st.r[1])/2);
-  for(let i=2;i<n;i++){ const w=q((st.r[i-1]+st.r[i])/2); if(w!==cur){ out.push([pathD(st.p,start,i-1),cur]); start=i-1; cur=w; } }
-  out.push([pathD(st.p,start,n-1),cur]);
+  for(let i=2;i<n;i++){ const w=q((st.r[i-1]+st.r[i])/2); if(w!==cur){ out.push([pathD(st.p,start,i-1,L),cur]); start=i-1; cur=w; } }
+  out.push([pathD(st.p,start,n-1,L),cur]);
   return (st._r=out);
 }
 const maxW=st=>st.r?st.w*1.3:st.w;
@@ -128,7 +132,7 @@ function strokeSvg(st){
   return runs(st).map(([d,w])=>`<path d="${d}" stroke="${st.c}" stroke-width="${w}"${hl?` stroke-opacity="${HL_A}" stroke-linecap="butt"`:''}/>`).join('');
 }
 function buildSvg(data,box){
-  const meta=JSON.stringify({v:1,bg:data.bg,crop:data.crop,view:data.view.map(r1),...(data.box?{box:data.box.map(r1)}:{}),s:data.s.map(st=>Object.assign({t:st.t,c:st.c,w:st.w,p:st.p},st.r?{r:st.r}:{}))})
+  const meta=JSON.stringify({v:1,bg:data.bg,crop:data.crop,view:data.view.map(r1),...(data.box?{box:data.box.map(r1)}:{}),s:data.s.map(st=>Object.assign({t:st.t,c:st.c,w:st.w,p:st.p},st.r?{r:st.r}:{},st.l?{l:1}:{}))})
     .replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026');
   const vb=[box.x,box.y,box.w,box.h].map(r1).join(' ');
   const ordered=[...data.s.filter(s=>s.t==='h'),...data.s.filter(s=>s.t!=='h')];   /* zvýrazňovač pod perem a fixou */
@@ -142,7 +146,7 @@ function buildSvg(data,box){
 
 /* ---------- editor ---------- */
 let E=null;   /* otevřený editor */
-const prefs=()=>{ const v=lsGet('uk-draw',null); return Object.assign({tool:'p',p:{c:INK[0],w:TOOLS.p.w},f:{c:INK[1],w:TOOLS.f.w},h:{c:HLC[0],w:TOOLS.h.w},sm:.5,bg:'none',cm:'auto'},v&&typeof v==='object'?v:{}); };
+const prefs=()=>{ const v=lsGet('uk-draw',null); return Object.assign({tool:'p',p:{c:INK[0],w:TOOLS.p.w},f:{c:INK[1],w:TOOLS.f.w},h:{c:HLC[0],w:TOOLS.h.w},e:{w:ERW.w,area:false},sm:.5,bg:'none',cm:'auto'},v&&typeof v==='object'?v:{}); };
 const savePrefs=()=>{ if(E) lsSet('uk-draw',E.pf); };
 
 /* otevře editor: nová kresba (target={pgId, blockId, replace}) nebo úprava existující (target={pgId, blockId, edit:true}) */
@@ -160,12 +164,12 @@ async function openDraw(target){
   const pf=prefs(); if(pf.tool==='crop') pf.tool='p';
   const cm=data?(data.box?'custom':data.crop?'auto':'full'):(pf.cm==='full'||pf.crop===false?'full':'auto');
   E={target,pf,strokes:data?data.s:[],bg:data?data.bg:pf.bg,cm,box:data&&data.box?{x:data.box[0],y:data.box[1],w:data.box[2],h:data.box[3]}:null,oldView:data&&data.view,oldVw,hist:[],hi:0,
-     view:{s:1,ox:0,oy:0},cur:null,pen:false,changed:false,er:null,ptr:null};
+     view:{s:1,ox:0,oy:0},cur:null,pen:false,changed:false,er:null,ptr:null,sp:false};
   E.hist=[E.strokes.slice()];
   const ov=document.createElement('div'); ov.className='drw-ov';
   ov.innerHTML=`<div class="drw" role="dialog" aria-modal="true" aria-label="Kreslení">
     <div class="drw-bar">
-      <div class="drw-grp">${['p','f','h'].map(t=>`<button class="drw-b" data-d="tool" data-t="${t}" title="${TOOLS[t].n}" aria-label="${TOOLS[t].n}">${DRW_IC[t]}</button>`).join('')}<button class="drw-b" data-d="tool" data-t="e" title="Guma (maže celé tahy)" aria-label="Guma">${DRW_IC.e}</button><button class="drw-b" data-d="tool" data-t="crop" title="Vlastní ořez (tažením rámečku)" aria-label="Vlastní ořez">${DRW_IC.crop}</button></div>
+      <div class="drw-grp">${['p','f','h'].map(t=>`<button class="drw-b" data-d="tool" data-t="${t}" title="${TOOLS[t].n}" aria-label="${TOOLS[t].n}">${DRW_IC[t]}</button>`).join('')}<button class="drw-b" data-d="tool" data-t="e" title="Guma" aria-label="Guma">${DRW_IC.e}</button><button class="drw-b" data-d="tool" data-t="crop" title="Vlastní ořez (tažením rámečku)" aria-label="Vlastní ořez">${DRW_IC.crop}</button></div>
       <div class="drw-grp"><button class="drw-b drw-col" data-d="col" title="Barva" aria-label="Barva"><span class="drw-sw"></span></button><button class="drw-b drw-wid" data-d="wid" title="Tloušťka" aria-label="Tloušťka"><span class="drw-dot"></span></button></div>
       <div class="drw-grp"><button class="drw-b" data-d="undo" title="Zpět (⌘Z)" aria-label="Zpět">${DRW_IC.undo}</button><button class="drw-b" data-d="redo" title="Znovu (⇧⌘Z)" aria-label="Znovu">${DRW_IC.redo}</button><button class="drw-b drw-more" data-d="more" title="Pozadí, vyhlazení, ořez" aria-label="Další volby">${IC.more}</button></div>
       <span class="drw-sp"></span>
@@ -187,7 +191,7 @@ async function openDraw(target){
   st.addEventListener('pointermove',onMove);
   st.addEventListener('pointerup',onUp);
   st.addEventListener('pointercancel',onUp);
-  st.addEventListener('pointerleave',()=>{ if(E&&E.ptr==null) clearLive(); });
+  st.addEventListener('pointerleave',()=>{ if(E&&E.ptr==null){ endSp(); clearLive(); } });
   st.addEventListener('contextmenu',e=>e.preventDefault());
   E.ro=new ResizeObserver(()=>{ if(E){ fitView(false); drawAll(); } }); E.ro.observe(st);
   placeCrop();
@@ -244,9 +248,27 @@ function clearLive(){ clearCv(E.cv.live); }
 /* ---------- kreslení ---------- */
 /* tlačítko na boku pera (S Pen apod.) nebo guma na konci pera: dokud je stisknuté, kreslí guma */
 const penErase=e=>e.pointerType==='pen'&&((e.buttons&2)||(e.buttons&32)||e.button===2||e.button===5);
+/* Samsung (S Pen): dotyk se stisknutým tlačítkem nepošle pointerdown, jen pohyb „nad displejem“ s buttons 1 a přítlakem 0.
+   Takový pohyb bez rozběhlého tahu = tlačítko je stisknuté (maže se i těsně nad displejem, rozlišit to nejde). */
+const penHoverBtn=e=>e.pointerType==='pen'&&(((e.buttons&1)&&!(e.pressure>0))||(e.buttons&2)||(e.buttons&32));
+const erR=()=>(E.pf.e.w/2)/E.view.s;
+/* guma: mezi předchozí a novou polohou se maže celý pruh, aby rychlý tah nic nepřeskočil */
+function erase(x,y){
+  if(E.pf.e.area) return eraseArea(x,y);
+  const er=E.er, a=er.last||[x,y], k=Math.max(1,Math.ceil(Math.hypot(x-a[0],y-a[1])/(erR()*.5)));
+  for(let j=1;j<=k;j++) eraseAt(a[0]+(x-a[0])*j/k,a[1]+(y-a[1])*j/k);
+  er.last=[x,y];
+}
+function markSp(on){ $$('[data-d="tool"]',E.ov).forEach(b=>b.classList.toggle('on',on?b.dataset.t==='e':b.dataset.t===E.pf.tool)); }
+function endSp(){
+  if(!E||!E.sp) return;
+  const hit=E.er&&E.er.hit; E.sp=false; E.er=null; clearLive(); markSp(false);
+  if(hit) pushHist();
+}
 const toWorld=e=>{ const rc=E.stage.getBoundingClientRect(), v=E.view; return [(e.clientX-rc.left-v.ox)/v.s,(e.clientY-rc.top-v.oy)/v.s]; };
 function onDown(e){
   if(!E||E.ptr!=null) return;
+  endSp();
   if(e.pointerType==='pen') E.pen=true;
   if(E.pen&&e.pointerType==='touch') return;          /* se stylusem prsty a dlaň nekreslí */
   if(e.pointerType==='mouse'&&e.button!==0) return;
@@ -255,7 +277,7 @@ function onDown(e){
   E.ptr=e.pointerId;
   const [x,y]=toWorld(e);
   if(E.pf.tool==='crop'){ cropDown(e,x,y); return; }
-  if(E.pf.tool==='e'||penErase(e)){ E.er={hit:false}; eraseAt(x,y); showEraser(x,y); return; }
+  if(E.pf.tool==='e'||penErase(e)){ E.er={hit:false,last:null}; erase(x,y); showEraser(x,y); return; }
   const t=E.pf.tool, o=E.pf[t];
   E.cur={t,c:o.c,w:o.w,p:[x,y],r:e.pointerType==='pen'&&t==='p'?[e.pressure||.5]:null,raw:[x,y]};
   E.cv.live.style.zIndex=t==='h'?3:5;
@@ -263,12 +285,21 @@ function onDown(e){
 }
 function onMove(e){
   if(!E) return;
-  if(E.ptr==null){ if((E.pf.tool==='e'||penErase(e))&&e.pointerType!=='touch'){ const [x,y]=toWorld(e); clearLive(); showEraser(x,y); } else if(e.pointerType==='pen'&&!E.cur) clearLive(); return; }
+  if(E.ptr==null){
+    if(E.pf.tool!=='crop'&&penHoverBtn(e)){
+      e.preventDefault();
+      if(!E.sp){ E.sp=true; E.er={hit:false,last:null}; hidePop(); markSp(true); }
+      const evs=e.getCoalescedEvents?e.getCoalescedEvents():[];
+      (evs.length?evs:[e]).forEach(ev=>{ const [x,y]=toWorld(ev); erase(x,y); });
+      const [x,y]=toWorld(e); clearLive(); showEraser(x,y); return;
+    }
+    endSp();
+    if((E.pf.tool==='e'||penErase(e))&&e.pointerType!=='touch'){ const [x,y]=toWorld(e); clearLive(); showEraser(x,y); } else if(e.pointerType==='pen'&&!E.cur) clearLive(); return; }
   if(e.pointerId!==E.ptr) return;
   e.preventDefault();
   if(E.cr){ cropMove(...toWorld(e)); return; }
   const evs=e.getCoalescedEvents?e.getCoalescedEvents():[]; const list=evs.length?evs:[e];
-  if(E.er){ list.forEach(ev=>{ const [x,y]=toWorld(ev); eraseAt(x,y); }); const [x,y]=toWorld(e); clearLive(); showEraser(x,y); return; }
+  if(E.er){ list.forEach(ev=>{ const [x,y]=toWorld(ev); erase(x,y); }); const [x,y]=toWorld(e); clearLive(); showEraser(x,y); return; }
   const c=E.cur; if(!c) return;
   const k=1-.8*E.pf.sm;                 /* vyhlazení během tahu: nový bod se jen přiblíží k pozici pera */
   list.forEach(ev=>{
@@ -295,10 +326,10 @@ function onUp(e){
 }
 let liveRaf=0;
 function queueLive(){ if(!liveRaf) liveRaf=requestAnimationFrame(()=>{ liveRaf=0; if(!E||!E.cur) return; clearLive(); const c=E.cur; const tmp={t:c.t,c:c.c,w:c.w,p:c.p.concat(c.raw),r:c.r?c.r.concat(c.r[c.r.length-1]):null}; const x=cvCtx(E.cv.live); paintStroke(x,tmp); }); }
-function showEraser(x,y){ const c=cvCtx(E.cv.live); E.cv.live.style.zIndex=5; c.lineWidth=1/E.view.s; c.strokeStyle='#868e96'; c.beginPath(); c.arc(x,y,ER/E.view.s,0,7); c.stroke(); }
-/* guma: smaže celé tahy, kterých se dotkne */
+function showEraser(x,y){ const c=cvCtx(E.cv.live); E.cv.live.style.zIndex=5; c.lineWidth=1/E.view.s; c.strokeStyle='#868e96'; c.beginPath(); c.arc(x,y,erR(),0,7); c.stroke(); }
+/* guma (celé tahy): smaže celé tahy, kterých se dotkne */
 function eraseAt(x,y){
-  const r=ER/E.view.s; let any=false;
+  const r=erR(); let any=false;
   E.strokes=E.strokes.filter(st=>{
     const lim=r+maxW(st)/2, p=st.p;
     for(let i=0;i<p.length;i+=2){
@@ -310,6 +341,80 @@ function eraseAt(x,y){
   });
   if(any){ E.er.hit=true; drawLayers(); }
 }
+/* guma podle oblasti: smaže jen část tahů pod gumou, tahy se rozdělí na kousky.
+   Maže se celý pruh mezi předchozí a novou polohou gumy (rychlý tah nic nepřeskočí). */
+function eraseArea(x,y){
+  const R=erR(), er=E.er, a=er.last||[x,y]; er.last=[x,y];
+  const cap=[a[0],a[1],x,y], X0=Math.min(a[0],x), X1=Math.max(a[0],x), Y0=Math.min(a[1],y), Y1=Math.max(a[1],y);
+  const out=[]; let any=false;
+  for(const st of E.strokes){
+    const lim=st.t==='h'?R:R+st.w/2, b=st._b||(st._b=bbox([st]));
+    if(b.x>X1+lim||b.x+b.w<X0-lim||b.y>Y1+lim||b.y+b.h<Y0-lim){ out.push(st); continue; }
+    const fr=cutStroke(st,cap,lim);
+    if(!fr){ out.push(st); continue; }
+    any=true; out.push(...fr);
+  }
+  if(any){ E.strokes=out; er.hit=true; drawLayers(); }
+}
+/* vzdálenost bodu od úsečky gumy */
+function capDist(px,py,c){
+  const dx=c[2]-c[0], dy=c[3]-c[1], L=dx*dx+dy*dy, t=L?clamp(((px-c[0])*dx+(py-c[1])*dy)/L,0,1):0;
+  return Math.hypot(c[0]+t*dx-px,c[1]+t*dy-py);
+}
+/* husté body po vykreslené křivce (stejné křivky jako pathD) i s přítlakem.
+   v[k]=1 = bod, který se smí ponechat: u lomené čáry (l:1) jen její původní vrcholy, u křivky všechny */
+function denseStroke(st){
+  const p=st.p, n=p.length/2, r=st.r, P=[], Rr=r?[]:null, V=[], STEP=1.2/E.view.s;
+  const pt=i=>[p[2*i],p[2*i+1],r?r[i]:0], mid=(u,v)=>[(u[0]+v[0])/2,(u[1]+v[1])/2,(u[2]+v[2])/2];
+  const add=(q,v)=>{ P.push(q[0],q[1]); if(Rr) Rr.push(q[2]); V.push(v); };
+  const line=(s,e,first,keepEnd)=>{ const k=Math.max(1,Math.ceil(Math.hypot(e[0]-s[0],e[1]-s[1])/STEP));
+    for(let j=first?0:1;j<=k;j++){ const t=j/k; add([s[0]+(e[0]-s[0])*t,s[1]+(e[1]-s[1])*t,s[2]+(e[2]-s[2])*t],keepEnd?(j===0||j===k?1:0):1); } };
+  if(n===1){ add(pt(0),1); return {p:P,r:Rr,v:V}; }
+  if(st.l){ for(let i=0;i<n-1;i++) line(pt(i),pt(i+1),i===0,true); return {p:P,r:Rr,v:V}; }
+  if(n===2){ line(pt(0),pt(1),true,false); return {p:P,r:Rr,v:V}; }
+  let s=pt(0); add(s,1);
+  for(let i=1;i<n-1;i++){
+    const c=pt(i), e=mid(pt(i),pt(i+1));
+    const k=Math.max(1,Math.ceil((Math.hypot(c[0]-s[0],c[1]-s[1])+Math.hypot(e[0]-c[0],e[1]-c[1]))/STEP));
+    for(let j=1;j<=k;j++){ const t=j/k, u=1-t; add([u*u*s[0]+2*u*t*c[0]+t*t*e[0],u*u*s[1]+2*u*t*c[1]+t*t*e[1],u*u*s[2]+2*u*t*c[2]+t*t*e[2]],1); }
+    s=e;
+  }
+  line(s,pt(n-1),false,false);
+  return {p:P,r:Rr,v:V};
+}
+/* rozřízne tah gumou; vrátí null (nezasaženo) nebo seznam zbylých kousků.
+   Kousky jsou lomené čáry (l:1) přesně po původní křivce. Další řez lomené čáry jen ubere body a přidá body řezu,
+   zbytek zůstane beze změny, takže se kresba opakovaným gumováním nedeformuje. */
+function cutStroke(st,cap,lim){
+  const d=denseStroke(st), p=d.p, r=d.r, v=d.v, n=p.length/2;
+  const ins=new Uint8Array(n); let hit=false;
+  for(let i=0;i<n;i++) if(capDist(p[2*i],p[2*i+1],cap)<=lim){ ins[i]=1; hit=true; }
+  if(!hit) return null;
+  /* hranice gumy mezi bodem venku (o) a uvnitř (i) půlením */
+  const edge=(o,i)=>{ let a=0,b=1; const at=t=>[p[2*o]+(p[2*i]-p[2*o])*t,p[2*o+1]+(p[2*i+1]-p[2*o+1])*t];
+    for(let k=0;k<12;k++){ const m=(a+b)/2, q=at(m); if(capDist(q[0],q[1],cap)<=lim) b=m; else a=m; }
+    const q=at(a); return [q[0],q[1],r?r[o]+(r[i]-r[o])*a:0]; };
+  const frags=[]; let cur=null;
+  const push=(q,keep)=>{ if(!keep) return; cur.p.push(q[0],q[1]); if(r) cur.r.push(q[2]); };
+  for(let i=0;i<n;i++){
+    if(!ins[i]){
+      if(!cur){ cur={p:[],r:r?[]:null}; if(i>0) push(edge(i,i-1),1); }
+      push([p[2*i],p[2*i+1],r?r[i]:0],v[i]);
+    } else if(cur){ push(edge(i-1,i),1); frags.push(cur); cur=null; }
+  }
+  if(cur) frags.push(cur);
+  const minLen=1/E.view.s, out=[];
+  for(const f of frags){
+    let len=0; for(let i=2;i<f.p.length;i+=2) len+=Math.hypot(f.p[i]-f.p[i-2],f.p[i+1]-f.p[i-1]);
+    if(f.p.length<4||len<minLen) continue;
+    /* z husté křivky jen jednou ubrat body (odchylka do 0,15 px), lomená čára už se nezjednodušuje */
+    const sm=st.l?{p:f.p.map(r1),r:f.r?f.r.map(x=>Math.round(x*100)/100):null}:simplify(f.p,f.r,.15/E.view.s);
+    if(sm.p.length<4) continue;
+    const o={t:st.t,c:st.c,w:st.w,p:sm.p,l:1}; if(sm.r) o.r=sm.r;
+    out.push(o);
+  }
+  return out;
+}
 function pushHist(){ E.hist=E.hist.slice(0,E.hi+1); E.hist.push(E.strokes.slice()); E.hi=E.hist.length-1; E.changed=true; syncBar(); }
 function drawUndo(d){ const i=E.hi+d; if(i<0||i>=E.hist.length) return; E.hi=i; E.strokes=E.hist[i].slice(); E.changed=true; drawLayers(); syncBar(); }
 
@@ -318,9 +423,10 @@ function syncBar(){
   const ov=E.ov, t=E.pf.tool, o=E.pf[t];
   $$('[data-d="tool"]',ov).forEach(b=>b.classList.toggle('on',b.dataset.t===t));
   const col=$('.drw-col',ov), wid=$('.drw-wid',ov);
-  col.disabled=wid.disabled=t==='e'||t==='crop';
+  col.disabled=t==='e'||t==='crop'; wid.disabled=t==='crop';
   E.stage.classList.toggle('cropping',t==='crop'); placeCrop();
-  if(o){ $('.drw-sw',ov).style.background=o.c; const dot=$('.drw-dot',ov), px=clamp(o.w*(t==='h'?.45:1),2,18); dot.style.width=dot.style.height=px+'px'; dot.style.background=t==='h'?o.c:'currentColor'; }
+  if(o&&t==='e'){ const dot=$('.drw-dot',ov), px=clamp(o.w*.3,3,18); dot.style.width=dot.style.height=px+'px'; dot.style.background='currentColor'; }
+  else if(o){ $('.drw-sw',ov).style.background=o.c; const dot=$('.drw-dot',ov), px=clamp(o.w*(t==='h'?.45:1),2,18); dot.style.width=dot.style.height=px+'px'; dot.style.background=t==='h'?o.c:'currentColor'; }
   $('[data-d="undo"]',ov).disabled=E.hi<=0; $('[data-d="redo"]',ov).disabled=E.hi>=E.hist.length-1;
   $('[data-d="done"]',ov).disabled=!E.strokes.length;
 }
@@ -337,7 +443,10 @@ function colorPop(btn){
   showPop(btn,'col',`<div class="drw-sws">${list.map(c=>`<button class="drw-swb ${c===cur?'on':''}" data-d="c" data-c="${c}" aria-label="Barva"><span style="background:${c}"></span></button>`).join('')}</div>`);
 }
 function widthPop(btn){
-  const t=E.pf.tool, T=TOOLS[t];
+  const t=E.pf.tool;
+  if(t==='e') return showPop(btn,'wid',`<label class="drw-row"><span>Velikost gumy</span><input type="range" min="${ERW.min}" max="${ERW.max}" step="2" value="${E.pf.e.w}" data-in="w"></label>
+    <label class="drw-chk"><input type="checkbox" data-in="area"${E.pf.e.area?' checked':''}><span>Gumovat jen oblast</span></label>`);
+  const T=TOOLS[t];
   showPop(btn,'wid',`<label class="drw-row"><span>Tloušťka</span><input type="range" min="${T.min}" max="${T.max}" step="${t==='p'?.5:1}" value="${E.pf[t].w}" data-in="w"></label>`);
 }
 function morePop(btn){
@@ -369,6 +478,7 @@ function onBarClick(e){
 function onPopInput(e){
   const k=e.target.dataset.in; if(!k||!E) return;
   if(k==='w'){ E.pf[E.pf.tool].w=+e.target.value; syncBar(); }
+  else if(k==='area') E.pf.e.area=e.target.checked;
   else if(k==='sm') E.pf.sm=+e.target.value;
   savePrefs();
 }

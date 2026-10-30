@@ -115,6 +115,9 @@ body.locked .tr-del,body.locked .tr-empty{display:none}
 .side-pop .sp-row>.pop-item{flex:1;min-width:0}
 .side-pop .sp-more{flex:none;opacity:0}
 .side-pop .sp-row:hover .sp-more,.side-pop .sp-more:focus-visible{opacity:1}
+/* u hlavní stránky jsou + a ⋯ vidět vždy; řádek, jehož menu je otevřené vedle bubliny (.mon), zůstane zvýrazněný */
+.side-pop .sp-row:first-child .sp-more,.side-pop .sp-row.mon .sp-more{opacity:1}
+.side-pop .sp-row.mon>.pop-item{background:var(--hover)}
 @media (hover:none){ .side-pop .sp-more{opacity:1} }
 .side-pop .sp-h{font-weight:650}
 .side-pop .sp-add{font-size:calc(16px*var(--fs));line-height:1}

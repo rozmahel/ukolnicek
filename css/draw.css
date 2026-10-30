@@ -43,6 +43,8 @@
 .drw-swb.on{box-shadow:0 0 0 2px var(--accent)}
 .drw-row{display:grid;gap:var(--sp3);font-size:calc(13px*var(--fs));color:var(--fg2)}
 .drw-row input[type=range]{width:100%;accent-color:var(--accent)}
+.drw-chk{display:flex;align-items:center;gap:var(--sp4);font-size:calc(13px*var(--fs));color:var(--fg2);cursor:pointer}
+.drw-chk input{accent-color:var(--accent);margin:0}
 .drw-lbl{font-size:calc(13px*var(--fs));color:var(--fg2);font-weight:600}
 .drw-seg{display:flex}
 .drw-seg button{flex:1;display:grid;place-items:center;padding:var(--sp2) var(--sp5)}

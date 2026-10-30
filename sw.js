@@ -1,6 +1,6 @@
 /* Úkolníček – Service Worker (offline režim)
    Při každé nové verzi aplikace zvyš VERSION, jinak si telefony nechají starou verzi. */
-const VERSION = 'ukolnicek-v4.21.4';
+const VERSION = 'ukolnicek-v4.24.1';
 const ASSETS = [
   './',
   './index.html',
@@ -44,6 +44,7 @@ const ASSETS = [
   './js/editor/toolbar.js',
   './js/editor/aiedit.js',
   './js/editor/aipanel.js',
+  './js/editor/find.js',
   './js/ai.js',
   './js/ai/actions.js',
   './js/ai/sse.js',
@@ -71,6 +72,7 @@ const ASSETS = [
   './js/sync/images.js',
   './js/ui.js',
   './js/views/schedule.js',
+  './js/views/schdrag.js',
   './js/views/search.js',
   './js/views/settings.js',
   './js/views/subjects.js',

@@ -9,6 +9,7 @@ import { pTitle, revealBlock } from '../pages.js';
 import { gotoSubject, isIndex, semList, subjLabel, subjList, subjOcc, subjShort, subjsOf } from '../school.js';
 import { renderMain } from '../router.js';
 import { closeModal, openModal, openPop, toast } from '../ui.js';
+import { sdBind, sdCommit, sdCopyStart } from './schdrag.js';
 
 /* ================= schedule ================= */
 function weekDates(){ const base=mondayOf(new Date()); base.setDate(base.getDate()+S.weekOffset*7); const n=S.settings.showWeekend?7:5; return Array.from({length:n},(_,i)=>{ const d=new Date(base); d.setDate(base.getDate()+i); return d; }); }
@@ -79,6 +80,7 @@ function renderSchedule(){
         col+=`<div class="ev-w" style="top:${top}px;height:${height}px;left:calc(${it.col}*100%/${it.n} + 3px);width:calc(100%/${it.n} - 6px)">
           <button class="ev hl-${evColor(ev)} ${size}" data-act="ev" data-id="${ev.id}" data-date="${ymd(d)}">
           ${kind?`<span class="ev-k">${esc(kind)}</span>`:''}<span class="ev-t">${esc(evTitle(ev))}</span><span class="ev-m mono">${esc(ev.start)} – ${esc(ev.end)}</span>${evMeta(ev)?`<span class="ev-m">${evMeta(ev)}</span>`:''}</button>
+          <span class="ev-rs t" aria-hidden="true"></span><span class="ev-rs b" aria-hidden="true"></span>
           <button class="ev-add" data-act="ev-par" data-id="${ev.id}" data-date="${ymd(d)}" title="Přidat další událost ve stejný čas" aria-label="Přidat další událost ve stejný čas">${IC.plus}</button></div>`;
       });
       if(ymd(d)===today){ const nm=new Date().getHours()*60+new Date().getMinutes(); if(nm>=h0*60&&nm<=h1*60) col+=`<div class="now" style="top:${(nm-h0*60)/60*hh}px"></div>`; }
@@ -112,6 +114,7 @@ function renderSchedule(){
     g.hidden=false; g.style.top=((m-h0*60)/60*hh)+'px'; g.style.height=(hh*110/60)+'px'; g.innerHTML=IC.plus+fromMin(m);   /* stejně dlouhá jako nová hodina (1 h 50 min) */
   });
   sg.addEventListener('mouseleave',()=>$$('.ghost',sg).forEach(g=>g.hidden=true));
+  sdBind(sg,openEventModal,evColor);   /* tažení, natažení, kopie s duchem, nová hodina tažením (schdrag.js) */
 }
 function evRow(ev,d){
   const rep=ev.repeat==='count'&&d&&occIndex(ev,d)?`${occIndex(ev,d)}. z ${+ev.count||1}`:'';
@@ -125,7 +128,7 @@ function openEventModal(ev,preset,copy){
   /* se skrytým Indexem se předmět nevybírá; hodina, která už předmět má, si ho ponechá */
   const ix=isIndex(), subs=ix?subjList():[], subOf=v=>v?S.subjects[v]||null:null;
   const su0=evSubj(ev);
-  const subSel=!ix&&su0?`<div class="fld"><span class="lbl">Předmět</span><p class="note">${esc(subjLabel(su0))}. Název a barva jsou z Indexu, který je teď v nastavení skrytý.</p></div>`:subs.length?`<div class="fld"><label for="ev-subj">Předmět</label><select id="ev-subj"><option value="">Bez předmětu (vlastní název)</option>${[...semList(),null].map(sm=>{ const l=subjsOf(sm?sm.id:null); return l.length?`<optgroup label="${esc(sm?sm.name:'Bez semestru')}">${l.map(su=>`<option value="${su.id}" ${su0===su?'selected':''}>${esc(subjLabel(su))}</option>`).join('')}</optgroup>`:''; }).join('')}</select></div>`:'';
+  const subSel=!ix&&su0?`<div class="fld"><span class="lbl">Předmět</span><p class="note">${esc(subjLabel(su0))}. Název a barva jsou z Indexu, který je teď v nastavení skrytý.</p></div>`:subs.length?`<div class="fld"><label for="ev-subj">Předmět</label><select id="ev-subj"><option value="">Bez předmětu (vlastní název)</option>${[...semList(),null].map(sm=>{ const l=subjsOf(sm?sm.id:null); return l.length?`<optgroup label="${esc(sm?sm.name:'Bez semestru')}">${l.map(su=>`<option value="${su.id}" ${su0===su?'selected':''}>${esc(subjLabel(su))}</option>`).join('')}</optgroup>`:''; }).join('')}</select><button type="button" class="linkbtn ev-ix" id="ev-ix" hidden>Otevřít v Indexu</button></div>`:'';
   const m=openModal(copy?'Kopie události':isNew?'Nová událost':'Upravit událost',`<form class="m-body" id="evf" novalidate>
     ${subSel}
     <div class="fld" id="f-title"><label for="ev-title">Co</label><input id="ev-title" value="${esc(su0?'':ev.title)}" placeholder="${subs.length?'Konzultace, schůzka, akce…':'Předmět nebo akce'}" autocomplete="off">${subs.length||!ix?'':'<p class="note">Předměty pro rozvrh se zakládají v Indexu.</p>'}</div>
@@ -142,8 +145,10 @@ function openEventModal(ev,preset,copy){
     <div class="fld"><span class="lbl">Barva</span><div class="swatches" id="ev-color" style="padding-left:0"><button type="button" class="sw-auto" data-c="" title="Barva se mění s předmětem v Indexu"><span class="ti-dot"></span>Podle předmětu</button>${COLORS.map(c=>`<button type="button" class="sw hl-${c}" data-c="${c}" aria-label="${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}</div></div>
     <div class="fld"><label for="ev-note">Poznámky</label><textarea id="ev-note" rows="3" placeholder="Co si vzít, co se probírá…">${esc(ev.note)}</textarea></div>
     <p class="err" id="ev-err" hidden></p>
-    <div class="m-actions">${isNew?'':'<button type="button" class="btn danger" id="ev-del">Odstranit</button><button type="button" class="btn" id="ev-copy" title="Nová hodina se stejnými údaji, stačí upravit den nebo čas">Kopírovat</button>'}<span class="sp"></span><button type="button" class="btn" id="ev-ix" hidden>Otevřít v Indexu</button><button type="button" class="btn" data-close>Zavřít</button><button type="submit" class="btn pri">${isNew?'Přidat':'Uložit'}</button></div>
-  </form>`);
+    <div class="m-actions">${isNew?'':'<button type="button" class="btn danger lk-hide" id="ev-del">Odstranit</button>'}<span class="sp"></span><button type="button" class="btn" data-close>Zavřít</button><button type="submit" class="btn pri">${isNew?'Přidat':'Uložit'}</button></div>
+  </form>`,'ev-m');
+  /* jednotné okno (4.23.0): akce bez vztahu k polím (Kopírovat) jsou ikonou v hlavičce vedle ×, dole jen Odstranit · Zavřít · Uložit */
+  if(!isNew){ const x=m.querySelector('.m-head [data-close]'); if(x) x.insertAdjacentHTML('beforebegin',`<button type="button" class="icon-btn" id="ev-copy" title="Kopírovat" aria-label="Kopírovat">${IC.copy}</button>`); }
   /* barva: '' = podle předmětu (jen u hodiny s předmětem), jinak vlastní */
   let type=ev.type, color=su0?(ev.color||''):evColor(ev);
   const selSubj=$('#ev-subj',m), curSu=()=>selSubj?subOf(selSubj.value):(ix?null:su0);
@@ -171,7 +176,7 @@ function openEventModal(ev,preset,copy){
   };
   $('#ev-color',m).addEventListener('click',e=>{ const b=e.target.closest('[data-c]'); if(!b) return; color=b.dataset.c; drawColor(); });
   /* s předmětem: název z Indexu (pole „Co“ se schová), barva podle předmětu */
-  const syncSubj=()=>{ const su=curSu(); $('#f-title',m).hidden=!!su; $('#ev-ix',m).hidden=!su||!ix; drawColor(); };
+  const syncSubj=()=>{ const su=curSu(), ixb=$('#ev-ix',m); $('#f-title',m).hidden=!!su; if(ixb) ixb.hidden=!su||!ix; drawColor(); };
   let prevSu=su0;
   if(selSubj) selSubj.addEventListener('change',()=>{
     const su=curSu();
@@ -182,11 +187,12 @@ function openEventModal(ev,preset,copy){
     if(!su) $('#ev-title',m).focus();
   });
   syncSubj();
-  $('#ev-ix',m).addEventListener('click',()=>{ const su=curSu(); if(!su) return; closeModal(); gotoSubject(su.id); });
+  const ixb=$('#ev-ix',m); if(ixb) ixb.addEventListener('click',()=>{ const su=curSu(); if(!su) return; closeModal(); gotoSubject(su.id); });
   $('#ev-start',m).addEventListener('change',e=>{ const s=toMin(e.target.value), en=toMin($('#ev-end',m).value); if(e.target.value&&en<=s) $('#ev-end',m).value=fromMin(Math.min(s+110,23*60+59)); });
   /* kopie: otevře novou událost se stejnými údaji (uloženými, bez rozepsaných změn) */
-  const cp=$('#ev-copy',m); if(cp) cp.addEventListener('click',()=>{ const pre=clone(S.events[ev.id]||ev); delete pre.id; closeModal(); openEventModal(null,pre,true); });
-  const del=$('#ev-del',m); if(del) del.addEventListener('click',()=>{ const old=S.events[ev.id]; delete S.events[ev.id]; saveEvent({id:ev.id}); closeModal(); renderMain(); toast('Událost odstraněna','Vrátit',()=>{ S.events[old.id]=old; saveEvent(old); renderMain(); }); });
+  /* na širokém okně: duch hodiny, klik do mřížky ji tam zkopíruje (schdrag.js); v úzkém nová hodina se stejnými údaji */
+  const cp=$('#ev-copy',m); if(cp) cp.addEventListener('click',()=>{ const src=S.events[ev.id]||ev; closeModal(); if(sdCopyStart(src)) return; const pre=clone(src); delete pre.id; openEventModal(null,pre,true); });
+  const del=$('#ev-del',m); if(del) del.addEventListener('click',()=>{ closeModal(); sdCommit(ev.id,null,'Událost odstraněna'); });
   $('#evf',m).addEventListener('submit',e=>{
     e.preventDefault();
     const su=curSu();
@@ -195,7 +201,7 @@ function openEventModal(ev,preset,copy){
     if(su) out.subj=su.id; else delete out.subj;
     const err=$('#ev-err',m); let msg='';
     if(!out.title) msg='Chybí předmět nebo název.';
-    else if(!out.start||!out.end) msg='Vyplň čas od a do.';
+    else if(!out.start||!out.end) msg='Chybí čas od a do.';
     else if(toMin(out.end)<=toMin(out.start)) msg='Konec musí být po začátku.';
     else if((out.repeat==='once'||out.repeat==='count')&&!out.date) msg=out.repeat==='count'?'Chybí datum první hodiny.':'Chybí datum.';
     else if(out.repeat==='count'&&(out.count<1||out.count>52)) msg='Počet opakování musí být 1 až 52.';

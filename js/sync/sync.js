@@ -283,6 +283,9 @@ const Sync={
   },
   idlePush(){
     const now=Date.now();
+    /* otevřený návrh AI (✦ u výběru .ai-prev, změny z panelu .aip-chg) = jako by se pořád psalo: odpočet čeká,
+       po jeho přijetí nebo zavření začne znovu. ⌘S a ↑ nahrají hned, návrh není v datech, takže se nenahraje (od 4.22.0) */
+    if(document.querySelector('#blocks .ai-prev,#blocks .aip-chg')){ this.lastAct=now; return; }
     if(!autoPush()||this.busy||this.connecting||this.checking||this.pending||S.modal||Store.broken||!navigator.onLine) return;
     const ms=idleSec()*1000;
     if(now-this.lastAct<ms||now-this.lastAuto<ms) return;

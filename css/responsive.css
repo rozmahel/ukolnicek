@@ -6,10 +6,10 @@
   .side.open{transform:none;box-shadow:var(--shadow)}
   .scrim.open{display:block;position:fixed;inset:0;z-index:74;background:var(--scrim)}
   .topbar{display:flex;align-items:center;gap:var(--sp4);position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line);padding:0 var(--sp6);height:48px}
-  .pagebar{top:48px;margin:0 -16px var(--sp7);padding:var(--sp4) var(--sp8)}
+  .pagebar{top:48px;margin:0 -16px var(--sp7);padding:var(--sp6) var(--sp8) var(--sp4)}
   .page-icon{font-size:1.8rem}
   .topbar .tb-t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .doc{padding:var(--sp2) var(--sp8) 30vh 34px}
+  .doc{padding:0 var(--sp8) 30vh 34px}
   .doc>:not(.pagebar){max-width:none}
   .gut{left:calc(var(--lv,0)*26px - 30px)}
   .gut .g-add{display:none}

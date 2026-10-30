@@ -20,7 +20,7 @@ import { checkUpdate } from '../update.js';
 import { aiPaneBind } from './aiset.js';
 
 /* ================= settings ================= */
-const APP_VERSION='4.21.4';
+const APP_VERSION='4.24.1';
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
 const FS_STEPS=[1,1.1,1.2,1.3,1.4];
 /* uložená velikost textu přichycená na nejbližší krok (starší kroky 1,15 … 1,6 se převedou) */
@@ -91,6 +91,8 @@ async function openSettings(focus){
       <h3 class="set-h">Psaní</h3>
       <label class="chk"><input type="checkbox" id="st-tpl" ${S.settings.templates?'checked':''}> Šablony stránek</label>
       <p class="note" style="margin-top:-8px;padding-left:26px">Vkládají se přes <b>/šablona</b>: předmět, přehled týdnů, obecné informace.</p>
+      <label class="chk"><input type="checkbox" id="st-bl" ${S.settings.backlinks?'checked':''}> Zpětné odkazy pod stránkou</label>
+      <p class="note" style="margin-top:-8px;padding-left:26px">Seznam „Odkazuje sem“ na konci stránky, na kterou se odkazuje přes @.</p>
       <label class="chk"><input type="checkbox" id="st-spell" ${spellOn()?'checked':''}> Kontrola pravopisu</label>
       <p class="note" style="margin-top:-8px;padding-left:26px">Podtržení překlepů a návrhy oprav při psaní. Jen pro toto zařízení.</p>
     </section>
@@ -229,6 +231,7 @@ async function openSettings(focus){
     else { if(b.dataset.c!=null) setCalloutDef('color',b.dataset.c); if(b.dataset.ic!=null) setCalloutDef('icon',b.dataset.ic); }
     saveSettings(); coPaint();
   });
+  $('#st-bl',m).addEventListener('change',e=>{ if(e.target.checked) S.settings.backlinks=true; else delete S.settings.backlinks; saveSettings(); renderMain(); });
   $('#st-tpl',m).addEventListener('change',e=>{ if(e.target.checked) S.settings.templates=true; else delete S.settings.templates; saveSettings(); });
   $('#st-spell',m).addEventListener('change',e=>{ if(e.target.checked){ try{ localStorage.removeItem('uk-spell'); }catch(_){} } else lsSet('uk-spell',false); applySpell(); });
   $('#st-caps',m).addEventListener('change',e=>{ lsSet('uk-caps',e.target.checked); if(!e.target.checked) capsOff(); });
