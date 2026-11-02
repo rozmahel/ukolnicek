@@ -388,8 +388,12 @@ a.mention.gone{color:var(--muted);background:var(--hover);text-decoration:line-t
 .b-eq{--gi:0px;--gb:0px}
 .blk.spt{margin-top:0;padding-top:max(.1px,calc(var(--spt)*var(--fs)))}
 .blk.spb{margin-bottom:0;padding-bottom:max(.1px,calc(var(--spb)*var(--fs)))}
-.blk.spt>.row,.blk.spt>.divider{margin-top:calc(-1*var(--gi))}
-.blk.spb>.row,.blk.spb>.divider{margin-bottom:calc(-1*var(--gb))}
+.blk.spt>.row{margin-top:calc(-1*var(--gi))}
+.blk.spb>.row{margin-bottom:calc(-1*var(--gb))}
+/* oddělovač: s vlastní mezerou je jen čára (bez výšky řádku, nic nepřekrývá blok nad ním ani pod ním), mezery dělá padding bloku */
+.b-divider:is(.spt,.spb)>.divider{min-height:0;height:1px}
+.b-divider.spb:not(.spt){padding-top:var(--gi)}
+.b-divider.spt:not(.spb){padding-bottom:var(--gb)}
 .b-callout.spt>.row{margin-top:0}
 .b-callout.spb>.row{margin-bottom:0}
 .b-image.spt .imgfig{margin-top:0}

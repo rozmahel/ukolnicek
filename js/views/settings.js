@@ -21,7 +21,7 @@ import { checkUpdate } from '../update.js';
 import { aiPaneBind } from './aiset.js';
 
 /* ================= settings ================= */
-const APP_VERSION='4.28.1';
+const APP_VERSION='4.28.2';
 /* řádek „Po [3] s“ pro doby kolem odchodu z okna (LEAVE v sync.js) */
 const lvRow=(n,pre,post)=>{ const o=LEAVE[n]; return `<div class="au-row"><span>${pre}</span><input type="number" class="inp" data-lv="${n}" min="${o.lo}" max="${o.hi}" step="1" value="${leaveNum(n)}" aria-label="${pre} (s)"><span>${post}</span></div>`; };
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
