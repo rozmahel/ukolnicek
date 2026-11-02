@@ -4,6 +4,7 @@
    Data: b.spT / b.spB = px při velikosti textu 100 %, chybí = výchozí mezera typu bloku (do dat se nic nezapisuje).
    Vykreslení spNum v render.js, CSS na konci css/editor.css. */
 import { $, clamp, IC } from '../core.js';
+import { spDefOf } from '../state.js';
 import { savePage } from '../store.js';
 import { rerenderBlocks, SP_MAX, spNum } from './render.js';
 import { openPop } from '../ui.js';
@@ -15,6 +16,7 @@ const SPC_DEF={h1:[24,4],h2:[20,4],h3:[16,4],subj:[24,4],callout:[6,6],image:[8,
 
 /* výchozí mezera bloku (k: 0 = nad, 1 = pod) v px při 100 %: okraj bloku + vnitřní okraj (--gi / --gb v editor.css) */
 function spcDef(b,k){
+  const sd=spDefOf(b.type,k); if(sd!=null) return sd;   /* výchozí mezera typu z Nastavení → Formát */
   const el=$(`#blocks > .blk[data-id="${b.id}"]`);
   if(el&&!el.classList.contains(k?'spb':'spt')){
     const cs=getComputedStyle(el), g=parseFloat(cs.getPropertyValue(k?'--gb':'--gi'));
@@ -77,4 +79,4 @@ function spcOpen(anchor,pg,blocks,at,after){
   return p;
 }
 
-export { spcOpen };
+export { SPC_DEF, spcOpen };

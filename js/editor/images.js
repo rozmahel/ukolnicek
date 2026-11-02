@@ -118,7 +118,13 @@ function placeFrame(){
   if(!document.contains(imgSel.img)){ hideImgSel(); closePop(); return; }
   const r=imgSel.img.getBoundingClientRect();
   Object.assign(frame.style,{left:(r.left-2)+'px',top:(r.top-2)+'px',width:(r.width+4)+'px',height:(r.height+4)+'px'});
-  frame.classList.toggle('rz-left',imgAlign()==='right'); frame.hidden=false;
+  /* rámeček je fixed nad vším: ořízne se na viditelnou část stránky, aby nelezl přes horní lištu (od 4.29.0) */
+  const m=imgSel.img.closest('#main,.split-ghost')||$('#main'), mr=m?m.getBoundingClientRect():{top:0,bottom:innerHeight};
+  const pb=m&&(m.querySelector('.pagebar')||(m.id==='main'&&$('#split-bar .pagebar')));
+  const pr=pb&&getComputedStyle(pb).position==='sticky'?pb.getBoundingClientRect():null;
+  const lim=Math.max(mr.top,pr?pr.bottom:mr.top), t=Math.max(0,lim-(r.top-2)), bt=Math.max(0,(r.bottom+2)-mr.bottom);
+  frame.style.clipPath=t||bt?`inset(${t}px -12px ${bt}px -12px)`:'';
+  frame.classList.toggle('rz-left',imgAlign()==='right'); frame.hidden=t+bt>=r.height+4;
 }
 function hideImgSel(){ if(imgSel){ const blk=imgSel.img.closest('.blk'); if(blk) blk.classList.remove('isel'); } imgSel=null; frame.hidden=true; }
 /* klik na obrázek i kresbu: rámeček (a u obrázku v textu nabídka); quiet = jen rámeček (výběr klávesnicí, true posune stránku),
@@ -134,7 +140,8 @@ function selectImage(img,quiet,from){
   }
   imgSel={img,kind,x,host:kind==='inline'?img.closest('.txt'):null,from:from||null};
   placeFrame();
-  if(quiet){ const r=img.getBoundingClientRect(), m=$('#main'); if(m&&(r.top<70||r.bottom>innerHeight-30)) m.scrollTop+=r.top<70?r.top-90:r.bottom-innerHeight+50; placeFrame(); }
+  /* jen výběr klávesnicí posune stránku, a to jen když je obrázek celý mimo; klik myší nikdy nic neposouvá (od 4.29.0) */
+  if(quiet===true){ const r=img.getBoundingClientRect(), m=$('#main'); if(m&&(r.bottom<90||r.top>innerHeight-30)) m.scrollTop+=r.bottom<90?r.top-90:r.bottom-innerHeight+50; placeFrame(); }
   else if(quiet!=='frame'&&quiet!=='hold') openImgTools();
 }
 function applyImgWidth(w,commit){

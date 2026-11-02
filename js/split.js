@@ -15,8 +15,12 @@ import { mathPass } from './editor/math.js';
 const SP_WIDE=matchMedia('(min-width:861px)');
 const SP_MIN=320, SP_HW=7;   /* nejmenší šířka poloviny a šířka táhla (px) */
 const SP_X='<button class="icon-btn split-x" title="Zavřít aktivní polovinu" aria-label="Zavřít aktivní polovinu">'+IC.x+'</button>';
+/* připnutí poloviny (od 4.29.0): SP.pin = {L?:true, R?:true}. Připnutá polovina se klikem na jinou stránku nepřepne,
+   nová stránka jde do nepřipnuté poloviny; obě připnuté = oznámení s volbou strany (ta se tím odepne). */
+const spPinned=s=>!!(SP.pin&&SP.pin[s]);
+const SP_PIN=()=>{ const on=spPinned(SP.act), t=on?'Odepnout polovinu':'Připnout polovinu'; return `<button class="icon-btn split-pin${on?' on':''}" aria-pressed="${on}" title="${t}" aria-label="${t}">${IC.pin}</button>`; };
 let SP=lsGet('uk-split',null); if(!SP||typeof SP!=='object') SP={on:false};
-let spGhost=null, spHandle=null, spBarEl=null, spHtml='', spGid=null, spT=null;
+let spMarkL=null, spMarkR=null, spGhost=null, spHandle=null, spBarEl=null, spHtml='', spGid=null, spT=null;
 const spOth=s=>s==='L'?'R':'L';
 const spSave=()=>lsSet('uk-split',SP);
 const spRatio=()=>{ const r=+SP.r; return r>=.05&&r<=.95?r:.5; };
@@ -34,8 +38,34 @@ function spOpen(side,pg){
     if(!cur){ go({kind:'page',pageId:id}); return; }   /* vedle Dnes, Úkolů… se nerozděluje: stránka se otevře normálně */
     if(cur===id){ toast('Tahle stránka už je otevřená.'); return; }
     SP={on:true,r:SP.r,act:side,[side]:id,[spOth(side)]:cur}; spSave();
-  } else if(id!==SP.L&&id!==SP.R&&SP.act!==side){ SP[side]=id; spSave(); }   /* nahradí náhled; spSync pak přepne aktivní stranu */
+  } else if(id!==SP.L&&id!==SP.R){ if(SP.pin) delete SP.pin[side]; SP[side]=id; SP.act=side; spSave(); }   /* vybraná strana se odepne a nahradí */
   go({kind:'page',pageId:id});
+}
+/* volá go() před každou změnou pohledu: true = neotevírat. Připnutá aktivní polovina pošle stránku do druhé poloviny. */
+function spGuard(view){
+  if(view.kind!=='page'||!SP_WIDE.matches||!SP.pin||!(SP.pin.L||SP.pin.R)) return false;
+  const id=view.pageId;
+  const live=SP.on||(SP.park&&S.pages[SP.L]&&S.pages[SP.R]);   /* i z Dnes, Úkolů… nad rozdělením */
+  if(!live||id===SP.L||id===SP.R||!S.pages[id]) return false;
+  const act=SP.on?SP.act:(spPinned('L')?'R':'L');
+  if(!spPinned(act)&&SP.on) return false;   /* aktivní není připnutá: nahradí se jako dřív */
+  const free=!spPinned(act)?act:!spPinned(spOth(act))?spOth(act):null;
+  if(free){ SP.on=true; delete SP.park; SP[free]=id; SP.act=free; spSave(); return false; }
+  toast('Obě poloviny jsou připnuté.',[{ic:IC.splitL,label:'Otevřít vlevo',fn:()=>spForce('L',id)},{ic:IC.splitR,label:'Otevřít vpravo',fn:()=>spForce('R',id)}]);
+  return true;
+}
+function spForce(side,id){
+  if(!S.pages[id]) return;
+  if(SP.pin) delete SP.pin[side];
+  SP.on=true; delete SP.park; SP[side]=id; SP.act=side; spSave();
+  go({kind:'page',pageId:id});
+}
+function spTogglePin(){
+  if(!SP.on) return;
+  const p=Object.assign({},SP.pin||{}); if(p[SP.act]) delete p[SP.act]; else p[SP.act]=true;
+  if(p.L||p.R) SP.pin=p; else delete SP.pin;
+  spSave(); spLayout(); spPinBtn();
+  toast(spPinned(SP.act)?'Polovina připnutá: další stránky se otevřou v té druhé.':'Polovina odepnutá.');
 }
 /* po každém vykreslení pohledu (renderMain) */
 function spSync(){
@@ -54,19 +84,25 @@ function spSync(){
       else SP[SP.act]=id;
       spSave();
     }
-    if(!S.pages[SP[spOth(SP.act)]]){ SP.on=false; spSave(); }   /* druhá stránka mezitím smazaná */
+    if(!S.pages[SP[spOth(SP.act)]]){ SP.on=false; delete SP.pin; spSave(); }   /* druhá stránka mezitím smazaná */
   }
-  spLayout(); spRender(); spBar();
+  spLayout(); spRender(); spBar(); spPinBtn();
+}
+/* tlačítko v liště vždy podle aktivní poloviny (spBar běží při vykreslení stránky ještě před přepnutím SP.act) */
+function spPinBtn(){
+  const b=spBarEl&&spBarEl.querySelector('.split-pin'); if(!b) return;
+  const on=spPinned(SP.act); if(b.classList.contains('on')===on) return;
+  b.outerHTML=SP_PIN();
 }
 function spLayout(){
   const panes=$('#panes'), main=$('#main'); if(!panes||!main) return;
   panes.classList.toggle('split',!!SP.on);
   if(!SP.on){
-    if(spGhost){ spGhost.remove(); spHandle.remove(); spGhost=spHandle=null; spHtml=''; spGid=null; }
+    if(spGhost){ spGhost.remove(); spHandle.remove(); spMarkL.remove(); spMarkR.remove(); spGhost=spHandle=spMarkL=spMarkR=null; spHtml=''; spGid=null; }
     main.classList.remove('sp-l','sp-r');
     if(spBarEl){   /* lišta zpátky do stránky */
       const pb=spBarEl.querySelector('.pagebar'), doc=$('#doc');
-      if(pb&&doc&&pb.dataset.page===doc.dataset.page){ pb.querySelectorAll('.split-x,.split-sep').forEach(e=>e.remove()); doc.prepend(pb); }
+      if(pb&&doc&&pb.dataset.page===doc.dataset.page){ pb.querySelectorAll('.split-x,.split-pin,.split-sep').forEach(e=>e.remove()); doc.prepend(pb); }
       spBarEl.remove(); spBarEl=null;
     }
     return;
@@ -75,13 +111,15 @@ function spLayout(){
   panes.style.setProperty('--sr',spRatio());
   main.classList.toggle('sp-l',SP.act==='L'); main.classList.toggle('sp-r',SP.act==='R');
   spGhost.classList.toggle('sp-l',SP.act==='R'); spGhost.classList.toggle('sp-r',SP.act==='L');
+  /* malý špendlík vpravo nahoře v každé připnuté polovině (mimo lištu, neposouvá se se stránkou) */
+  spMarkL.hidden=!spPinned('L'); spMarkR.hidden=!spPinned('R');
 }
 /* jedna horní lišta nad oběma polovinami: lišta živé stránky se po každém vykreslení přesune do #split-bar */
 function spBar(){
   if(!SP.on||!spBarEl) return;
   if(!SP_WIDE.matches){ spBarEl.replaceChildren(); return; }   /* úzké okno: lišta zůstane ve stránce */
   const doc=$('#doc'), pb=doc&&doc.querySelector(':scope > .pagebar');
-  if(pb){ pb.dataset.page=doc.dataset.page; { const lk=pb.querySelector('.lock-btn'), sep=lk&&lk.previousElementSibling&&lk.previousElementSibling.classList.contains('pb-sep')?lk.previousElementSibling:lk; if(sep) sep.insertAdjacentHTML('beforebegin',SP_X); else pb.querySelector('.pb-acts').insertAdjacentHTML('beforeend',SP_X); }   /* × patří k akcím karty: před oddělovač u zámku */ spBarEl.replaceChildren(pb); }
+  if(pb){ pb.dataset.page=doc.dataset.page; { const lk=pb.querySelector('.lock-btn'), sep=lk&&lk.previousElementSibling&&lk.previousElementSibling.classList.contains('pb-sep')?lk.previousElementSibling:lk; if(sep) sep.insertAdjacentHTML('beforebegin',SP_PIN()+SP_X); else pb.querySelector('.pb-acts').insertAdjacentHTML('beforeend',SP_PIN()+SP_X); }   /* × patří k akcím karty: před oddělovač u zámku */ spBarEl.replaceChildren(pb); }
 }
 /* náhled druhé stránky; znovu jen když se jeho HTML změnilo (přejmenování, odkazy @, zpětné odkazy, data z jiného okna…) */
 function spRender(){
@@ -105,8 +143,10 @@ function spMake(){
   spHandle.title='Tažením se mění poměr, dvojklik = 50 : 50';
   spGhost=document.createElement('section'); spGhost.className='split-ghost'; spGhost.setAttribute('aria-label','Druhá polovina, úpravy po kliknutí');
   spGhost.innerHTML='<div class="sg-view"></div>';
+  spMarkL=document.createElement('div'); spMarkL.className='sp-mark sp-mark-l'; spMarkL.setAttribute('aria-hidden','true'); spMarkL.innerHTML=IC.pin;
+  spMarkR=spMarkL.cloneNode(true); spMarkR.className='sp-mark sp-mark-r';
   spBarEl=document.createElement('div'); spBarEl.id='split-bar';
-  panes.append(spHandle,spGhost,spBarEl);   /* lišta v DOM až za #main: $('#undo-btn') apod. najdou při vykreslení nejdřív novou lištu */   /* v DOM za #main: dotazy na třídy najdou nejdřív živou stránku */
+  panes.append(spHandle,spGhost,spBarEl,spMarkL,spMarkR);   /* lišta v DOM až za #main: $('#undo-btn') apod. najdou při vykreslení nejdřív novou lištu */   /* v DOM za #main: dotazy na třídy najdou nejdřív živou stránku */
   spGhost.addEventListener('scroll',()=>{ if(spGid) noteScroll(spGid,spGhost.scrollTop); },{passive:true});
   spHandle.addEventListener('pointerdown',spDrag);
   spHandle.addEventListener('dblclick',()=>{ SP.r=.5; spSave(); spLayout(); });
@@ -135,12 +175,14 @@ function spActivate(x,y){
 /* × v aktivní polovině: druhá stránka se roztáhne přes celé okno */
 function spCloseActive(){
   const id=SP[spOth(SP.act)]; if(spGhost) noteScroll(id,spGhost.scrollTop,true);
-  SP.on=false; delete SP.park; spSave(); go({kind:'page',pageId:id});
+  SP.on=false; delete SP.park; delete SP.pin; spSave(); go({kind:'page',pageId:id});
 }
 export function initSplit(){
   onBlocksRendered(spBar);
   document.addEventListener('uk-change',()=>{ if(!SP.on) return; clearTimeout(spT); spT=setTimeout(spRender,300); });
-  document.addEventListener('click',e=>{ if(e.target.closest&&e.target.closest('#split-bar .split-x')){ e.preventDefault(); spCloseActive(); } });
+  document.addEventListener('click',e=>{ if(!e.target.closest) return;
+    if(e.target.closest('#split-bar .split-x')){ e.preventDefault(); spCloseActive(); }
+    else if(e.target.closest('#split-bar .split-pin')){ e.preventDefault(); spTogglePin(); } });
   /* náhled nejde upravovat: události z něj se zastaví dřív, než je uvidí zbytek aplikace (posluchače na document) */
   const inG=e=>spGhost&&e.target instanceof Node&&spGhost.contains(e.target);
   ['pointerdown','mousedown','mouseup','dblclick','contextmenu','dragstart','auxclick'].forEach(t=>window.addEventListener(t,e=>{
@@ -154,4 +196,4 @@ export function initSplit(){
   SP_WIDE.addEventListener('change',()=>{ if(SP.on&&S.view.kind==='page'){ spHtml=''; renderMain(); } });
 }
 
-export { spOpen, spSync };
+export { spGuard, spOpen, spSync };

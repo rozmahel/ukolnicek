@@ -28,7 +28,18 @@ function toggleSideMini(){
   renderSidebar();
 }
 const wsTop=mini=>`<div class="ws-top"><button class="icon-btn side-tog" data-act="side-mini" ${mini?`data-tip="Rozbalit panel (${togKey})"`:`title="Schovat panel (${togKey})"`} aria-label="${mini?'Rozbalit':'Schovat'} panel">${IC.menu}</button><div class="ws-name">${esc(S.settings.name||'Úkolníček')}</div></div>`;
+/* stav Disku a Nastavení pevně dole (od 4.29.0, uk-side-pin jen v zařízení, jen v širokém okně): vše nad nimi je v .side-scroll,
+   který se bez volby chová jako display:contents (posouvá se celý panel jako dřív) */
 function renderSidebar(){
+  const side=$('#side'), o=side&&side.querySelector('.side-scroll'), st=o?o.scrollTop:0;
+  $('#app').classList.toggle('side-pin',lsGet('uk-side-pin',false)===true);
+  renderSide(); if(!side) return;
+  const sb=side.querySelector('#sync-box'); if(!sb) return;
+  const w=document.createElement('div'); w.className='side-scroll';
+  while(side.firstChild&&side.firstChild!==sb) w.appendChild(side.firstChild);
+  side.insertBefore(w,sb); if(st) w.scrollTop=st;
+}
+function renderSide(){
   const side=$('#side'); const wk=weekInfo(new Date());
   const mini=sideMini(); $('#app').classList.toggle('side-mini',mini);
   const open=shownTasks().filter(t=>!t.done).length;

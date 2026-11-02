@@ -126,3 +126,6 @@
    takže výběr pod ní pokračuje v textu */
 .fmt,#cellbar,.pop,#bselbar,.toast,#caps-pop{-webkit-user-select:none;user-select:none}
 body.mdrag .fmt,body.mdrag #cellbar{pointer-events:none}
+/* oznámení s ikonami místo textu (od 4.29.0, např. Otevřít vlevo / vpravo) */
+.toast button.t-ic{display:grid;place-items:center;padding:var(--sp2) var(--sp3)}
+.toast button.t-ic .ic{width:18px;height:18px}

@@ -185,3 +185,20 @@ body.split-drag,body.split-drag *{cursor:col-resize!important;user-select:none!i
   #split-bar{display:none}
   #panes.split>#main{flex:1 1 0;min-width:0;border-top:0}
 }
+
+/* stav Disku a Nastavení pevně dole (od 4.29.0): posouvá se jen .side-scroll (karty a projekty) */
+.side-scroll{display:contents}
+@media (min-width:861px){
+  #app.side-pin .side{overflow:hidden}
+  #app.side-pin .side-scroll{display:flex;flex-direction:column;gap:var(--sp2);flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;margin:0 calc(-1*var(--sp5));padding:0 var(--sp5) var(--sp2);overscroll-behavior:contain}
+  #app.side-pin .syncbar{margin-top:0}
+}
+
+/* připnutá polovina (od 4.29.0): tlačítko v horní liště (.split-pin.on) a malý špendlík v rohu náhledu */
+#split-bar .split-pin.on{color:var(--accent);background:var(--accent-soft)}
+.sp-mark{grid-row:2;align-self:start;justify-self:end;z-index:6;margin:var(--sp4) var(--sp9) 0 0;color:var(--accent);pointer-events:none;line-height:0}
+.sp-mark .ic{width:16px;height:16px}
+.sp-mark-l{grid-column:1}
+.sp-mark-r{grid-column:3}
+.sp-mark[hidden]{display:none}
+@media (max-width:860px){ #split-bar .split-pin,.sp-mark{display:none!important} }

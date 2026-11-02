@@ -1,6 +1,6 @@
 /* Úkolníček – Nastavení, motiv a velikost písma, návod a novinky */
-import { $, $$, CALLOUT_IC, COLOR_CZ, COLORS, downloadFile, esc, IC, ICONS, lsGet, lsSet, plural, spellOn } from '../core.js';
-import { calloutDef, defaultSettings, S, setCalloutDef } from '../state.js';
+import { $, $$, CALLOUT_IC, COLOR_CZ, COLORS, downloadFile, esc, IC, ICONS, lsGet, lsSet, plural, spellOn, TYPE_ICON, TYPE_LABEL } from '../core.js';
+import { calloutDef, defaultSettings, S, setCalloutDef, setSpDef, spDefOf } from '../state.js';
 import { applySkin, fontOf, FONTS, setFont, setSkin, skinOf, SKINS, syncModeBtns, syncThemeColor } from '../theme.js';
 import { LOCK } from '../lock.js';
 import { applyData, dataForSave, META, normalizeImport, saveSettings, stateForStorage, Store } from '../store.js';
@@ -16,12 +16,13 @@ import { autoPull, autoPush, backPull, blurPush, cloudSvg, hidePush, IDLE_MAX, I
 import { ImgSync, withImgs } from '../sync/images.js';
 import { placeFrame } from '../editor/images.js';
 import { capsOff } from '../editor/caps.js';
+import { SPC_DEF } from '../editor/spacing.js';
 import { delTemplate, dupTemplate, editTemplate, orderTemplates, resetTemplate, tplRowsHtml } from '../templates.js';
 import { checkUpdate } from '../update.js';
 import { aiPaneBind } from './aiset.js';
 
 /* ================= settings ================= */
-const APP_VERSION='4.28.2';
+const APP_VERSION='4.29.1';
 /* řádek „Po [3] s“ pro doby kolem odchodu z okna (LEAVE v sync.js) */
 const lvRow=(n,pre,post)=>{ const o=LEAVE[n]; return `<div class="au-row"><span>${pre}</span><input type="number" class="inp" data-lv="${n}" min="${o.lo}" max="${o.hi}" step="1" value="${leaveNum(n)}" aria-label="${pre} (s)"><span>${post}</span></div>`; };
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
@@ -44,6 +45,22 @@ function applyFontScale(){
 const SET_IC={general:'<svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg>',look:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17z" fill="currentColor" stroke="none"/></svg>',sync:'<svg viewBox="0 0 24 24"><path d="M7 18.5h10a4 4 0 0 0 .6-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 18.5z"/></svg>',backup:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4.5" rx="1.2"/><path d="M4.8 8.5v9.5a2 2 0 0 0 2 2h10.4a2 2 0 0 0 2-2V8.5"/><path d="M10 12.5h4"/></svg>',ai:'<svg viewBox="0 0 24 24"><path d="M12 3.5c.6 4.2 2.3 5.9 6.5 6.5-4.2.6-5.9 2.3-6.5 6.5-.6-4.2-2.3-5.9-6.5-6.5 4.2-.6 5.9-2.3 6.5-6.5z"/><path d="M18.5 15.5c.2 1.6.9 2.3 2.5 2.5-1.6.2-2.3.9-2.5 2.5-.2-1.6-.9-2.3-2.5-2.5 1.6-.2 2.3-.9 2.5-2.5z"/></svg>',help:'<svg viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H14a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z"/></svg>'};
 SET_IC.format='<svg viewBox="0 0 24 24"><path d="M4 6h11M9.5 6v13M14.5 12.5h5.5M14.5 16h5.5M14.5 19.5h5.5"/></svg>';
 const SET_TABS=[['general','Obecné',SET_IC.general],['look','Vzhled',SET_IC.look],['format','Formát',SET_IC.format],['school','Škola',ICONS.index],['sync','Google Disk',SET_IC.sync],['backup','Zálohy',SET_IC.backup],['ai','AI',SET_IC.ai],['help','Návod a novinky',SET_IC.help]];
+/* Nastavení → Formát (od 4.29.0): dlaždice, klik otevře podstránku; S.setFmt = otevřená podstránka (jen v paměti) */
+const FMT_SUBS=[['callout','Zvýrazněný blok','Barva a ikona nově vloženého bloku.',TYPE_ICON.callout],
+  ['spacing','Mezery bloků','Výchozí mezera nad a pod pro každý typ bloku.',IC.spacing],
+  ['tpl','Šablony','Vestavěné i vlastní šablony pro /šablona.',IC.tpl],
+  ['write','Psaní','Kontrola pravopisu a zpětné odkazy.',IC.textT]];
+const fmtHd=k=>`<div class="fmt-hd"><button type="button" class="fmt-back">${IC.chevL}Formát</button><b>${FMT_SUBS.find(x=>x[0]===k)[1]}</b></div>`;
+/* typy bloků v pořadí jako v lomítkovém menu; předmět jen ve školním režimu */
+const SPD_TYPES=()=>['p','h1','h2','h3',...(isSchool()?['subj']:[]),'bullet','num','todo','quote','callout','code','table','image','eq','divider','page'];
+const spdPh=(t,k)=>{ const d=SPC_DEF[t]||[4,4]; return String(d[k]); };
+function spdRowsHtml(){
+  const inp=(t,k,l)=>{ const v=spDefOf(t,k); return `<input class="spc-in" data-t="${t}" data-k="${k}" inputmode="numeric" maxlength="2" autocomplete="off" value="${v==null?'':v}" placeholder="${spdPh(t,k)}" aria-label="${TYPE_LABEL[t]}: ${l} (px)">`; };
+  return `<div class="spd-row spd-hd"><span></span><span>Nad</span><span>Pod</span><span></span></div>`+SPD_TYPES().map(t=>{
+    const own=spDefOf(t,0)!=null||spDefOf(t,1)!=null;
+    return `<div class="spd-row" data-t="${t}"><span class="spd-nm"><span class="pi-ic">${TYPE_ICON[t]||''}</span>${TYPE_LABEL[t]}</span>${inp(t,0,'nad')}${inp(t,1,'pod')}<button type="button" class="icon-btn spd-rs" data-t="${t}" title="Původní mezery" aria-label="${TYPE_LABEL[t]}: původní mezery" ${own?'':'hidden'}>${IC.restore}</button></div>`;
+  }).join('');
+}
 /* stav obrázků podle dat a poslední kontroly Disku */
 function imgState(){
   ImgSync.refresh(); const n=ImgSync.refs.size, s=ImgSync.summary();
@@ -65,6 +82,8 @@ async function openSettings(focus){
       <h3 class="set-h">Levý panel</h3>
       <label class="chk"><input type="checkbox" id="st-mc" ${st.miniCal?'checked':''}> Mini kalendář pod číslem týdne</label>
       <label class="chk sub"><input type="checkbox" id="st-mcw" ${st.miniCalWeeks!==false?'checked':''} ${st.miniCal?'':'disabled'}> V kalendáři ukazovat čísla týdnů v roce</label>
+      <label class="chk wide-only"><input type="checkbox" id="st-pin" ${lsGet('uk-side-pin',false)===true?'checked':''}> Stav Disku a Nastavení vždy vidět dole</label>
+      <p class="note wide-only" style="margin-top:-8px;padding-left:26px">Posouvají se jen karty a projekty nad nimi. Jen pro toto zařízení.</p>
       <label class="chk"><input type="checkbox" id="st-mm" ${st.mindmap?'checked':''}> Myšlenková mapa</label>
       <p class="note" style="margin-top:-8px;padding-left:26px">Plátno s bloky a čarami, propojitelné s projekty. Vypnutím se nic neodstraní.</p>
       <h3 class="set-h">Poznámky</h3>
@@ -85,21 +104,33 @@ async function openSettings(focus){
     </section>
 
     <section class="set-pane" data-pane="format">
-      <div class="fld co-set" id="st-co"><span class="lbl">Výchozí zvýrazněný blok</span>
-        <div class="co-prev" id="st-co-prev"><span class="co-pic"></span><span>Nový zvýrazněný blok</span></div>
+      <div class="fmt-tiles" id="st-fmt">${FMT_SUBS.map(([k,t,d,ic])=>`<button type="button" class="fmt-tile" data-fsub="${k}"><span class="ft-ic" aria-hidden="true">${ic}</span><b>${t}</b><span>${d}</span></button>`).join('')}</div>
+      <div class="fmt-sub" data-fsub="callout" hidden>
+        ${fmtHd('callout')}
+      <div class="fld co-set" id="st-co">        <div class="co-prev" id="st-co-prev"><span class="co-pic"></span><span>Nový zvýrazněný blok</span></div>
         <div class="swatches co-kinds">${CALLOUT_KINDS.map(([ic,c,t])=>`<button type="button" class="pop-item co-kind hl-${c}" data-c="${c}" data-ic="${ic}"><span>${ic}</span>${t}</button>`).join('')}</div>
         <span class="lbl co-sub">Barva</span><div class="swatches" id="st-co-col">${COLORS.map(c=>`<button type="button" class="sw hl-${c}" data-c="${c}" aria-label="${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}</div>
         <span class="lbl co-sub">Ikona</span><div class="swatches" id="st-co-ic"><button type="button" class="pop-item co-ib" data-ic="" title="Bez ikony" aria-label="Bez ikony">∅</button>${CALLOUT_IC.map(ic=>`<button type="button" class="pop-item co-ib" data-ic="${ic}">${ic}</button>`).join('')}</div>
         <p class="note">Platí pro nově vložené bloky, stávající se nemění. <a href="#" class="set-news" id="st-co-def" data-co-def>Vrátit výchozí</a></p></div>
-      <h3 class="set-h">Šablony</h3>
+      </div>
+      <div class="fmt-sub" data-fsub="spacing" hidden>
+        ${fmtHd('spacing')}
+        <div class="spd-list" id="st-spd">${spdRowsHtml()}</div>
+        <p class="note">Platí pro bloky bez vlastní mezery (⋮⋮ → Mezery). Prázdné pole = původní mezera. <a href="#" class="set-news" id="st-spd-def" ${S.settings.spDef?'':'hidden'}>Vrátit všechny původní</a></p>
+      </div>
+      <div class="fmt-sub" data-fsub="tpl" hidden>
+        ${fmtHd('tpl')}
       <div class="tpl-list" id="st-tpls">${tplRowsHtml()}</div>
       <div><button type="button" class="btn btn-text" id="st-tpl-new">${IC.plus}Nová šablona</button></div>
       <p class="note">Vkládají se přes <b>/šablona</b> nebo přímo <b>/název šablony</b>. Klik na název otevře editor. Úprava šablony nemění už vložené kopie.</p>
-      <h3 class="set-h">Psaní</h3>
+      </div>
+      <div class="fmt-sub" data-fsub="write" hidden>
+        ${fmtHd('write')}
       <label class="chk"><input type="checkbox" id="st-bl" ${S.settings.backlinks?'checked':''}> Zpětné odkazy pod stránkou</label>
       <p class="note" style="margin-top:-8px;padding-left:26px">Seznam „Odkazuje sem“ na konci stránky, na kterou se odkazuje přes @.</p>
       <label class="chk"><input type="checkbox" id="st-spell" ${spellOn()?'checked':''}> Kontrola pravopisu</label>
       <p class="note" style="margin-top:-8px;padding-left:26px">Podtržení překlepů a návrhy oprav při psaní. Jen pro toto zařízení.</p>
+      </div>
     </section>
 
     <section class="set-pane" data-pane="school">
@@ -177,9 +208,27 @@ async function openSettings(focus){
     </form></div>`,'set-m');
 
   /* přepínání kategorií */
+  const showFmt=k=>{ S.setFmt=k||null; $('#st-fmt',m).hidden=!!k; $$('.fmt-sub',m).forEach(x=>x.hidden=x.dataset.fsub!==k); };
   const showTab=k=>{ S.setTab=k; $$('.set-nav [data-tab]',m).forEach(b=>{ b.classList.toggle('on',b.dataset.tab===k); b.setAttribute('aria-selected',String(b.dataset.tab===k)); }); $$('.set-pane',m).forEach(p=>p.hidden=p.dataset.pane!==k); };
   showTab(tab);
-  $('.set-nav',m).addEventListener('click',e=>{ const b=e.target.closest('[data-tab]'); if(b) showTab(b.dataset.tab); });
+  $('.set-nav',m).addEventListener('click',e=>{ const b=e.target.closest('[data-tab]'); if(!b) return; if(b.dataset.tab==='format') showFmt(null); showTab(b.dataset.tab); });
+  showFmt(FMT_SUBS.some(x=>x[0]===S.setFmt)?S.setFmt:null);
+  $('#st-fmt',m).addEventListener('click',e=>{ const b=e.target.closest('[data-fsub]'); if(b){ showFmt(b.dataset.fsub); $('.set-body',m).scrollTop=0; } });
+  $$('.fmt-back',m).forEach(b=>b.addEventListener('click',()=>showFmt(null)));
+  /* výchozí mezery bloků: číslo = uložit, prázdné pole = původní mezera; překreslí otevřenou stránku */
+  const spdSave=()=>{ saveSettings(); renderMain(); $('#st-spd-def',m).hidden=!S.settings.spDef; };
+  const spdMark=t=>{ const r=$(`.spd-row[data-t="${t}"] .spd-rs`,m); if(r) r.hidden=spDefOf(t,0)==null&&spDefOf(t,1)==null; };
+  $('#st-spd',m).addEventListener('change',e=>{ const n=e.target.closest('.spc-in'); if(!n) return;
+    const t=n.dataset.t, k=+n.dataset.k, v=n.value.replace(/\D/g,'').slice(0,2);
+    setSpDef(t,k,v===''?null:+v); n.value=spDefOf(t,k)??''; spdMark(t); spdSave(); });
+  $('#st-spd',m).addEventListener('keydown',e=>{ const n=e.target.closest('.spc-in'); if(!n) return;
+    if(e.key==='Enter'){ e.preventDefault(); n.blur(); return; }
+    if(e.key!=='ArrowUp'&&e.key!=='ArrowDown') return; e.preventDefault();
+    const t=n.dataset.t, k=+n.dataset.k, cur=n.value===''?+n.placeholder:+n.value;
+    setSpDef(t,k,Math.min(48,Math.max(0,cur+(e.key==='ArrowUp'?2:-2)))); n.value=spDefOf(t,k); spdMark(t); spdSave(); });
+  $('#st-spd',m).addEventListener('click',e=>{ const b=e.target.closest('.spd-rs'); if(!b) return; const t=b.dataset.t;
+    setSpDef(t,0,null); setSpDef(t,1,null); $$(`.spd-row[data-t="${t}"] .spc-in`,m).forEach(x=>x.value=''); spdMark(t); spdSave(); });
+  $('#st-spd-def',m).addEventListener('click',e=>{ e.preventDefault(); delete S.settings.spDef; $('#st-spd',m).innerHTML=spdRowsHtml(); spdSave(); });
   $('#stf',m).addEventListener('submit',e=>e.preventDefault());
 
   /* obecné a vzhled se ukládají hned při změně */
@@ -237,6 +286,7 @@ async function openSettings(focus){
     if(sec===o.d){ try{ localStorage.removeItem(o.k); }catch(_){} } else lsSet(o.k,sec);
     n.value=sec;
   }));
+  $('#st-pin',m).addEventListener('change',e=>{ if(e.target.checked) lsSet('uk-side-pin',true); else { try{ localStorage.removeItem('uk-side-pin'); }catch(_){} } renderSidebar(); });
   $('#st-mm',m).addEventListener('change',e=>{ if(e.target.checked) S.settings.mindmap=true; else delete S.settings.mindmap; saveSettings(); renderSidebar(); renderMain(); });
   /* Formát: výchozí zvýrazněný blok (v datech jen odlišné hodnoty) a kontrola pravopisu (jen v zařízení) */
   const coPaint=()=>{

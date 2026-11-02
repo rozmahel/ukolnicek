@@ -242,6 +242,12 @@ function exportMd(pg){
 }
 
 /* jedna tabulka → .md (⋮⋮ tabulky, od 4.27.0); název podle popisku, jinak podle stránky */
+/* jedna tabulka → Markdown do schránky (⋮⋮ tabulky, od 4.29.0) */
+async function copyTableMd(b){
+  const s=b&&blockMd(b); if(!s) return toast('Tabulka je prázdná.');
+  try{ await navigator.clipboard.writeText(s+'\n'); toast('Tabulka zkopírována jako Markdown.'); }
+  catch(_){ toast('Kopírování se nepovedlo.'); }
+}
 function exportTableMd(pg,b){
   const s=b&&blockMd(b); if(!s) return toast('Tabulka je prázdná.');
   const cap=String(b.caption||'').replace(/<[^>]*>/g,'').trim();
@@ -251,4 +257,4 @@ function exportTableMd(pg,b){
   toast(`Tabulka uložena jako „${name}“`);
 }
 
-export { blockMd, cleanBlock, exportMd, exportTableMd, htmlToMd, importMd, mdToBlocks };
+export { blockMd, cleanBlock, copyTableMd, exportMd, exportTableMd, htmlToMd, importMd, mdToBlocks };

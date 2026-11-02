@@ -1,6 +1,7 @@
 /* Úkolníček – Přepínání pohledů (Dnes, Index, Rozvrh, Úkoly, Myšlenková mapa, stránka) */
 import { $, lsGet, lsSet } from './core.js';
 import { S } from './state.js';
+import { syncLock } from './lock.js';
 import { Store } from './store.js';
 import { isArchived, pTitle } from './pages.js';
 import { isIndex, isSchool } from './school.js';
@@ -13,7 +14,7 @@ import { renderIndex } from './views/subjects.js';
 import { renderTasks } from './views/tasks.js';
 import { renderToday } from './views/today.js';
 import { hideImgSel } from './editor/images.js';
-import { spSync } from './split.js';
+import { spGuard, spSync } from './split.js';
 import { renderTrashView } from './trash.js';
 import { renderMindmap } from './views/mindmap.js';
 
@@ -54,6 +55,7 @@ function navCard(k){
   if(id) go({kind:'page',pageId:id});
 }
 function go(view){
+  if(spGuard(view)) return;   /* rozdělení s oběma připnutými polovinami: třetí stránka se neotevře (nabídne se volba strany) */
   Store.flushAll();
   rememberScroll(true);
   if(S.view.kind==='page'&&CARDS.includes(view.kind)&&S.pages[S.view.pageId]) lsSet('uk-under',S.view.pageId);
@@ -70,6 +72,7 @@ function renderMain(){
   const v=S.view, view=$('#view');
   if(!S.ready){ view.innerHTML='<div class="loading">Načítání stránek…</div>'; return; }
   let title='Úkolníček';
+  syncLock();   /* zámek podle otevřené stránky nebo karty (od 4.29.0) */
   if(v.kind==='page'){
     const pg=S.pages[v.pageId];
     if(!pg){ S.view={kind:'today'}; return renderMain(); }

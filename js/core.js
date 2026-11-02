@@ -50,6 +50,7 @@ const IC={
   resize:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg>',
   foldTo:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
   splitR:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M12 4.5v15M15 9h2.5M15 12h2.5"/></svg>',
+  pin:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 4h5l-.8 5.2 3.3 3.3v1.5H7v-1.5l3.3-3.3zM12 14v6"/></svg>',
   splitL:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M12 4.5v15M6.5 9H9M6.5 12H9"/></svg>',
   toTop:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5v14M19 12H9M13 8l-4 4 4 4"/></svg>',
   archive:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="4.5" rx="1.2"/><path d="M4.8 8.5v9.5a2 2 0 0 0 2 2h10.4a2 2 0 0 0 2-2V8.5M10 12.5h4"/></svg>',

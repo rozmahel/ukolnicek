@@ -1,7 +1,7 @@
 /* Úkolníček – Menu bloku, tabulky, ikony stránky a stránky v levém panelu */
 import { $, $$, CALLOUT_IC, clamp, clone, COLOR_CZ, COLORS, esc, IC, plain, rid, simpleUi, TEXT_TYPES, TYPE_ICON, TYPE_LABEL } from '../core.js';
 import { S } from '../state.js';
-import { LOCK } from '../lock.js';
+import { LOCK, pageLocked } from '../lock.js';
 import { savePage } from '../store.js';
 import { archivePage, createPage, curPage, deletePage, emptyCell, isArchived, kids, unarchivePage } from '../pages.js';
 import { gotoSubject, isIndex, openSubjPicker, subjBlockText, subjLabel } from '../school.js';
@@ -12,7 +12,7 @@ import { COL_DEF, defaultEnd, hLevel, isHeading, renderPage, rerenderBlocks } fr
 import { setType, subjToH1, toSubject } from './blocks.js';
 import { closePop, openPop, placePop, toast } from '../ui.js';
 import { imgMenuAct, imgMenuHtml, LAY, LAY_IC, lineAround, markImgMenu } from './images.js';
-import { exportTableMd } from './markdown.js';
+import { copyTableMd, exportTableMd } from './markdown.js';
 import { editDrawing } from './draw.js';
 import { blockToEq, openEqEditor } from './math.js';
 import { bselCount, bselIds, bulk, copyOne, reMark } from './multisel.js';
@@ -47,8 +47,8 @@ function openBlockMenu(anchor,pg,b,at){
   }
   if(LOCK&&b.type==='table'){
     /* zamčeno: u tabulky jen kopírovat a export (nic se nemění) */
-    h=`<div class="bm-row"><button class="bm-ic" data-v="copy" title="Kopírovat" aria-label="Kopírovat">${IC.clip}</button></div><div class="pop-sep"></div><button class="pop-item" data-v="tmd"><span class="pi-ic">${IC.download}</span>Export do Markdownu</button>`;
-    const p=openPop(anchor,h,v=>{ if(v==='copy') copyOne(b); else if(v==='tmd') exportTableMd(pg,b); },at);
+    h=`<div class="bm-row"><button class="bm-ic" data-v="copy" title="Kopírovat" aria-label="Kopírovat">${IC.clip}</button></div><div class="pop-sep"></div><button class="pop-item" data-v="tmdc"><span class="pi-ic">${IC.copy}</span>Kopírovat jako Markdown</button><button class="pop-item" data-v="tmd"><span class="pi-ic">${IC.download}</span>Export do Markdownu</button>`;
+    const p=openPop(anchor,h,v=>{ if(v==='copy') copyOne(b); else if(v==='tmd') exportTableMd(pg,b); else if(v==='tmdc') copyTableMd(b); },at);
     p.classList.add('bm-pop'); placePop(p,pr(),fol); return;
   }
   if(LOCK){
@@ -77,6 +77,7 @@ function openBlockMenu(anchor,pg,b,at){
     const cur=tblLay(b);
     h+=`<div class="pop-sep"></div><div class="bm-row lay-row">${['wl','l','c','r','wr'].map(k=>`<button class="bm-ic lay-b${k===cur?' on':''}" data-v="tlay:${k}" title="${LAY[k][2]}" aria-label="${LAY[k][2]}"><svg viewBox="0 0 28 20" aria-hidden="true">${LAY_IC[k]}</svg></button>`).join('')}</div>`
       +`<div class="pop-sep"></div><button class="pop-item" data-v="tcap"><span class="pi-ic">${IC.caption}</span>${b.caption||b.capOn?'Odebrat popisek':'Přidat popisek'}</button>`
+      +`<button class="pop-item" data-v="tmdc"><span class="pi-ic">${IC.copy}</span>Kopírovat jako Markdown</button>`
       +`<button class="pop-item" data-v="tmd"><span class="pi-ic">${IC.download}</span>Export do Markdownu</button>`;
   }
   if(multi){
@@ -134,6 +135,7 @@ function openBlockMenu(anchor,pg,b,at){
     if(v==='spc') return spcSub(btn,pop,pg,[b]);
     if(v==='copy'){ copyOne(b); return; }
     if(v==='tmd'){ exportTableMd(pg,b); return; }
+    if(v==='tmdc'){ copyTableMd(b); return; }
     if(v==='line-up'||v==='line-dn'){ lineAround(b.id,v==='line-up'); return; }
     if(v==='tosubj'||v==='subj-pick'){ openSubjPicker(anchor,su=>toSubject(pg,b,su),b.subj); return true; }
     if(v==='subj-ix'){ gotoSubject(b.subj); return; }
@@ -234,6 +236,7 @@ function openIconPop(anchor,pg){
   const inp=$('#emoji-custom',p); if(inp){ inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); const val=inp.value.trim(); if(!val) return; pg.icon=val; closePop(); savePage(pg); renderSidebar(); renderPage(pg); } }); inp.addEventListener('focus',()=>inp.select()); }
 }
 function openPageMenu(anchor,pg,at){   /* at = {rect}: menu u jiného místa než anchor (⋯ v bublině schovaného panelu) */
+  const LOCK=pageLocked(pg.id);   /* zámek té stránky, ne otevřeného pohledu (od 4.29.0) */
   /* stránka v archivu: jen obnovit nebo odstranit (se zámkem jen obnovit) */
   if(isArchived(pg)){
     const h=`<button class="pop-item" data-v="unarch"><span class="pi-ic">${IC.restore}</span>Obnovit z archivu</button>`+(LOCK?'':`<div class="pop-sep"></div><button class="pop-item danger" data-v="del"><span class="pi-ic">${IC.trash}</span>Odstranit</button>`);

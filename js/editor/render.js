@@ -1,6 +1,6 @@
 /* Úkolníček – Vykreslení stránky a bloků (včetně tabulek a sbalování nadpisů) */
 import { $, esc, IC, PH, plain, spellOn } from '../core.js';
-import { S } from '../state.js';
+import { S, spDefOf } from '../state.js';
 import { modeBtn } from '../theme.js';
 import { applyLock } from '../lock.js';
 import { IMGURL, noteFold } from '../store.js';
@@ -175,7 +175,8 @@ function renderBlock(b,i,bl){
     inner=`<div class="row">${mk}<div class="txt t-${b.type} ${b.type==='todo'&&b.done?'done':''}" contenteditable="true" data-ph="${PH[b.type]||''}">${b.type==='code'?codeNorm(b.html):sanitize(b.html)}</div></div>`;
   }
   const extra=b.type==='image'?` al-${b.align||'center'}${b.nw?' nw':''}${b.draw?' is-draw':''}`:b.type==='table'?tblCls(b):b.type==='subj'?` hl-${esc((S.subjects[b.subj]||{}).color||'gray')}`:'';
-  const spT=spNum(b.spT), spB=spNum(b.spB);   /* vlastní mezery nad a pod blokem (od 4.28.0) */
+  /* vlastní mezery nad a pod blokem (od 4.28.0), jinak výchozí mezery typu z Nastavení → Formát (od 4.29.0) */
+  const spT=spNum(b.spT)??spDefOf(b.type,0), spB=spNum(b.spB)??spDefOf(b.type,1);
   return `<div class="blk b-${b.type} ${b.type==='callout'?'hl-'+(b.color||'purple'):''}${extra}${b.clr?' clr':''}${spT!=null?' spt':''}${spB!=null?' spb':''}" data-id="${b.id}" style="--lv:${b.type==='image'?0:lv}${b.type==='image'?`;--w:${+b.w||480}px`:''}${spT!=null?`;--spt:${spT}px`:''}${spB!=null?`;--spb:${spB}px`:''}">
     <div class="gut"><button class="g-add" data-act="add-after" aria-label="Přidat blok pod">${IC.plus}</button><button class="g-drag" data-act="blk-menu" data-popanchor draggable="true" aria-label="Přesunout tažením, menu kliknutím">${IC.grip}</button></div>${inner}</div>`;
 }
