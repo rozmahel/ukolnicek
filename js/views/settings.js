@@ -16,11 +16,12 @@ import { autoPull, autoPush, backPull, blurPush, cloudSvg, hidePush, IDLE_MAX, I
 import { ImgSync, withImgs } from '../sync/images.js';
 import { placeFrame } from '../editor/images.js';
 import { capsOff } from '../editor/caps.js';
+import { delTemplate, dupTemplate, editTemplate, orderTemplates, resetTemplate, tplRowsHtml } from '../templates.js';
 import { checkUpdate } from '../update.js';
 import { aiPaneBind } from './aiset.js';
 
 /* ================= settings ================= */
-const APP_VERSION='4.25.0';
+const APP_VERSION='4.28.1';
 /* řádek „Po [3] s“ pro doby kolem odchodu z okna (LEAVE v sync.js) */
 const lvRow=(n,pre,post)=>{ const o=LEAVE[n]; return `<div class="au-row"><span>${pre}</span><input type="number" class="inp" data-lv="${n}" min="${o.lo}" max="${o.hi}" step="1" value="${leaveNum(n)}" aria-label="${pre} (s)"><span>${post}</span></div>`; };
 /* ---- vzhled jen pro toto zařízení (do zálohy na Disk nejde) ---- */
@@ -76,7 +77,7 @@ async function openSettings(focus){
         <div class="skins" id="st-skin" role="group" aria-labelledby="st-skin-l">${SKINS.map(([id,nm])=>`<button type="button" class="skin ${id===skin?'on':''}" data-v="${id}" aria-pressed="${id===skin}"><span class="skin-sw" data-sk="${id}" aria-hidden="true"><b>Aa</b><i></i><i></i><i></i></span><span class="skin-nm">${nm}</span></button>`).join('')}</div>
       </div>
       <div class="fld"><span class="lbl" id="st-font-l">Písmo</span>
-        <div class="fonts" id="st-font" role="group" aria-labelledby="st-font-l">${FONTS.map(([id,nm])=>`<button type="button" class="fnt ${id===fontOf()?'on':''}" data-v="${id}" aria-pressed="${id===fontOf()}"${id==='auto'?'':` data-fnt="${id}"`}>${nm}</button>`).join('')}</div>
+        <div class="fonts" id="st-font" role="group" aria-labelledby="st-font-l">${FONTS.map(([id,nm])=>`<button type="button" class="fnt ${id===fontOf()?'on':''}" data-v="${id}" aria-pressed="${id===fontOf()}" data-fnt="${id}">${nm}</button>`).join('')}</div>
         <p class="note">Motiv a písmo se přes Disk přenesou i do ostatních zařízení.</p></div>
       <div class="fld"><span class="lbl">Režim</span>${seg('st-theme',[['auto','Auto'],['light','Světlý'],['dark','Tmavý']],theme)}</div>
       <div class="fld"><span class="lbl">Velikost textu</span>${seg('st-fs',FS_STEPS.map(v=>[v,Math.round(v*100)+' %']),fs)}
@@ -90,9 +91,11 @@ async function openSettings(focus){
         <span class="lbl co-sub">Barva</span><div class="swatches" id="st-co-col">${COLORS.map(c=>`<button type="button" class="sw hl-${c}" data-c="${c}" aria-label="${COLOR_CZ[c]}" title="${COLOR_CZ[c]}"></button>`).join('')}</div>
         <span class="lbl co-sub">Ikona</span><div class="swatches" id="st-co-ic"><button type="button" class="pop-item co-ib" data-ic="" title="Bez ikony" aria-label="Bez ikony">∅</button>${CALLOUT_IC.map(ic=>`<button type="button" class="pop-item co-ib" data-ic="${ic}">${ic}</button>`).join('')}</div>
         <p class="note">Platí pro nově vložené bloky, stávající se nemění. <a href="#" class="set-news" id="st-co-def" data-co-def>Vrátit výchozí</a></p></div>
+      <h3 class="set-h">Šablony</h3>
+      <div class="tpl-list" id="st-tpls">${tplRowsHtml()}</div>
+      <div><button type="button" class="btn btn-text" id="st-tpl-new">${IC.plus}Nová šablona</button></div>
+      <p class="note">Vkládají se přes <b>/šablona</b> nebo přímo <b>/název šablony</b>. Klik na název otevře editor. Úprava šablony nemění už vložené kopie.</p>
       <h3 class="set-h">Psaní</h3>
-      <label class="chk"><input type="checkbox" id="st-tpl" ${S.settings.templates?'checked':''}> Šablony stránek</label>
-      <p class="note" style="margin-top:-8px;padding-left:26px">Vkládají se přes <b>/šablona</b>: předmět, přehled týdnů, obecné informace.</p>
       <label class="chk"><input type="checkbox" id="st-bl" ${S.settings.backlinks?'checked':''}> Zpětné odkazy pod stránkou</label>
       <p class="note" style="margin-top:-8px;padding-left:26px">Seznam „Odkazuje sem“ na konci stránky, na kterou se odkazuje přes @.</p>
       <label class="chk"><input type="checkbox" id="st-spell" ${spellOn()?'checked':''}> Kontrola pravopisu</label>
@@ -252,7 +255,20 @@ async function openSettings(focus){
     saveSettings(); coPaint();
   });
   $('#st-bl',m).addEventListener('change',e=>{ if(e.target.checked) S.settings.backlinks=true; else delete S.settings.backlinks; saveSettings(); renderMain(); });
-  $('#st-tpl',m).addEventListener('change',e=>{ if(e.target.checked) S.settings.templates=true; else delete S.settings.templates; saveSettings(); });
+  /* šablony (od 4.27.0, js/templates.js): vestavěné i vlastní v jednom seznamu */
+  const tplDraw=()=>{ $('#st-tpls',m).innerHTML=tplRowsHtml(); };
+  $('#st-tpl-new',m).addEventListener('click',()=>editTemplate(null));
+  $('#st-tpls',m).addEventListener('click',e=>{ const b=e.target.closest('[data-tpl]'); if(!b) return;
+    const id=b.closest('.tpl-row').dataset.id, a=b.dataset.tpl;
+    if(a==='edit') editTemplate(id); else if(a==='dup'){ dupTemplate(id); tplDraw(); } else if(a==='reset') resetTemplate(id,tplDraw); else if(a==='del'&&!LOCK) delTemplate(id,tplDraw); });
+  /* pořadí tažením řádku */
+  let tplDrag=null;
+  const tl=$('#st-tpls',m);
+  tl.addEventListener('dragstart',e=>{ const r=e.target.closest('.tpl-row'); if(!r) return; tplDrag=r; r.classList.add('drag'); e.dataTransfer.effectAllowed='move'; try{ e.dataTransfer.setData('text/plain',r.dataset.id); }catch(_){} });
+  tl.addEventListener('dragover',e=>{ if(!tplDrag) return; e.preventDefault(); const r=e.target.closest('.tpl-row'); if(!r||r===tplDrag) return;
+    const rc=r.getBoundingClientRect(); r.parentNode.insertBefore(tplDrag,e.clientY<rc.top+rc.height/2?r:r.nextSibling); });
+  tl.addEventListener('drop',e=>e.preventDefault());
+  tl.addEventListener('dragend',()=>{ if(!tplDrag) return; tplDrag.classList.remove('drag'); tplDrag=null; orderTemplates($$('.tpl-row',tl).map(r=>r.dataset.id)); });
   $('#st-spell',m).addEventListener('change',e=>{ if(e.target.checked){ try{ localStorage.removeItem('uk-spell'); }catch(_){} } else lsSet('uk-spell',false); applySpell(); });
   $('#st-caps',m).addEventListener('change',e=>{ lsSet('uk-caps',e.target.checked); if(!e.target.checked) capsOff(); });
   /* doba nečinnosti: uloží se v sekundách, mimo rozsah se srovná na 5 s / 2 h a políčko ukáže skutečnou hodnotu */

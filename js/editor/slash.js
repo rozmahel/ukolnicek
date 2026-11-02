@@ -1,6 +1,5 @@
 /* Úkolníček – Nabídka „/“ a markdownové zkratky (# , - , [] …) */
-import { $, clamp, norm, simpleUi, SLASH, TEXT_TYPES, TYPE_ICON, TYPE_LABEL } from '../core.js';
-import { S } from '../state.js';
+import { $, clamp, esc, norm, simpleUi, SLASH, TEXT_TYPES, TYPE_ICON, TYPE_LABEL } from '../core.js';
 import { savePage } from '../store.js';
 import { curPage, newBlock } from '../pages.js';
 import { isIndex, openSubjPicker } from '../school.js';
@@ -16,11 +15,17 @@ import { aiUsable } from '../ai.js';
 import { aiSlash } from './aiedit.js';
 import { openDraw } from './draw.js';
 import { insertEq, openEqEditor, toEqBlock } from './math.js';
+import { tplHas, tplList } from '../templates.js';
+
+/* popisek /šablona: názvy prvních šablon (vlastní, pak vestavěné) */
+const tplHint=()=>{ const n=tplList().map(t=>t.name); return esc(n.slice(0,3).join(', ')+(n.length>3?'…':'')); };
 
 /* ---- slash menu ---- */
 let slash={open:false};
 /* položky nabídky; „Předmět“ jen ve školním režimu se zapnutým Indexem */
-const slashItems=()=>SLASH.filter(it=>(!it.school||isIndex())&&(!it.tpl||S.settings.templates)&&(!it.ai||aiUsable())&&!((it.adv||it.ai)&&simpleUi()));   /* AI jen s nastaveným poskytovatelem, odemčeno a online; v jednoduchém režimu jen základní bloky */   /* AI jen s nastaveným poskytovatelem, odemčeno a online */
+/* šablony: jen když nějaká je; při úpravě šablony bez obrázků, kreseb a podstránek */
+const TPL_NO=new Set(['image','draw','page']);
+const slashItems=()=>SLASH.filter(it=>(!it.tpl||tplHas())&&!((curPage()||{}).tpl&&TPL_NO.has(it.k))&&(!it.school||isIndex())&&(!it.ai||aiUsable())&&!((it.adv||it.ai)&&simpleUi()));   /* AI jen s nastaveným poskytovatelem, odemčeno a online; v jednoduchém režimu jen základní bloky */   /* AI jen s nastaveným poskytovatelem, odemčeno a online */
 function openSlash(el,bid,start,mode){ slash={open:true,el,bid,start,mode,idx:0,items:slashItems()}; drawSlash(); }
 function closeSlash(){ if(slash.open){ slash.open=false; const p=$('#slash'); if(p) p.remove(); } }
 function slashQuery(){
@@ -34,6 +39,8 @@ function updateSlash(){
   const q=slashQuery(); if(q==null||q.length>24){ closeSlash(); return; }
   const nq=norm(q.trim());
   slash.items=slashItems().filter(it=>!nq||norm(TYPE_LABEL[it.k]+' '+it.kw).includes(nq));
+  /* vlastní šablony přímo podle názvu (jen s napsaným dotazem, aby prázdné menu nebylo dlouhé) */
+  if(nq) slash.items.push(...tplList().filter(t=>norm(t.name).includes(nq)).map(t=>({k:'tpl',tid:t.id,label:t.name,hint:'Šablona'})));
   if(!slash.items.length&&/\s$/.test(q)){ closeSlash(); return; }
   slash.idx=clamp(slash.idx,0,Math.max(0,slash.items.length-1));
   drawSlash();
@@ -44,7 +51,7 @@ function drawSlash(){
     p.addEventListener('mousedown',e=>e.preventDefault());
     p.addEventListener('click',e=>{ const b=e.target.closest('[data-i]'); if(b) chooseSlash(slash.items[+b.dataset.i]); });
   }
-  p.innerHTML=slash.items.length?`<div class="pop-h">Bloky</div>`+slash.items.map((it,i)=>`<button class="pop-item ${i===slash.idx?'act':''}" data-i="${i}" role="option"><span class="pi-ic">${TYPE_ICON[it.k]}</span><span>${TYPE_LABEL[it.k]}<small>${it.hint}</small></span></button>`).join(''):`<div class="empty">Nic nenalezeno.</div>`;
+  p.innerHTML=slash.items.length?`<div class="pop-h">Bloky</div>`+slash.items.map((it,i)=>`<button class="pop-item ${i===slash.idx?'act':''}" data-i="${i}" role="option"><span class="pi-ic">${TYPE_ICON[it.k]}</span><span>${it.label?esc(it.label):TYPE_LABEL[it.k]}<small>${it.k==='tpl'&&!it.tid?tplHint():it.hint}</small></span></button>`).join(''):`<div class="empty">Nic nenalezeno.</div>`;
   const rc=caretRect()||slash.el.getBoundingClientRect();
   placePop(p,{left:rc.left,right:rc.right,top:rc.top,bottom:rc.bottom});
   const act=p.querySelector('.act'); if(act) act.scrollIntoView({block:'nearest'});
@@ -70,6 +77,7 @@ function chooseSlash(it){
     return;
   }
   if(it.k==='mdimport'){ savePage(pg); importMd(pg,b.id); return; }
+  if(it.k==='tpl'&&it.tid){ savePage(pg); applyTemplate(pg,it.tid,b); return; }
   if(it.k==='tpl'){ savePage(pg); openTemplatePicker(el,v=>applyTemplate(pg,v,b)); return; }
   if(it.k==='ai'||it.k==='aisum'){ savePage(pg); aiSlash(it.k,pg,b); return; }
   if(it.k==='eq'){

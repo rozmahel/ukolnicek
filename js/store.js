@@ -91,7 +91,7 @@ const Store={
     try{
       await Local.open();
       const st=await Local.loadState();
-      if(st){ const d=normalizeImport(st); applyFolds(d.pages); S.pages=d.pages||{}; S.events=d.events||{}; S.subjects=d.subjects||{}; S.semesters=d.semesters||{}; S.trash=d.trash||{}; S.maps=d.maps||{}; S.settings=Object.assign(defaultSettings(),d.settings||{}); Object.assign(META,st.meta||{}); lastWid=META.wid||''; }
+      if(st){ const d=normalizeImport(st); applyFolds(d.pages); S.pages=d.pages||{}; keepDraft(); S.events=d.events||{}; S.subjects=d.subjects||{}; S.semesters=d.semesters||{}; S.trash=d.trash||{}; S.maps=d.maps||{}; S.settings=Object.assign(defaultSettings(),d.settings||{}); Object.assign(META,st.meta||{}); lastWid=META.wid||''; }
       lastSeen=dataForSave();
       const imgs=await Local.allImages(); imgs.forEach(r=>{ try{ IMGURL.set(r.id,URL.createObjectURL(r.blob)); }catch(_){} });
       Local.persist();
@@ -182,6 +182,7 @@ function normalizeImport(d){
       if(b.level!=null&&!(Number.isInteger(b.level)&&b.level>=0&&b.level<=4)) b.level=clamp(parseInt(b.level,10)||0,0,4);
       if(b.color!=null&&!COLORS.includes(b.color)) b.color='purple';
       if(b.align!=null&&!['left','center','right'].includes(b.align)) delete b.align;
+      for(const k of ['spT','spB']) if(b[k]!=null){ const v=Math.round(+b[k]); if(b[k]!==''&&Number.isFinite(v)&&v>=0&&v<=48){ if(v!==b[k]) b[k]=v; } else delete b[k]; }   /* mezery nad/pod blokem (4.28.0) */
       if(b.type==='image'&&!b.img){ b.img='legacy'+rid(); b.name=b.name||'Obrázek z Claude verze'; delete b.src; }
       if(b.img!=null&&!SAFE_ID.test(String(b.img))) b.img='legacy'+rid();
       if(b.html) b.html=legacyHtml(b.html);
@@ -191,6 +192,21 @@ function normalizeImport(d){
     return pg;
   };
   Object.entries(d.pages||{}).forEach(([k,p])=>{ if(!p) return; const pg=normPage(p,k); out.pages[pg.id]=pg; });
+  /* šablony (od 4.27.0): settings.tpls = {ID: {name?, o?, blocks?, off?}}; bloky jako u stránky, bez obrázků a podstránek.
+     U vestavěné šablony je jen to, co se změnilo (chybějící blocks = výchozí obsah), viz js/templates.js */
+  if(out.settings.tpls!=null){
+    const t0=out.settings.tpls, tp={};
+    if(t0&&typeof t0==='object'&&!Array.isArray(t0)) Object.entries(t0).forEach(([k,t])=>{
+      if(!t||typeof t!=='object') return;
+      const id=fid(k), x={};
+      if(t.name!=null&&String(t.name).trim()) x.name=String(t.name).slice(0,120);
+      if(Number.isFinite(+t.o)&&t.o!==''&&t.o!==null) x.o=+t.o;
+      if(Array.isArray(t.blocks)) x.blocks=normPage({id,blocks:t.blocks},id).blocks.filter(b=>b.type!=='image'&&b.type!=='page');
+      if(t.off) x.off=1;
+      if(Object.keys(x).length) tp[id]=x;
+    });
+    if(Object.keys(tp).length) out.settings.tpls=tp; else delete out.settings.tpls;
+  }
   /* koš: {ID kořenové stránky: {id, at: čas smazání, pages: [kořen, podstránky…]}} */
   out.trash={};
   Object.entries(d.trash&&typeof d.trash==='object'?d.trash:{}).forEach(([k,t])=>{
@@ -244,7 +260,10 @@ function normalizeImport(d){
 let SAVE_ERR=false;
 function updateSaving(busy,err){ if(err!==undefined) SAVE_ERR=err; const el=$('#save-state'); if(!el) return; const bad=Store.broken||SAVE_ERR; el.textContent=bad?'⚠ Neukládá se':''; el.className=bad?'err':''; el.title=bad?'Změny se neukládají do tohoto zařízení':''; }
 
-function savePage(pg){ if(!pg) return; recordHistory(pg); pg.updated=Date.now(); Store.queue(); }
+/* úprava šablony (pg.tpl, js/templates.js): stránka není v datech, každá změna se hned zapíše do settings.tpls */
+function savePage(pg){ if(!pg) return; recordHistory(pg); pg.updated=Date.now(); if(pg.tpl&&S.tplHook) S.tplHook(pg); Store.queue(); }
+/* rozpracovaná šablona přežije nová data (Disk, jiné okno): nevýčtová položka v S.pages, viz templates.js */
+function keepDraft(){ const d=S.tplDraft; if(d) Object.defineProperty(S.pages,d.id,{value:d,enumerable:false,configurable:true,writable:true}); }
 function saveEvent(){ Store.queue(); }
 function saveSettings(){ Store.queue(); }
 
@@ -268,7 +287,7 @@ function applyFolds(pages){
 }
 function applyNormalized(n){
   n=clone(n); bumpRev(); applyFolds(n.pages);
-  S.pages=n.pages||{}; S.events=n.events||{}; S.subjects=n.subjects||{}; S.semesters=n.semesters||{}; S.trash=n.trash||{}; S.maps=n.maps||{}; S.settings=Object.assign(defaultSettings(),n.settings);
+  S.pages=n.pages||{}; keepDraft(); S.events=n.events||{}; S.subjects=n.subjects||{}; S.semesters=n.semesters||{}; S.trash=n.trash||{}; S.maps=n.maps||{}; S.settings=Object.assign(defaultSettings(),n.settings);
   applySkin();
   if((S.view.kind==='schedule'&&!isSchool())||(S.view.kind==='index'&&!isIndex())||(S.view.kind==='mindmap'&&!S.settings.mindmap)) S.view={kind:'today'};
   HIST.clear(); hideImgSel(); closePop();

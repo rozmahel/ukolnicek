@@ -12,10 +12,13 @@ import { COL_DEF, defaultEnd, hLevel, isHeading, renderPage, rerenderBlocks } fr
 import { setType, subjToH1, toSubject } from './blocks.js';
 import { closePop, openPop, placePop, toast } from '../ui.js';
 import { imgMenuAct, imgMenuHtml, LAY, LAY_IC, lineAround, markImgMenu } from './images.js';
+import { exportTableMd } from './markdown.js';
 import { editDrawing } from './draw.js';
 import { blockToEq, openEqEditor } from './math.js';
-import { bselCount, bulk, copyOne } from './multisel.js';
+import { bselCount, bselIds, bulk, copyOne, reMark } from './multisel.js';
+import { spcOpen } from './spacing.js';
 import { spOpen } from '../split.js';
+import { saveAsTemplate } from '../templates.js';
 
 /* ================= menus ================= */
 /* typy zvýrazněného bloku (jako rámečky na GitHubu: > [!NOTE] …) = předvolba ikony a barvy, v datech nic navíc */
@@ -25,6 +28,13 @@ const EQ_ITEM=`<button class="pop-item" data-v="type:eq"><span class="pi-ic">${T
 const applyKind=(b,v)=>{ const k=CALLOUT_KINDS[+v.slice(5)]; if(k){ b.icon=k[0]; b.color=k[1]; } };
 /* at = {rect, follow}: menu u kurzoru (pravé tlačítko na obrázku nebo kresbě, od 4.16.0) */
 const tblLay=b=>b.align==='center'?'c':b.align==='right'?(b.wrap?'wr':'r'):(b.wrap?'wl':'l');
+/* bublina Mezery vedle menu ⋮⋮ (od 4.28.0); menu zůstane otevřené, Esc zavře nejdřív bublinu */
+function spcSub(btn,menu,pg,blocks,after){
+  const mr=menu.getBoundingClientRect(), ir=btn.getBoundingClientRect();
+  btn.classList.add('mon');
+  spcOpen(btn,pg,blocks,{parent:menu,rect:{left:mr.right+4,top:ir.top,bottom:ir.top-6},side:mr},after);
+  return true;
+}
 function openBlockMenu(anchor,pg,b,at){
   let h='';
   const pr=()=>at&&at.rect||anchor.getBoundingClientRect(), fol=at&&at.follow;
@@ -33,6 +43,12 @@ function openBlockMenu(anchor,pg,b,at){
     h=`<div class="bm-row"><button class="bm-ic" data-v="copy" title="Kopírovat" aria-label="Kopírovat">${IC.clip}</button></div><div class="pop-sep"></div>`+(b.draw?`<button class="pop-item" data-v="draw-edit"><span class="pi-ic">${IC.edit}</span>Upravit kresbu</button>`:'')
       +`<button class="pop-item" data-v="open"><span class="pi-ic">${IC.resize}</span>Zvětšit</button><button class="pop-item" data-v="dl"><span class="pi-ic">${IC.download}</span>Stáhnout</button>`;
     const p=openPop(anchor,h,v=>{ if(v==='copy') copyOne(b); else if(v==='draw-edit'){ const im=$(`#blocks .blk[data-id="${b.id}"] .bimg`); if(im) setTimeout(()=>editDrawing(im),0); } else { const im=$(`#blocks .blk[data-id="${b.id}"] .bimg`); if(im) return imgMenuAct(im,v); } },at);
+    p.classList.add('bm-pop'); placePop(p,pr(),fol); return;
+  }
+  if(LOCK&&b.type==='table'){
+    /* zamčeno: u tabulky jen kopírovat a export (nic se nemění) */
+    h=`<div class="bm-row"><button class="bm-ic" data-v="copy" title="Kopírovat" aria-label="Kopírovat">${IC.clip}</button></div><div class="pop-sep"></div><button class="pop-item" data-v="tmd"><span class="pi-ic">${IC.download}</span>Export do Markdownu</button>`;
+    const p=openPop(anchor,h,v=>{ if(v==='copy') copyOne(b); else if(v==='tmd') exportTableMd(pg,b); },at);
     p.classList.add('bm-pop'); placePop(p,pr(),fol); return;
   }
   if(LOCK){
@@ -49,6 +65,8 @@ function openBlockMenu(anchor,pg,b,at){
   h+=`<div class="bm-row">${ib('up',IC.up,'Posunout nahoru (⌥⇧↑)')}${ib('down',IC.down,'Posunout dolů (⌥⇧↓)')}`
     +(noLvl?'':ib('left',IC.left,'Posunout doleva (⌘ú)',!multi&&!((b.level||0)>0))+ib('right',IC.right,'Posunout doprava (⌘))',!multi&&(b.level||0)>=4))
     +`${ib('copy',IC.clip,'Kopírovat')}${ib('dup',IC.dup,'Duplikovat')}${ib('del',IC.trash,'Odstranit')}</div>`;
+  /* mezery nad a pod blokem (od 4.28.0): bublina vedle menu, ⋮⋮ zůstane otevřené */
+  if(!SIMPLE) h+=`<div class="pop-sep"></div><button class="pop-item" data-v="spc"><span class="pi-ic">${IC.spacing}</span>Mezery</button>`;
   /* netextové bloky (obrázek, kresba, tabulka, rovnice…): nový prázdný řádek nad / pod (od 4.21.1 místo tlačítek ↵ u bloku) */
   if(!multi&&!TEXT_TYPES.includes(b.type)) h+=`<div class="pop-sep"></div><button class="pop-item" data-v="line-up"><span class="pi-ic flip">${IC.newline}</span>Nový řádek nad</button><button class="pop-item" data-v="line-dn"><span class="pi-ic">${IC.newline}</span>Nový řádek pod</button>`;
   /* obrázek a kresba (od 4.20.0): pod řadou ikon rozvržení a položky z bývalé nabídky po kliknutí na obrázek */
@@ -58,15 +76,19 @@ function openBlockMenu(anchor,pg,b,at){
   if(b.type==='table'&&!multi&&!SIMPLE){
     const cur=tblLay(b);
     h+=`<div class="pop-sep"></div><div class="bm-row lay-row">${['wl','l','c','r','wr'].map(k=>`<button class="bm-ic lay-b${k===cur?' on':''}" data-v="tlay:${k}" title="${LAY[k][2]}" aria-label="${LAY[k][2]}"><svg viewBox="0 0 28 20" aria-hidden="true">${LAY_IC[k]}</svg></button>`).join('')}</div>`
-      +`<div class="pop-sep"></div><button class="pop-item" data-v="tcap"><span class="pi-ic">${IC.caption}</span>${b.caption||b.capOn?'Odebrat popisek':'Přidat popisek'}</button>`;
+      +`<div class="pop-sep"></div><button class="pop-item" data-v="tcap"><span class="pi-ic">${IC.caption}</span>${b.caption||b.capOn?'Odebrat popisek':'Přidat popisek'}</button>`
+      +`<button class="pop-item" data-v="tmd"><span class="pi-ic">${IC.download}</span>Export do Markdownu</button>`;
   }
   if(multi){
+    if(!SIMPLE&&!pg.tpl) h+=`<div class="pop-sep"></div><button class="pop-item" data-v="tpl-save"><span class="pi-ic">${IC.tpl}</span>Uložit jako šablonu</button>`;
     h+=`<div class="pop-h">Vybrané bloky: ${multi}</div><div class="pop-h">Převést na</div>`+TEXT_TYPES.map(k=>`<button class="pop-item" data-v="type:${k}"><span class="pi-ic">${TYPE_ICON[k]}</span>${TYPE_LABEL[k]}</button>`).join('')+EQ_ITEM;
-    const p=openPop(anchor,h,v=>{
+    const p=openPop(anchor,h,(v,btn)=>{
+      if(v==='spc'){ const ids=bselIds()||[]; return spcSub(btn,p,pg,pg.blocks.filter(x=>ids.includes(x.id)),reMark); }
       if(v.startsWith('type:')) bulk.type(v.slice(5));
       else if(v==='up'||v==='down') bulk.move(v==='up'?-1:1);
       else if(v==='left'||v==='right') bulk.indent(v==='left'?-1:1);
       else if(v==='copy'||v==='dup'||v==='del') bulk[v]();
+      else if(v==='tpl-save'){ const ids=bselIds()||[]; saveAsTemplate(pg.blocks.filter(x=>ids.includes(x.id))); }
     },at);
     p.classList.add('bm-pop'); placePop(p,pr(),fol);
     return;
@@ -107,9 +129,11 @@ function openBlockMenu(anchor,pg,b,at){
     if(isHeading(b.type)&&b.until){ sec+=`<button class="pop-item" data-v="until-x:${b.id}"><span class="pi-ic">${IC.restore}</span><span>Sbalovat automaticky<small>Až po další nadpis stejné úrovně</small></span></button>`; }
     if(sec) h+=`<div class="pop-sep"></div><div class="pop-h">Sbalování sekce</div>`+sec;
   }
-  const pop=openPop(anchor,h,v=>{
+  const pop=openPop(anchor,h,(v,btn)=>{
     const bi=pg.blocks.indexOf(b); if(bi<0) return;
+    if(v==='spc') return spcSub(btn,pop,pg,[b]);
     if(v==='copy'){ copyOne(b); return; }
+    if(v==='tmd'){ exportTableMd(pg,b); return; }
     if(v==='line-up'||v==='line-dn'){ lineAround(b.id,v==='line-up'); return; }
     if(v==='tosubj'||v==='subj-pick'){ openSubjPicker(anchor,su=>toSubject(pg,b,su),b.subj); return true; }
     if(v==='subj-ix'){ gotoSubject(b.subj); return; }

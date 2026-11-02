@@ -8,47 +8,17 @@ import { isBlank } from '../sanitize.js';
 import { focusBlock, focusLine } from './caret.js';
 import { renderSidebar } from '../sidebar.js';
 import { go } from '../router.js';
-import { isHeading, renderPage, rerenderBlocks } from './render.js';
+import { isHeading, rerenderBlocks } from './render.js';
 import { closePop, openPop } from '../ui.js';
 import { codeNorm } from './code.js';
+import { insertTpl, tplList } from '../templates.js';
 
-/* ---- šablony (od 4.19.0 jen přes /šablona, zapínají se v Nastavení → Formát = settings.templates) ---- */
-const TEMPLATES=[['subject','📘','Předmět'],['weeks','🗓️','Přehled týdnů'],['info','📌','Obecné informace']];
-/* b = blok, na jehož místě se šablona vloží (prázdný se nahradí, jinak pod něj). Na prázdné stránce
-   šablona nastaví i ikonu, vlastnosti a šířku jako dřív; jinde vloží jen bloky. */
-function applyTemplate(pg,k,b){
-  const tx=(type,html,extra)=>newBlock(type,Object.assign({html:html||''},extra||{}));
-  const empty=(pg.blocks||[]).length<=1&&isBlank(((pg.blocks||[])[0]||{}).html||'');
-  let bl, icon, props, wide;
-  if(k==='subject'){
-    icon='📘'; props=[{k:'Garant',v:''},{k:'Kredity',v:''},{k:'Ukončení',v:''}];
-    const t=newTable(4,3); t.hrow=true;
-    ['Test','Termín','Body'].forEach((x,i)=>t.rows[0].cells[i].lines[0].html=x);
-    bl=[tx('h2','Úkoly'),tx('todo',''),tx('h2','Body a testy'),t,tx('h2','Poznámky'),tx('p','')];
-  } else if(k==='weeks'){
-    icon='🗓️'; wide=true;
-    const t=newTable(4,6); t.hcol=true;
-    ['','1. týden','2. týden','3. týden','4. týden','Zkouškový'].forEach((x,i)=>t.rows[0].cells[i].lines[0].html=x);
-    t.hrow=true;
-    [['purple','První měsíc'],['green','Druhý měsíc'],['blue','Třetí měsíc']].forEach(([c,x],i)=>t.rows[i+1].cells[0].lines[0].html=`<mark class="hl-${c}">${x}</mark>`);
-    bl=[t,tx('p','')];
-  } else {
-    icon='📌';
-    bl=[tx('h2','Kontakty'),tx('bullet',''),tx('h2','Důležité odkazy a pravidla'),tx('bullet',''),tx('h2','Termíny zkoušek'),tx('todo','')];
-  }
-  if(empty){
-    pg.icon=pg.icon||icon; if(props&&!(pg.props||[]).length) pg.props=props; if(wide) pg.wide=true;
-    pg.blocks=bl;
-  } else {
-    const i=b?pg.blocks.indexOf(b):-1;
-    if(i<0) pg.blocks.push(...bl);
-    else if(b.type==='p'&&isBlank(b.html)) pg.blocks.splice(i,1,...bl);
-    else pg.blocks.splice(i+1,0,...bl);
-  }
-  savePage(pg,0); renderSidebar(); renderPage(pg);
-}
+/* ---- šablony (/šablona): seznam, data a vložení jsou v js/templates.js ---- */
+/* b = blok, na jehož místě se šablona vloží (prázdný se nahradí, jinak pod něj) */
+function applyTemplate(pg,id,b){ insertTpl(pg,id,b); }
 function openTemplatePicker(anchor,cb){
-  openPop(anchor,`<div class="pop-h">Šablona</div>`+TEMPLATES.map(([k,ic,nm])=>`<button class="pop-item" data-v="${k}"><span class="pi-ic">${ic}</span>${nm}</button>`).join(''),cb);
+  const l=tplList();
+  openPop(anchor,`<div class="pop-h">Šablona</div>`+(l.length?l.map(t=>`<button class="pop-item" data-v="${esc(t.id)}"><span class="pi-ic">${IC.tpl}</span>${esc(t.name)}</button>`).join(''):'<div class="empty">Zatím žádné šablony.</div>'),cb);
 }
 
 /* ---- conversions ---- */

@@ -57,7 +57,9 @@ function go(view){
   Store.flushAll();
   rememberScroll(true);
   if(S.view.kind==='page'&&CARDS.includes(view.kind)&&S.pages[S.view.pageId]) lsSet('uk-under',S.view.pageId);
-  S.view=view; lsSet('uk-view',view);
+  /* odchod z úpravy šablony: dočasná stránka se zahodí (šablona je už uložená) */
+  if(S.tplDraft&&!(view.kind==='page'&&view.pageId===S.tplDraft.id)){ try{ delete S.pages[S.tplDraft.id]; }catch(_){} S.tplDraft=null; }
+  S.view=view; if(!(view.kind==='page'&&S.pages[view.pageId]&&S.pages[view.pageId].tpl)) lsSet('uk-view',view);
   if(view.kind==='page'&&isArchived(S.pages[view.pageId])) S.archMode=true;   /* archivovaná stránka (třeba z hledání): panel ukáže archiv */
   if(view.kind==='trash'){ S.trashMode=true; S.archMode=false; } else S.trashMode=false;
   closeSide(); closePop(); hideFmt(); hideCellbar(); hideImgSel();

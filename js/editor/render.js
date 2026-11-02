@@ -37,6 +37,7 @@ function renderPage(pg){
 }
 /* HTML celé stránky (používá i druhá polovina rozdělené obrazovky v js/split.js, tam bez id a bez úprav) */
 function pageHtml(pg,src,items){
+  if(pg.tpl) return tplHtml(pg,src,items);
   const crumbs=[]; let p=S.pages[pg.parent];
   while(p){ crumbs.unshift(p); p=S.pages[p.parent]; }
   return `
@@ -59,6 +60,28 @@ function pageHtml(pg,src,items){
     </div>
     ${src!=null?src+'<div class="blocks" id="blocks" hidden></div>':`<div class="blocks" id="blocks">${items.map(x=>x.h).join('')}</div>`}
     ${backlinksHtml(pg)}
+    <div class="doc-tail" data-act="tail"></div>
+  </article>`;
+}
+/* úprava vlastní šablony (od 4.27.0, js/templates.js): lišta jen se Zavřít, Zpět/Znovu, zámkem a režimem;
+   bez ikony, šířky, exportu, zdroje, AI, vlastností a zpětných odkazů */
+function tplHtml(pg,src,items){
+  return `
+  <article class="doc tpl-doc" id="doc" data-page="${pg.id}" spellcheck="${spellOn()}"${spellOn()?'':' autocorrect="off"'}>
+    <div class="pagebar">
+      <div class="crumbs"><span>Šablony</span><span>/</span><span>${esc(pTitle(pg))}</span></div>
+      <div class="pb-acts"><button class="ghost-btn" data-act="tpl-close">${IC.x}Zavřít</button>
+        <span class="pb-sep"></span>
+        <button class="icon-btn" id="undo-btn" data-act="undo" title="Zpět (⌘Z)" aria-label="Zpět"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+        <button class="icon-btn" id="redo-btn" data-act="redo" title="Znovu (⇧⌘Z)" aria-label="Znovu"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+        <span class="pb-sep"></span><button class="icon-btn lock-btn" id="lock-btn" data-act="lock"></button>${modeBtn()}
+      </div>
+    </div>
+    <div class="doc-head">
+      <div class="title-row"><h1 class="page-title" id="page-title" contenteditable="true" spellcheck="false" data-ph="Název šablony">${esc(pg.title)}</h1></div>
+      <div class="props" id="props"></div>
+    </div>
+    ${src!=null?src+'<div class="blocks" id="blocks" hidden></div>':`<div class="blocks" id="blocks">${items.map(x=>x.h).join('')}</div>`}
     <div class="doc-tail" data-act="tail"></div>
   </article>`;
 }
@@ -130,6 +153,10 @@ function patchBlocks(el,items){
   dirtyMo.takeRecords();
   if(main&&main.scrollTop!==top) main.scrollTop=top;
 }
+/* mezery nad a pod blokem (od 4.28.0): b.spT / b.spB = px při velikosti textu 100 % (s větším textem rostou ve stejném poměru),
+   chybí = výchozí mezera typu bloku; CSS na konci css/editor.css, ovládání v js/editor/spacing.js */
+const SP_MAX=48;
+function spNum(v){ return v!=null&&v!==''&&Number.isFinite(+v)&&+v>=0&&+v<=SP_MAX?Math.round(+v):null; }
 function renderBlock(b,i,bl){
   const lv=b.level||0; let inner;
   if(b.type==='divider') inner='<div class="divider"><hr></div>';
@@ -148,7 +175,8 @@ function renderBlock(b,i,bl){
     inner=`<div class="row">${mk}<div class="txt t-${b.type} ${b.type==='todo'&&b.done?'done':''}" contenteditable="true" data-ph="${PH[b.type]||''}">${b.type==='code'?codeNorm(b.html):sanitize(b.html)}</div></div>`;
   }
   const extra=b.type==='image'?` al-${b.align||'center'}${b.nw?' nw':''}${b.draw?' is-draw':''}`:b.type==='table'?tblCls(b):b.type==='subj'?` hl-${esc((S.subjects[b.subj]||{}).color||'gray')}`:'';
-  return `<div class="blk b-${b.type} ${b.type==='callout'?'hl-'+(b.color||'purple'):''}${extra}${b.clr?' clr':''}" data-id="${b.id}" style="--lv:${b.type==='image'?0:lv}${b.type==='image'?`;--w:${+b.w||480}px`:''}">
+  const spT=spNum(b.spT), spB=spNum(b.spB);   /* vlastní mezery nad a pod blokem (od 4.28.0) */
+  return `<div class="blk b-${b.type} ${b.type==='callout'?'hl-'+(b.color||'purple'):''}${extra}${b.clr?' clr':''}${spT!=null?' spt':''}${spB!=null?' spb':''}" data-id="${b.id}" style="--lv:${b.type==='image'?0:lv}${b.type==='image'?`;--w:${+b.w||480}px`:''}${spT!=null?`;--spt:${spT}px`:''}${spB!=null?`;--spb:${spB}px`:''}">
     <div class="gut"><button class="g-add" data-act="add-after" aria-label="Přidat blok pod">${IC.plus}</button><button class="g-drag" data-act="blk-menu" data-popanchor draggable="true" aria-label="Přesunout tažením, menu kliknutím">${IC.grip}</button></div>${inner}</div>`;
 }
 /* nadpis s předmětem z Indexu: text se nepíše ručně, bere se živě z Indexu */
@@ -199,4 +227,4 @@ function ctxOf(el){
   return {pg,b,bi,blkEl};
 }
 
-export { blockList, COL_DEF, COL_MIN, colW, ctxOf, defaultEnd, hiddenMask, hLevel, isHeading, keepVisible, onBlocksRendered, pageHtml, renderBlock, renderBlocks, renderPage, rerenderBlocks, rerenderProps, sectionEnd };
+export { blockList, COL_DEF, COL_MIN, colW, ctxOf, defaultEnd, hiddenMask, hLevel, isHeading, keepVisible, onBlocksRendered, pageHtml, renderBlock, renderBlocks, renderPage, rerenderBlocks, rerenderProps, sectionEnd, SP_MAX, spNum };

@@ -200,7 +200,7 @@ function wLook(s){
     return {body:`<div class="lk-four">${q('skin','Motiv',skNm,`Motiv: ${skNm}, klikem další`)}${q('font','Písmo',foNm,`Písmo: ${foNm}, klikem další`)}${q('mode','Režim',dk?'Tmavý':'Světlý',dk?'Tmavý režim, přepnout na světlý':'Světlý režim, přepnout na tmavý')}${q('fs','Text',`${Math.round(fs*100)} %`,`Velikost textu ${Math.round(fs*100)} %, klikem další`)}</div>`};
   }
   const skins=`<div class="lk-skins">${SKINS.map(([id,nm])=>`<button class="lk-skin ${id===skin?'on':''}" data-act="wg-do" data-v="skin:${id}" title="${nm}" aria-label="Motiv ${nm}" aria-pressed="${id===skin}"><span class="skin-sw" data-sk="${id}" aria-hidden="true"><b>Aa</b><i></i><i></i><i></i></span></button>`).join('')}</div>`;
-  const fonts=`<div class="lk-fonts">${FONTS.map(([id,nm])=>`<button class="lk-fnt ${id===font?'on':''}" data-act="wg-do" data-v="font:${id}" title="${nm}" aria-label="Písmo ${nm}" aria-pressed="${id===font}">${id==='auto'?'<small>Auto</small>':`<b data-fnt="${id}">Aa</b>`}</button>`).join('')}</div>`;
+  const fonts=`<div class="lk-fonts">${FONTS.map(([id,nm])=>`<button class="lk-fnt ${id===font?'on':''}" data-act="wg-do" data-v="font:${id}" title="${nm}" aria-label="Písmo ${nm}" aria-pressed="${id===font}"><b data-fnt="${id}">Aa</b></button>`).join('')}</div>`;
   const modeH=lkSeg('mode',LK_MODES,mode);
   if(s==='m') return {title:'Vzhled',body:`<div class="lk">${skins}${fonts}${lkSeg('mode',LK_MODES,mode).replace('lk-seg','lk-seg lk-m-seg')}</div>`};
   const row=(l,h)=>`<div class="lk-row"><span>${l}</span>${h}</div>`;

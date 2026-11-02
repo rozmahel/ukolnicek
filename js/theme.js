@@ -1,18 +1,20 @@
-/* Úkolníček – Barevný motiv (Výchozí / Papír / Les / Mlha / Šípek / Levandule) a písmo
-   Motiv je v datech jako settings.theme ('paper' | 'forest' | 'mist' | 'rose' | 'lavender'); u Výchozího klíč v datech vůbec není (ukládá se až po první změně).
+/* Úkolníček – Barevný motiv (Výchozí / Aqua / Soumrak / Láva / Obsidian / Západ slunce / Nebe) a písmo (na motivu nezávislé)
+   Motiv je v datech jako settings.theme ('forest' | 'lavender' | 'paper' | 'obsidian' | 'rose' | 'mist'; klíče zůstaly z motivů před 4.26.0); u Výchozího klíč v datech vůbec není (ukládá se až po první změně).
    Neznámá hodnota (třeba z novější verze) se chová jako Výchozí a v datech zůstane beze změny.
    Na <html> se motiv projeví atributem data-skin (barvy jsou v css/themes.css). Je nezávislý na režimu světlý/tmavý/auto,
    ten je jen v zařízení (localStorage 'uk-theme') a řeší ho applyTheme v views/settings.js. */
 import { lsGet } from './core.js';
 import { S } from './state.js';
 
-const SKINS=[['default','Výchozí'],['paper','Papír'],['forest','Les'],['mist','Mlha'],['rose','Šípek'],['lavender','Levandule']];
+const SKINS=[['default','Výchozí'],['forest','Aqua'],['lavender','Soumrak'],['paper','Láva'],['obsidian','Obsidian'],['rose','Západ slunce'],['mist','Nebe']];
 const skinOf=(st=S.settings)=>{ const t=st&&st.theme; return SKINS.some(s=>s[0]===t&&t!=='default')?t:'default'; };
-/* písmo zvlášť od motivu (od 4.8.0): settings.font, chybí = „Podle motivu“ (písmo motivu). Neznámá hodnota = Podle motivu.
-   Na <html> atribut data-font, písma v css/themes.css; kopie 'uk-font' v localStorage jen kvůli startu (index.html). */
-const FONTS=[['auto','Podle motivu'],['onest','Onest'],['plex','IBM Plex Sans'],['system','Systémové'],['newsreader','Newsreader'],['literata','Literata'],['sserif','Source Serif']];
-const fontOf=(st=S.settings)=>{ const t=st&&st.font; return FONTS.some(f=>f[0]===t&&t!=='auto')?t:'auto'; };
-function setFont(v){ if(fontOf()===v) return false; if(v==='auto') delete S.settings.font; else S.settings.font=v; return true; }
+/* písmo nezávislé na motivu (od 4.26.2 motiv písmo nemá): settings.font, chybí = Onest (písmo z base.css, do dat se neukládá).
+   Neznámá hodnota (i dřívější 'auto') = Onest a v datech zůstane. Na <html> atribut data-font (u Onest žádný), písma v css/themes.css;
+   kopie 'uk-font' v localStorage jen kvůli startu (index.html). */
+const FONT_DEF='onest';
+const FONTS=[['onest','Onest'],['plex','IBM Plex Sans'],['system','Systémové'],['iowan','Iowan'],['newsreader','Newsreader'],['literata','Literata'],['sserif','Source Serif']];
+const fontOf=(st=S.settings)=>{ const t=st&&st.font; return FONTS.some(f=>f[0]===t)?t:FONT_DEF; };
+function setFont(v){ if(fontOf()===v) return false; if(v===FONT_DEF) delete S.settings.font; else S.settings.font=v; return true; }
 function setSkin(v){ if(skinOf()===v) return false; if(v==='default') delete S.settings.theme; else S.settings.theme=v; return true; }
 
 /* barva lišty prohlížeče = pozadí aktuálního vzhledu (motiv × režim), čte se přímo z CSS */
@@ -28,8 +30,8 @@ function applySkin(){
   if(k==='default') root.removeAttribute('data-skin'); else root.setAttribute('data-skin',k);
   try{ if(k==='default') localStorage.removeItem('uk-skin'); else localStorage.setItem('uk-skin',JSON.stringify(k)); }catch(_){}
   const fo=fontOf();
-  if(fo==='auto') root.removeAttribute('data-font'); else root.setAttribute('data-font',fo);
-  try{ if(fo==='auto') localStorage.removeItem('uk-font'); else localStorage.setItem('uk-font',JSON.stringify(fo)); }catch(_){}
+  if(fo===FONT_DEF) root.removeAttribute('data-font'); else root.setAttribute('data-font',fo);
+  try{ if(fo===FONT_DEF) localStorage.removeItem('uk-font'); else localStorage.setItem('uk-font',JSON.stringify(fo)); }catch(_){}
   syncThemeColor();
 }
 

@@ -241,4 +241,14 @@ function exportMd(pg){
   toast(`Stránka uložena jako „${name}“`);
 }
 
-export { blockMd, cleanBlock, exportMd, htmlToMd, importMd, mdToBlocks };
+/* jedna tabulka → .md (⋮⋮ tabulky, od 4.27.0); název podle popisku, jinak podle stránky */
+function exportTableMd(pg,b){
+  const s=b&&blockMd(b); if(!s) return toast('Tabulka je prázdná.');
+  const cap=String(b.caption||'').replace(/<[^>]*>/g,'').trim();
+  const name=((cap||(pg?pTitle(pg)+' – tabulka':'tabulka')).replace(/[\\/:*?"<>|\u0000-\u001f]+/g,' ').replace(/\s+/g,' ').trim()||'tabulka').slice(0,80)+'.md';
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([s+'\n'],{type:'text/markdown;charset=utf-8'})); a.download=name;
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1500);
+  toast(`Tabulka uložena jako „${name}“`);
+}
+
+export { blockMd, cleanBlock, exportMd, exportTableMd, htmlToMd, importMd, mdToBlocks };

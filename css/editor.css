@@ -370,3 +370,41 @@ a.mention.gone{color:var(--muted);background:var(--hover);text-decoration:line-t
 
 /* položka „Nový řádek nad“ v ⋮⋮: stejná ikona ↵ obrácená */
 .pi-ic.flip svg{transform:scaleY(-1)}
+
+/* úprava vlastní šablony (od 4.27.0, pageHtml → tplHtml): jemná linka barvou zvýraznění nad lištou */
+.doc.tpl-doc>.pagebar{box-shadow:inset 0 2px 0 var(--accent)}
+.doc.tpl-doc .crumbs>span:first-child{color:var(--muted)}
+
+/* ===== mezery nad a pod blokem (od 4.28.0) =====
+   .spt/.spb + --spt/--spb (px při 100 %, násobí se --fs). Vnitřní okraj bloku (--gi nahoře, --gb dole: odsazení textu,
+   okraj obrázku, zvýrazněného bloku…) se vytáhne zápornou hodnotou a celá mezera je padding bloku, takže se mezery
+   dvou sousedních bloků sčítají a nesplývají (.1px drží padding nenulový, jinak by se okraje přelily přes blok). */
+.blk{--gi:var(--sp2);--gb:var(--sp2)}
+.b-callout{--gi:var(--sp3);--gb:var(--sp3)}
+.b-image{--gi:var(--sp4);--gb:var(--sp4)}
+.b-table{--gi:0px;--gb:var(--sp3)}
+.b-divider{--gi:calc(.8em + 2.5px);--gb:calc(.8em + 2.5px)}
+.b-page{--gi:var(--sp1);--gb:var(--sp1)}
+.b-eq{--gi:0px;--gb:0px}
+.blk.spt{margin-top:0;padding-top:max(.1px,calc(var(--spt)*var(--fs)))}
+.blk.spb{margin-bottom:0;padding-bottom:max(.1px,calc(var(--spb)*var(--fs)))}
+.blk.spt>.row,.blk.spt>.divider{margin-top:calc(-1*var(--gi))}
+.blk.spb>.row,.blk.spb>.divider{margin-bottom:calc(-1*var(--gb))}
+.b-callout.spt>.row{margin-top:0}
+.b-callout.spb>.row{margin-bottom:0}
+.b-image.spt .imgfig{margin-top:0}
+.b-image.spb .imgfig{margin-bottom:0}
+.b-page.spt>.pagelink{margin-top:0}
+.b-page.spb>.pagelink{margin-bottom:0}
+.blk.spt>.gut{translate:0 calc(var(--spt)*var(--fs) - var(--gi))}
+
+/* bublina Mezery (lišta výběru bloků a ⋮⋮) */
+.pop.spc-pop{min-width:0;width:auto}
+.spc-row{display:flex;align-items:center;gap:var(--sp1);padding:var(--sp1) var(--sp2)}
+.spc-l{min-width:3em;color:var(--fg2)}
+.spc-row button{width:28px;height:28px;display:grid;place-items:center;border-radius:var(--r-sm);color:var(--fg2)}
+.spc-row button:hover{background:var(--hover);color:var(--fg)}
+.spc-in{width:3.2em;text-align:right;font:inherit;font-variant-numeric:tabular-nums;color:var(--fg);background:transparent;border:0;border-bottom:1px solid var(--line);padding:var(--sp1) var(--sp1);outline:none}
+.spc-in:focus{border-bottom-color:var(--accent)}
+.spc-in::placeholder{color:var(--faint)}
+.spc-u{color:var(--muted);font-size:.86em;margin-right:var(--sp1)}

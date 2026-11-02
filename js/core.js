@@ -78,6 +78,7 @@ const IC={
   caption:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 9.5h16M4 14h10M4 18.5h7"/></svg>',
   download:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
   filter:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>',
+  spacing:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 7h9M11 12h9M11 17h9"/><path d="M5 4v16M2.8 6.4 5 4l2.2 2.4M2.8 17.6 5 20l2.2-2.4"/></svg>',
   textT:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h9M8.5 6v12M15 10h5M17.5 10v8"/></svg>',
   bullets:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 7h10M10 12h10M10 17h10M4.6 7h.1M4.6 12h.1M4.6 17h.1"/></svg>',
   todo:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" rx="1.5"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>'

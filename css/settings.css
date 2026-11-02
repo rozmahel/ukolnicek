@@ -83,7 +83,7 @@ body.navod-page section[data-tab]::before{content:attr(data-title);display:block
 .fnt:hover{background:var(--hover)}
 .fnt.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);color:var(--fg)}
 .skin-sw{display:flex;align-items:center;gap:var(--sp3);height:46px;padding:0 var(--sp5);border-radius:var(--r-md);background:var(--bg);color:var(--fg);border:1px solid var(--line);overflow:hidden}
-.skin-sw b{margin-right:auto;font:600 18px/1 var(--f-body)}
+.skin-sw b{margin-right:auto;font:600 18px/1.2 var(--f-body);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .skin-sw i{flex:none;width:12px;height:12px;border-radius:50%;border:1px solid var(--line)}
 .skin-sw i:nth-of-type(1){background:var(--side)}
 .skin-sw i:nth-of-type(2){background:var(--panel)}
@@ -94,3 +94,20 @@ body.navod-page section[data-tab]::before{content:attr(data-title);display:block
 .au-row .inp{width:auto}
 .au-row input.inp{width:76px}
 .au-row .note{margin:0}
+
+/* šablony v Nastavení → Formát (od 4.27.0) */
+.tpl-list{display:flex;flex-direction:column;margin:var(--sp2) 0}
+.tpl-row{display:flex;align-items:center;gap:var(--sp2);min-height:32px;padding:0 var(--sp2);border-radius:var(--r-sm)}
+.tpl-row:hover{background:var(--hover)}
+.tpl-row.drag{opacity:.45}
+.tpl-grip{display:flex;color:var(--faint);cursor:grab;opacity:0}
+.tpl-row:hover .tpl-grip{opacity:1}
+.tpl-grip .ic,.tpl-grip svg{width:14px;height:14px}
+.tpl-nm{flex:1;min-width:0;text-align:left;padding:var(--sp2) 0;background:none;border:0;color:var(--fg);font:inherit;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+span.tpl-nm{cursor:default;color:var(--fg2)}
+.tpl-ic{width:20px;text-align:center}
+.tpl-row .icon-btn{opacity:0}
+.tpl-row:hover .icon-btn,.tpl-row .icon-btn:focus-visible{opacity:1}
+.tpl-row .icon-btn.danger{color:var(--danger)}
+.tpl-list .empty{padding:var(--sp2)}
+.tpl-bi{margin-top:-4px;padding-left:18px}

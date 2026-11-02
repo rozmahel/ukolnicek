@@ -37,6 +37,7 @@ import { initMath, openEqEditor } from './editor/math.js';
 import { initSource, srcOn, toggleSource } from './editor/source.js';
 import { initTableSize } from './editor/tblsize.js';
 import { initSplit } from './split.js';
+import { closeTemplate } from './templates.js';
 import { trashAct } from './trash.js';
 import { initUpdates, workerOk } from './update.js';
 import { quickAdd, wgDo, wgUi } from './views/dashWidgets.js';
@@ -50,11 +51,40 @@ initStore(); initEvents(); initToolbar(); initUi(); initSchedule(); initSettings
 /* pravé tlačítko (i Ctrl+klik) na obrázku nebo kresbě: menu ⋮⋮ u kurzoru; na textu zůstává menu prohlížeče.
    Dotyk a pero (dlouhé podržení) se nemění, aby se to nepletlo s tažením obrázku. */
 let lastPt='mouse';
+/* je na místě kliknutí znak textu? (prázdná část buňky za textem se nepočítá) */
+function onTextAt(x,y){
+  let node=null, off=0;
+  if(document.caretRangeFromPoint){ const r=document.caretRangeFromPoint(x,y); if(r){ node=r.startContainer; off=r.startOffset; } }
+  else if(document.caretPositionFromPoint){ const p=document.caretPositionFromPoint(x,y); if(p){ node=p.offsetNode; off=p.offset; } }
+  if(!node||node.nodeType!==3) return false;
+  const rg=document.createRange();
+  for(const o of [off-1,off]){
+    if(o<0||o>=node.length) continue;
+    rg.setStart(node,o); rg.setEnd(node,o+1);
+    for(const q of rg.getClientRects()) if(x>=q.left-1&&x<=q.right+1&&y>=q.top-1&&y<=q.bottom+1) return true;
+  }
+  return false;
+}
+function inSelection(x,y){
+  const s=getSelection(); if(!s.rangeCount||s.isCollapsed) return false;
+  for(const q of s.getRangeAt(0).getClientRects()) if(x>=q.left&&x<=q.right&&y>=q.top&&y<=q.bottom) return true;
+  return false;
+}
 document.addEventListener('pointerdown',e=>{ lastPt=e.pointerType||'mouse'; },true);
 document.addEventListener('contextmenu',e=>{
   if((e.pointerType||lastPt)!=='mouse') return;
   /* obrázek v textu nebo v buňce (od 4.20.0): nabídka u obrázku */
   const ii=e.target.closest&&e.target.closest('#doc .txt img.im'); if(ii){ e.preventDefault(); selectImage(ii); return; }
+  /* tabulka (od 4.27.0): prázdné místo (okraje, čáry, prázdná část buňky, kolem popisku) = menu ⋮⋮ tabulky;
+     na textu v buňce nebo v popisku a na označeném textu zůstává menu prohlížeče */
+  const tw=e.target.closest&&e.target.closest('#blocks > .blk.b-table .tbl-wrap, #blocks > .blk.b-table .tcap, #blocks > .blk.b-table');
+  if(tw&&!e.target.closest('.gut')){
+    if(e.target.closest('a, .eq, img')||onTextAt(e.clientX,e.clientY)||inSelection(e.clientX,e.clientY)) return;
+    const blk=tw.closest('#blocks > .blk'), x=ctxOf(blk); if(!x||x.b.type!=='table') return;
+    e.preventDefault(); closePop();
+    openBlockMenu(blk,x.pg,x.b,{rect:{left:e.clientX,right:e.clientX,top:e.clientY,bottom:e.clientY},follow:blk});
+    return;
+  }
   const im=e.target.closest&&e.target.closest('#blocks > .blk .bimg'); if(!im) return;
   const x=ctxOf(im); if(!x||x.b.type!=='image') return;
   e.preventDefault(); hideImgSel();
@@ -106,6 +136,7 @@ document.addEventListener('click',e=>{
     case 'lock': toggleLock(); break;
     case 'mode': { lsSet('uk-theme',isDarkNow()?'light':'dark'); applyTheme(); if(S.view.kind==='today') renderMain(); break; }
     case 'mdexport': exportMd(pg); break;
+    case 'tpl-close': closeTemplate(); break;
     case 'source': toggleSource(pg); break;
     case 'ai-ctx': aipOpen(); break;
     case 'mc-prev': S.calOffset--; renderSidebar(); break;

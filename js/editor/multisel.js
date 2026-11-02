@@ -18,6 +18,7 @@ import { aiUsable } from '../ai.js';
 import { aiMenu } from './aiedit.js';
 import { fragText, htmlToCode } from './code.js';
 import { textToEq } from './math.js';
+import { spcOpen } from './spacing.js';
 
 let xs=null;      /* rozběhnutý tah: {host, node, off, on} */
 let active=false; /* bloky jsou přepnuté na needitovatelné */
@@ -246,10 +247,12 @@ function drawBar(r){
   /* od 4.20.0: počet v kolečku a akce jen jako ikony (název v bublině); smazat vybrané bloky jde i se zámkem: výběr je záměrný a ⌘Z je vrátí */
   const ib=(k,ic,t,x)=>`<button data-b="${k}"${x||''} title="${t}" aria-label="${t}">${ic}</button>`;
   bar.innerHTML=`<span class="bs-n" title="Vybráno: ${cnt}" aria-label="Vybráno: ${cnt}"><i>${n}</i></span>`+(aiUsable()?ib('ai',IC.spark,'AI: opravit, přeformulovat, shrnout…',' class="bs-ai" data-popanchor'):'')
-    +(LOCK?'':ib('type',IC.textT,'Převést na',' data-popanchor')+ib('dup',IC.dup,'Duplikovat (⌘D)'))
+    +(LOCK?'':ib('type',IC.textT,'Převést na',' data-popanchor'))+ib('spc',IC.spacing,'Mezery nad a pod',' data-popanchor')+(LOCK?'':ib('dup',IC.dup,'Duplikovat (⌘D)'))
     +ib('copy',IC.clip,'Kopírovat (⌘C)')+ib('del',IC.trash,'Odstranit (⌫)',' class="danger"')+`<span class="bs-sep" aria-hidden="true"></span>`+ib('x',IC.x,'Zrušit výběr (Esc)',' class="bs-x"');
   bar.hidden=false; placeBar();
 }
+/* po změně mezer: překreslené bloky dostanou zpět zvýraznění výběru, lišta zůstane (bublina u ní nezmizí) */
+function reMark(){ const r=bRange(); if(!r) return; r.ids.forEach(id=>{ const el=$(`#blocks > .blk[data-id="${id}"]`); if(el) el.classList.add('bsel'); }); placeBar(); }
 function placeBar(){
   if(bar.hidden) return; const el=$('#blocks > .blk.bsel'); if(!el){ bar.hidden=true; return; }
   const rc=el.getBoundingClientRect(), doc=$('#doc').getBoundingClientRect(), h=bar.offsetHeight||36;
@@ -331,6 +334,7 @@ export function initMultiSel(){
     const b=e.target.closest('[data-b]'); if(!b) return; const v=b.dataset.b, r=bRange(); if(!r) return clearBsel();
     if(v==='ai'){ const sel={kind:'blocks',pgId:r.pg.id,ids:r.pg.blocks.slice(r.i0,r.i1+1).map(x=>x.id)}; aiMenu(b,sel); return; }
     if(v==='x') clearBsel(); else if(v==='del') delBlocks(); else if(v==='dup') dupBlocks(); else if(v==='copy') copyBlocks(r);
+    else if(v==='spc') spcOpen(b,r.pg,r.pg.blocks.slice(r.i0,r.i1+1),null,reMark);
     else if(v==='type') openPop(b,`<div class="pop-h">Převést na</div>`+[...TEXT_TYPES,'eq'].map(k=>`<button class="pop-item" data-v="${k}"><span class="pi-ic">${TYPE_ICON[k]}</span>${TYPE_LABEL[k]}</button>`).join(''),k=>typeBlocks(k));
   });
   $('#main').addEventListener('scroll',()=>{ if(bs) placeBar(); band&&band.on&&bandMove(band.lx,band.ly); },{passive:true});
@@ -441,4 +445,4 @@ function bandMove(x,y){
 }
 function endBand(){ if(band&&band.on){ bandJust=Date.now(); if(band.el) band.el.remove(); } band=null; }
 
-export { clearBsel };
+export { clearBsel, reMark };

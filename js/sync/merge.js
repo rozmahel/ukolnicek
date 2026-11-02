@@ -127,6 +127,17 @@ function mergeData(L,R,B){
     const v=(bs&&canon(ls[key])===canon(bs[key]))?rs[key]:ls[key];
     if(v!==undefined) out.settings[key]=clone(v);
   });
+  /* vlastní šablony po jednotlivých šablonách: změněná na Disku se převezme, změněná na obou zůstane dvakrát */
+  if(canon(ls.tpls)!==canon(rs.tpls)){
+    const lt=ls.tpls||{}, rt=rs.tpls||{}, bt=bs?(bs.tpls||{}):{}, tp={};
+    new Set([...Object.keys(lt),...Object.keys(rt)]).forEach(id=>{
+      const l=lt[id], r=rt[id], b=bt[id];
+      if(bs&&canon(l)===canon(b)){ if(r) tp[id]=clone(r); return; }
+      if(l) tp[id]=clone(l);
+      if(r&&canon(l)!==canon(r)&&(!bs||canon(r)!==canon(b))){ if(l) tp['t'+rid()]=Object.assign(clone(r),{name:(r.name||'Bez názvu')+' (kopie)'}); else tp[id]=clone(r); }
+    });
+    if(Object.keys(tp).length) out.settings.tpls=tp; else delete out.settings.tpls;
+  }
   return {data:out,copies};
 }
 /* kurzor a posunutí stránky přežijí překreslení po stažení */
